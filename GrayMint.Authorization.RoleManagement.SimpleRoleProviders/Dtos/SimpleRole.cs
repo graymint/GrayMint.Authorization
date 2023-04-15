@@ -7,6 +7,7 @@ namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 
 public class SimpleRole : IRole
 {
+    public const string RootResourceId = "*";
     public required Guid RoleId { get; init; }
     public required string RoleName { get; init; }
     public required bool IsRoot { get; init; }

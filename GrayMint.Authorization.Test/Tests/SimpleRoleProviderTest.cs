@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Authorization.WebApiSample.Security;
@@ -88,7 +89,7 @@ public class SimpleRoleProviderTest
 
         // Add the user to roles
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await roleProvider.AddUser("*", role1.RoleId, user.UserId);
+        await roleProvider.AddUser(SimpleRole.RootResourceId, role1.RoleId, user.UserId);
         await roleProvider.AddUser("1", role1.RoleId, user.UserId);
         await roleProvider.AddUser("1", role2.RoleId, user.UserId);
 
@@ -105,7 +106,7 @@ public class SimpleRoleProviderTest
         // check user role
         var userRoles = await roleProvider.GetUserRoles(userId: userId);
         Assert.AreEqual(3, userRoles.TotalCount);
-        Assert.IsTrue(userRoles.Items.Any(x => x.ResourceId == "*" && x.Role.RoleName == role1.RoleName));
+        Assert.IsTrue(userRoles.Items.Any(x => x.ResourceId == SimpleRole.RootResourceId && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Items.Any(x => x.ResourceId == "1" && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Items.Any(x => x.ResourceId == "1" && x.Role.RoleName == role2.RoleName));
     }

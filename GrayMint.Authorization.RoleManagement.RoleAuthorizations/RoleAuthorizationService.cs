@@ -19,7 +19,7 @@ public class RoleAuthorizationService
 
     public async Task<AuthorizationResult> AuthorizePermissionAsync(ClaimsPrincipal user, string? resource, string permission)
     {
-        resource ??= await _roleProvider.GetRootResourceId();
+        resource ??= _roleProvider.GetRootResourceId();
         var res = await _authorizationService.AuthorizeAsync(user, new RoleResource(resource), RoleAuthorization.Policy);
         if (!res.Succeeded) return res;
 

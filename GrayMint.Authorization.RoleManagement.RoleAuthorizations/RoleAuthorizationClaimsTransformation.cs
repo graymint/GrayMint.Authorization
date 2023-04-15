@@ -26,7 +26,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
 
         //todo cache
         var userRoles = await _roleProvider.GetUserRoles(userId: userId);
-        var rootResourceId = await _roleProvider.GetRootResourceId();    
+        var rootResourceId = _roleProvider.GetRootResourceId();    
 
         // Add the following claims
         // /apps/*/RoleName

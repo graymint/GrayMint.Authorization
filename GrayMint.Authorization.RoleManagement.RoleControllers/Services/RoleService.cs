@@ -21,6 +21,7 @@ public class RoleService
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
     private readonly RoleAuthorizationService _roleAuthorizationService;
     public RoleControllerOptions RoleControllersOptions { get; }
+    public string GetRootResourceId() => _roleProvider.GetRootResourceId();
 
     public RoleService(
         IRoleProvider roleProvider,
@@ -40,7 +41,7 @@ public class RoleService
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
     {
-        if (resourceId == await _roleProvider.GetRootResourceId()) return false; //SystemResource can not be owned
+        if (resourceId == _roleProvider.GetRootResourceId()) return false; //SystemResource can not be owned
 
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
@@ -169,7 +170,7 @@ public class RoleService
 
     public async Task<UserApiKey> CreateSystemApiKey()
     {
-        var rootResourceId = await _roleProvider.GetRootResourceId();
+        var rootResourceId = _roleProvider.GetRootResourceId();
         var systemRoles = await _roleProvider.GetRoles(rootResourceId);
         if (!systemRoles.Any())
             throw new NotExistsException("Could not find any system roles.");

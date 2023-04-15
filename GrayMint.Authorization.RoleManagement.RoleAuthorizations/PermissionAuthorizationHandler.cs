@@ -18,7 +18,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
         _roleAuthorizationOptions = options.Value;
     }
 
-    private async Task<string?> GetResourceId(object? resource)
+    private string? GetResourceId(object? resource)
     {
         return resource switch
         {
@@ -28,7 +28,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
 
             HttpContext httpContext => 
                 httpContext.GetRouteValue(_roleAuthorizationOptions.ResourceParamName)?.ToString() 
-                ?? await _roleProvider.GetRootResourceId(),
+                ?? _roleProvider.GetRootResourceId(),
 
             _ => null
         };
@@ -37,7 +37,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionAuthorizationRequirement requirement)
     {
         // get resource id 
-        var resourceId = await GetResourceId(context.Resource);
+        var resourceId = GetResourceId(context.Resource);
         if (resourceId == null)
         {
             context.Fail(new AuthorizationFailureReason(this, "Access forbidden."));

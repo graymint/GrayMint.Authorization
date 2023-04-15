@@ -57,7 +57,7 @@ public class RoleAuthorizationHandler : AuthorizationHandler<RolesAuthorizationR
         if (!succeeded)
         {
             //todo cache
-            var rootResourceId = await _roleProvider.GetRootResourceId();
+            var rootResourceId = _roleProvider.GetRootResourceId();
             userRoles = await _roleProvider.GetUserRoles(resourceId: rootResourceId, userId: userId);
             succeeded = userRoles.Items.Any(x => requirement.AllowedRoles.Any(y => y == x.Role.RoleName));
         }

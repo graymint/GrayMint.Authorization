@@ -6,7 +6,7 @@ namespace GrayMint.Authorization.RoleManagement.Abstractions;
 
 public interface IRoleProvider
 {
-    Task<string> GetRootResourceId();
+    string GetRootResourceId();
     Task<IUserRole> AddUser(string resourceId, Guid roleId, Guid userId);
     Task RemoveUser(string resourceId, Guid roleId, Guid userId);
     Task<IRole[]> GetRoles(string resourceId);
