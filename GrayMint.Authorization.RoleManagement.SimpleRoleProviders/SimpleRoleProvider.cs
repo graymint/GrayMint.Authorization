@@ -26,6 +26,11 @@ public class SimpleRoleProvider : IRoleProvider
         _roles = simpleRoleProviderOptions.Value.Roles;
     }
 
+    public Task<string> GetRootResourceId()
+    {
+        return Task.FromResult(SystemResourceId);
+    }
+
     public async Task<IUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
@@ -58,8 +63,8 @@ public class SimpleRoleProvider : IRoleProvider
 
     public Task<IRole[]> GetRoles(string resourceId)
     {
-        var isSystem = IsSystemResource(resourceId);
-        var roles = _roles.Where(x => x.IsSystem == isSystem)
+        var isRoot = IsRootResource(resourceId);
+        var roles = _roles.Where(x => x.IsRoot == isRoot)
             .Select(x => (IRole)x)
             .ToArray();
 
@@ -68,15 +73,15 @@ public class SimpleRoleProvider : IRoleProvider
 
     public Task<IRole> Get(string resourceId, Guid roleId)
     {
-        var isSystem = IsSystemResource(resourceId);
-        var role = _roles.Single(x => x.RoleId == roleId && x.IsSystem == isSystem);
+        var isRoot = IsRootResource(resourceId);
+        var role = _roles.Single(x => x.RoleId == roleId && x.IsRoot == isRoot);
         return Task.FromResult((IRole)role);
     }
 
     public Task<IRole?> FindByName(string resourceId, string roleName)
     {
-        var isSystem = IsSystemResource(resourceId);
-        var role = _roles.SingleOrDefault(x => x.RoleName == roleName && x.IsSystem == isSystem);
+        var isRoot = IsRootResource(resourceId);
+        var role = _roles.SingleOrDefault(x => x.RoleName == roleName && x.IsRoot == isRoot);
         return Task.FromResult((IRole?)role);
     }
 
@@ -112,7 +117,7 @@ public class SimpleRoleProvider : IRoleProvider
     {
         // get roles for the resource and system resource
         var userRoles = (await GetUserRoles(resourceId: resourceId, userId: userId)).Items;
-        if (!IsSystemResource(resourceId))
+        if (!IsRootResource(resourceId))
             userRoles = userRoles.Concat((await GetUserRoles(resourceId: SystemResourceId, userId: userId)).Items);
 
         // find simple roles
@@ -132,7 +137,7 @@ public class SimpleRoleProvider : IRoleProvider
         return Task.FromResult(permissions);
     }
 
-    private static bool IsSystemResource(string resourceId)
+    private static bool IsRootResource(string resourceId)
     {
         return resourceId == SystemResourceId;
     }

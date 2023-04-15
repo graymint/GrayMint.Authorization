@@ -9,7 +9,7 @@ public class SimpleRole : IRole
 {
     public required Guid RoleId { get; init; }
     public required string RoleName { get; init; }
-    public required bool IsSystem { get; init; }
+    public required bool IsRoot { get; init; }
     public required string[] Permissions { get; init; }
     public string? Description { get; init; }
 

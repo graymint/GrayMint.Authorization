@@ -4,8 +4,8 @@ public class RoleResource
 {
     public string Resource { get; }
 
-    public RoleResource(string? resource)
+    public RoleResource(string resource)
     {
-        Resource = resource ?? "*";
+        Resource = resource;
     }
 }

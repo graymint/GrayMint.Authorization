@@ -19,7 +19,6 @@ public class RoleService
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
-    private static string SystemResourceId => "*";
     private readonly RoleAuthorizationService _roleAuthorizationService;
     public RoleControllerOptions RoleControllersOptions { get; }
 
@@ -41,7 +40,7 @@ public class RoleService
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
     {
-        if (resourceId == SystemResourceId) return false; //SystemResource can not be owned
+        if (resourceId == await _roleProvider.GetRootResourceId()) return false; //SystemResource can not be owned
 
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
@@ -170,16 +169,17 @@ public class RoleService
 
     public async Task<UserApiKey> CreateSystemApiKey()
     {
-        var systemRoles = await _roleProvider.GetRoles(SystemResourceId);
+        var rootResourceId = await _roleProvider.GetRootResourceId();
+        var systemRoles = await _roleProvider.GetRoles(rootResourceId);
         if (!systemRoles.Any())
             throw new NotExistsException("Could not find any system roles.");
 
         foreach (var systemRole in systemRoles)
         {
-            var permissions = await _roleProvider.GetRolePermissions(SystemResourceId, systemRole.RoleId);
+            var permissions = await _roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
             if (permissions.Contains(RolePermissions.RoleWrite))
             {
-                var user = await AddNewBot("*", new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}", RoleId = systemRole.RoleId });
+                var user = await AddNewBot(rootResourceId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}", RoleId = systemRole.RoleId });
                 return user;
             }
         }
