@@ -4,6 +4,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>2.0.0</Version>
+    <IsPackable>true</IsPackable>
+    <Authors>GrayMint</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

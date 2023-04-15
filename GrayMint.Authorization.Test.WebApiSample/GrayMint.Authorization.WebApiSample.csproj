@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <Authors>GrayMint</Authors>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.125</Version>
+    <LangVersion>latest</LangVersion>
+    <Version>2.0.0</Version>
     <IsPackable>false</IsPackable>
+    <Authors>GrayMint</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Common</RepositoryUrl>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
