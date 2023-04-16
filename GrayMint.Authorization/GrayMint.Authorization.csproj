@@ -10,6 +10,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+    <PackageIcon>GrayMint.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +22,13 @@
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.SimpleRoleProviders\GrayMint.Authorization.RoleManagement.SimpleRoleProviders.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.UserManagement.SimpleUserProviders\GrayMint.Authorization.UserManagement.SimpleUserProviders.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\GrayMint.png" Link="Resources\GrayMint.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

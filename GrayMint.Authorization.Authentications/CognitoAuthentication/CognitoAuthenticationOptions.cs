@@ -4,7 +4,7 @@ public class CognitoAuthenticationOptions
 {
     public string CognitoArn { get; set; } = default!;
     public string CognitoClientId { get; set; } = default!;
-    public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(15);
 
     public string CognitoRolePrefix { get; set; } = "cognito:";
 

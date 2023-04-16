@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.126" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.5" />
   </ItemGroup>
 
   <ItemGroup>

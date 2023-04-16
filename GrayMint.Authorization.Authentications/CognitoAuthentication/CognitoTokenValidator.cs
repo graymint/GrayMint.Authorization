@@ -83,9 +83,11 @@ public class CognitoTokenValidator
 
         // validate audience or client
         var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
-        var tokenUse = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type == "token_use")?.Value
+        var tokenUse = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type == "token_use")?.Value 
                        ?? throw new UnauthorizedAccessException("Could not find token_use.");
-        if (tokenUse != "access" && tokenUse != "id") throw new UnauthorizedAccessException("Unknown token_use.");
+
+        if (tokenUse != "access" && tokenUse != "id") 
+            throw new UnauthorizedAccessException("Unknown token_use.");
 
         // validate aud for id token
         if (tokenUse == "id" && !context.Principal.HasClaim(x => x.Type == "aud" && x.Value == _cognitoOptions.Value.CognitoClientId))
