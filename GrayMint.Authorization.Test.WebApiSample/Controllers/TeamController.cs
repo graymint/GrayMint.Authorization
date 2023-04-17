@@ -1,6 +1,5 @@
 using GrayMint.Authorization.RoleManagement.RoleControllers.Controllers;
 using GrayMint.Authorization.RoleManagement.RoleControllers.Services;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.WebApiSample.Models;
 using GrayMint.Authorization.WebApiSample.Persistence;
 using Microsoft.AspNetCore.Mvc;

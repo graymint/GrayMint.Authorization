@@ -43,7 +43,7 @@ public static class CognitoAuthenticationExtension
                 };
             });
 
-        authenticationBuilder.Services.AddSingleton<CognitoTokenValidator>();
+        authenticationBuilder.Services.AddScoped<CognitoTokenValidator>();
         authenticationBuilder.Services.AddSingleton(Options.Create(cognitoOptions));
         return authenticationBuilder;
     }

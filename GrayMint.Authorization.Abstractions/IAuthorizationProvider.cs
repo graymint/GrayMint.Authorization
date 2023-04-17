@@ -7,6 +7,6 @@ namespace GrayMint.Authorization.Abstractions;
 public interface IAuthorizationProvider
 {
     public Task<string?> GetAuthorizationCode(ClaimsPrincipal principal);
-    Task<Guid?> GetUserId(ClaimsPrincipal claimsPrincipal);
-    Task OnAuthorized(ClaimsPrincipal claimsPrincipal);
+    Task<Guid?> GetUserId(ClaimsPrincipal principal);
+    Task OnAuthenticated(ClaimsPrincipal principal);
 }

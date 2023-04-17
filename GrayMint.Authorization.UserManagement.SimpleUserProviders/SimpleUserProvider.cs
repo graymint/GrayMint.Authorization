@@ -1,20 +1,26 @@
-﻿using GrayMint.Authorization.UserManagement.Abstractions;
+﻿using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders.DtoConverters;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders.Persistence;
+using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GrayMint.Authorization.UserManagement.SimpleUserProviders;
 
 public class SimpleUserProvider : IUserProvider
 {
     private readonly SimpleUserDbContext _simpleUserDbContext;
+    private readonly IMemoryCache _memoryCache;
 
     public SimpleUserProvider(
-        SimpleUserDbContext simpleUserDbContext)
+        SimpleUserDbContext simpleUserDbContext,
+        IMemoryCache memoryCache)
     {
         _simpleUserDbContext = simpleUserDbContext;
+        _memoryCache = memoryCache;
     }
 
     public async Task<IUser> Create(UserCreateRequest request)
@@ -33,9 +39,9 @@ public class SimpleUserProvider : IUserProvider
         });
         await _simpleUserDbContext.SaveChangesAsync();
 
+        _memoryCache.Remove(GetCacheKeyForEmail(request.Email));
         return res.Entity.ToDto();
     }
-
 
     public async Task Update(Guid userId, UserUpdateRequest request)
     {
@@ -43,28 +49,39 @@ public class SimpleUserProvider : IUserProvider
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
         if (request.Description != null) user.Description = request.Description;
-        if (request.Email != null) user.Email = request.Email;
         if (request.IsBot != null) user.IsBot = request.IsBot;
         if (request.ExData != null) user.ExData = request.ExData;
+        if (request.Email != null)
+        {
+            _memoryCache.Remove(GetCacheKeyForEmail(user.Email));
+            _memoryCache.Remove(GetCacheKeyForEmail(request.Email));
+            user.Email = request.Email;
+        }
+
         await _simpleUserDbContext.SaveChangesAsync();
+        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
     public async Task<IUser> Get(Guid userId)
     {
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
+        var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
+        {
+            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
+            return _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
+        }) ?? throw new Exception("provider cache has been corrupted.");
+
+        return user.ToDto();
+    }
+
+    public async Task UpdateAccessedTime(Guid userId)
+    {
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
-        return user.ToDto();
-    }
+        user.AccessedTime = DateTime.Now;
+        await _simpleUserDbContext.SaveChangesAsync();
 
-    public async Task<IUser?> FindByEmail(string email)
-    {
-        var user = await _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
-        return user?.ToDto();
-    }
-
-    public async Task<IUser> GetByEmail(string email)
-    {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.Email == email);
-        return user.ToDto();
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
+        _memoryCache.Set(cacheKey, user, TimeSpan.FromMinutes(60));
     }
 
     public async Task Remove(Guid userId)
@@ -74,6 +91,7 @@ public class SimpleUserProvider : IUserProvider
         var user = new UserModel { UserId = userId };
         _simpleUserDbContext.Users.Remove(user);
         await _simpleUserDbContext.SaveChangesAsync();
+        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
     public async Task ResetAuthorizationCode(Guid userId)
@@ -81,10 +99,35 @@ public class SimpleUserProvider : IUserProvider
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
         user.AuthCode = Guid.NewGuid().ToString();
         await _simpleUserDbContext.SaveChangesAsync();
+        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
-    public async Task<ListResult<IUser>> GetUsers(string? search = null, 
-        IEnumerable<Guid>? userIds = null, bool? isBot = null, 
+    public async Task<IUser?> FindByEmail(string email)
+    {
+        //get from cache
+        var cacheKey = GetCacheKeyForEmail(email);
+        if (_memoryCache.TryGetValue(cacheKey, out UserModel? user) && user != null)
+            return user.ToDto();
+
+        //add to cache
+        user = await _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
+        if (user != null)
+        {
+            _memoryCache.Set(cacheKey, user);
+            AuthorizationCache.AddKey(_memoryCache, user.UserId, cacheKey);
+        }
+
+        return user?.ToDto();
+    }
+
+    public async Task<IUser> GetByEmail(string email)
+    {
+        var user = await FindByEmail(email) ?? throw new NotExistsException("There is not user with the given email.");
+        return user;
+    }
+
+    public async Task<ListResult<IUser>> GetUsers(string? search = null,
+        IEnumerable<Guid>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
         recordCount ??= int.MaxValue;
@@ -117,10 +160,9 @@ public class SimpleUserProvider : IUserProvider
         return ret;
     }
 
-    public async Task UpdateAccessedTime(Guid userId)
+    private static string GetCacheKeyForEmail(string email)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
-        user.AccessedTime = DateTime.Now;
-        await _simpleUserDbContext.SaveChangesAsync();
+        return $"graymint:auth:user-provider:user-model:email={email}";
     }
+
 }

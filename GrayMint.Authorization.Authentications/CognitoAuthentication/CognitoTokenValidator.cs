@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Common.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,28 +15,24 @@ namespace GrayMint.Authorization.Authentications.CognitoAuthentication;
 public class CognitoTokenValidator
 {
     private readonly HttpClient _httpClient;
-    private readonly IOptions<CognitoAuthenticationOptions> _cognitoOptions;
+    private readonly CognitoAuthenticationOptions _cognitoOptions;
     private readonly IMemoryCache _memoryCache;
+    private readonly IAuthorizationProvider _authenticationProvider;
 
     public CognitoTokenValidator(HttpClient httpClient,
         IOptions<CognitoAuthenticationOptions> cognitoOptions,
-        IMemoryCache memoryCache)
+        IMemoryCache memoryCache, 
+        IAuthorizationProvider authenticationProvider)
     {
         _httpClient = httpClient;
-        _cognitoOptions = cognitoOptions;
+        _cognitoOptions = cognitoOptions.Value;
         _memoryCache = memoryCache;
+        _authenticationProvider = authenticationProvider;
     }
 
     private async Task<OpenIdUserInfo> GetUserInfoFromAccessToken(TokenValidatedContext context)
     {
         var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
-        var accessToken = jwtSecurityToken.RawData;
-
-        // get from cache
-        var accessTokenHash = MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(accessToken));
-        var cacheKey = "OpenIdUserInfo/" + Convert.ToBase64String(accessTokenHash);
-        if (_memoryCache.TryGetValue<OpenIdUserInfo>(cacheKey, out var userInfo) && userInfo != null)
-            return userInfo;
 
         // get from authority
         if (context.Options.ConfigurationManager == null)
@@ -62,14 +59,13 @@ public class CognitoTokenValidator
                 throw new UnauthorizedAccessException("openid scope was expected.");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, configuration.UserInfoEndpoint);
-            httpRequestMessage.Headers.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, accessToken);
+            httpRequestMessage.Headers.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, jwtSecurityToken.RawData);
             var httpResponseMessage = await _httpClient.SendAsync(httpRequestMessage);
             httpResponseMessage.EnsureSuccessStatusCode();
             var json = await httpResponseMessage.Content.ReadAsStringAsync();
             openIdUserInfo = GmUtil.JsonDeserialize<OpenIdUserInfo>(json);
         }
 
-        _memoryCache.Set(cacheKey, openIdUserInfo, _cognitoOptions.Value.CacheTimeout);
         return openIdUserInfo;
     }
 
@@ -81,8 +77,10 @@ public class CognitoTokenValidator
             return;
         }
 
+
         // validate audience or client
         var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
+        var accessTokenHash = Convert.ToBase64String(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(jwtSecurityToken.RawData)));
         var tokenUse = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type == "token_use")?.Value 
                        ?? throw new UnauthorizedAccessException("Could not find token_use.");
 
@@ -90,22 +88,29 @@ public class CognitoTokenValidator
             throw new UnauthorizedAccessException("Unknown token_use.");
 
         // validate aud for id token
-        if (tokenUse == "id" && !context.Principal.HasClaim(x => x.Type == "aud" && x.Value == _cognitoOptions.Value.CognitoClientId))
+        if (tokenUse == "id" && !context.Principal.HasClaim(x => x.Type == "aud" && x.Value == _cognitoOptions.CognitoClientId))
         {
             context.Fail("client_id does not match");
             return;
         }
 
         // validate client_id for access token
-        if (tokenUse == "access" && !context.Principal.HasClaim(x => x.Type == "client_id" && x.Value == _cognitoOptions.Value.CognitoClientId))
+        if (tokenUse == "access" && !context.Principal.HasClaim(x => x.Type == "client_id" && x.Value == _cognitoOptions.CognitoClientId))
         {
             context.Fail("client_id does not match");
             return;
         }
 
         // get user_info from authority by AccessToken
-        var userInfo = await GetUserInfoFromAccessToken(context);
-        if (userInfo.EmailVerified != "true")
+        var userInfoCacheKey = $"graymint:cognito:user-info:token-cache={accessTokenHash}";
+        var userInfo = await _memoryCache.GetOrCreateAsync(userInfoCacheKey, entry =>
+        {
+            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
+            return GetUserInfoFromAccessToken(context);
+        });
+
+        // check email
+        if (userInfo!.EmailVerified != "true")
         {
             context.Fail("User's email is not verified.");
             return;
@@ -129,9 +134,20 @@ public class CognitoTokenValidator
 
         // Convert cognito roles to standard roles
         foreach (var claim in context.Principal.Claims.Where(x => x.Type == "cognito:groups"))
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, _cognitoOptions.Value.CognitoRolePrefix + claim.Value));
+            claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, _cognitoOptions.CognitoRolePrefix + claim.Value));
 
-        context.Principal?.AddIdentity(claimsIdentity);
+        context.Principal.AddIdentity(claimsIdentity);
+
+        // update name-identifier
+        var userId =  await _authenticationProvider.GetUserId(context.Principal);
+        if (userId != null)
+        {
+            AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId.Value);
+            AuthorizationCache.AddKey(_memoryCache, userId.Value, userInfoCacheKey);
+        }
+
+        // notify authenticated
+        await _authenticationProvider.OnAuthenticated(context.Principal);
     }
 
     private class OpenIdUserInfo

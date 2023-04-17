@@ -1,7 +1,9 @@
 ﻿using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using GrayMint.Authorization.Abstractions;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
@@ -23,11 +25,11 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
         return resource switch
         {
             // get resourceId
-            RoleResource roleResource => 
+            RoleResource roleResource =>
                 roleResource.Resource,
 
-            HttpContext httpContext => 
-                httpContext.GetRouteValue(_roleAuthorizationOptions.ResourceParamName)?.ToString() 
+            HttpContext httpContext =>
+                httpContext.GetRouteValue(_roleAuthorizationOptions.ResourceParamName)?.ToString()
                 ?? _roleProvider.GetRootResourceId(),
 
             _ => null
@@ -52,13 +54,12 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
             return;
         }
 
+        // check cache
         // get user permissions
-        //todo cache
         var userPermissions = await _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
 
         // validate roles
-        var succeeded = userPermissions.Any(x => x==requirement.PermissionId);
-
+        var succeeded = userPermissions.Any(x => x == requirement.PermissionId);
         if (succeeded)
             context.Succeed(requirement);
         else

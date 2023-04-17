@@ -48,15 +48,13 @@ public class RoleAuthorizationHandler : AuthorizationHandler<RolesAuthorizationR
             return;
         }
 
-        // look for specified resource access
-        //todo cache
+        // check cache
         var userRoles = await _roleProvider.GetUserRoles(resourceId: resourceId, userId: userId);
         var succeeded = userRoles.Items.Any(x => requirement.AllowedRoles.Any(y => y == x.Role.RoleName));
-        
+
         // look for system resource
         if (!succeeded)
         {
-            //todo cache
             var rootResourceId = _roleProvider.GetRootResourceId();
             userRoles = await _roleProvider.GetUserRoles(resourceId: rootResourceId, userId: userId);
             succeeded = userRoles.Items.Any(x => requirement.AllowedRoles.Any(y => y == x.Role.RoleName));

@@ -21,25 +21,25 @@ public class SimpleAuthenticationProvider : IAuthorizationProvider
         return user.AuthorizationCode;
     }
 
-    public async Task<Guid?> GetUserId(ClaimsPrincipal claimsPrincipal)
+    public async Task<Guid?> GetUserId(ClaimsPrincipal principal)
     {
-        var email = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+        var email = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
         if (email == null) return null;
         var user = await _userProvider.FindByEmail(email);
         return user?.UserId;
     }
 
-    public async Task OnAuthorized(ClaimsPrincipal claimsPrincipal)
+    public async Task OnAuthenticated(ClaimsPrincipal principal)
     {
-        var userId = await GetUserId(claimsPrincipal);
+        var userId = await GetUserId(principal);
         if (userId == null)
             return;
 
         var user = await _userProvider.Get(userId.Value);
 
         //update profile by claim
-        var givenName = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.GivenName)?.Value;
-        var surnameName = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Surname)?.Value;
+        var givenName = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.GivenName)?.Value;
+        var surnameName = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Surname)?.Value;
 
         var updateRequest = new UserUpdateRequest
         {

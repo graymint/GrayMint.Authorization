@@ -6,7 +6,6 @@ namespace GrayMint.Authorization.Authentications.BotAuthentication;
 public class BotTokenValidator
 {
     private readonly IAuthorizationProvider _authenticationProvider;
-
     public BotTokenValidator(
         IAuthorizationProvider authenticationProvider)
     {
@@ -20,7 +19,9 @@ public class BotTokenValidator
             if (context.Principal == null)
                 throw new Exception("Principal has not been validated.");
 
-            var authCode = await _authenticationProvider.GetAuthorizationCode(context.Principal);
+            // get authCode
+            var authCode =  await _authenticationProvider.GetAuthorizationCode(context.Principal);
+
             if (string.IsNullOrEmpty(authCode))
                 throw new Exception($"{BotAuthenticationDefaults.AuthenticationScheme} needs {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
 
@@ -32,6 +33,12 @@ public class BotTokenValidator
             if (authCode != tokenAuthCode)
                 throw new Exception($"Invalid {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
 
+            // update name-identifier
+            var userId = await _authenticationProvider.GetUserId(context.Principal);
+            if (userId!=null)
+                AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId.Value);
+
+            await _authenticationProvider.OnAuthenticated(context.Principal);
         }
         catch (Exception ex)
         {

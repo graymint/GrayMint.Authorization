@@ -55,5 +55,6 @@ public class AwsCognitoTest
             new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, idToken);
 
         await testInit.AppsClient.ListAsync();
+        await testInit.AppsClient.ListAsync();
     }
 }

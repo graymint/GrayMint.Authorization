@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GrayMint.Authorization.RoleManagement.RoleControllers.Controllers;
 
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
-[Authorize] //todo: check double call
+[Authorize]
 [Route("/api/v{version:apiVersion}/team")]
 public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRole, TRole>
     : ControllerBase where TResourceId : notnull
