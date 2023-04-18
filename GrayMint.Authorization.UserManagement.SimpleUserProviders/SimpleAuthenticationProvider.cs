@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.Concurrent;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.Abstractions;
 

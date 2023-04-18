@@ -1,15 +1,27 @@
-﻿using GrayMint.Authorization.Abstractions;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using GrayMint.Authorization.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.Authentications.BotAuthentication;
 
 public class BotTokenValidator
 {
     private readonly IAuthorizationProvider _authenticationProvider;
+    private readonly IMemoryCache _memoryCache;
+    private readonly BotAuthenticationOptions _botAuthenticationOptions;
     public BotTokenValidator(
-        IAuthorizationProvider authenticationProvider)
+        IAuthorizationProvider authenticationProvider,
+        IMemoryCache memoryCache,
+        IOptions<BotAuthenticationOptions> botAuthenticationOptions)
     {
         _authenticationProvider = authenticationProvider;
+        _memoryCache = memoryCache;
+        _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
     public async Task Validate(TokenValidatedContext context)
@@ -19,8 +31,16 @@ public class BotTokenValidator
             if (context.Principal == null)
                 throw new Exception("Principal has not been validated.");
 
-            // get authCode
-            var authCode =  await _authenticationProvider.GetAuthorizationCode(context.Principal);
+            var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
+            var accessTokenHash = Convert.ToBase64String(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(jwtSecurityToken.RawData)));
+
+            // get authCode and manage cache
+            var authCodeCacheKey = $"graymint:auth:bot:auth-code:token-hash={accessTokenHash}";
+            var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
+            {
+                entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);
+                return _authenticationProvider.GetAuthorizationCode(context.Principal);
+            });
 
             if (string.IsNullOrEmpty(authCode))
                 throw new Exception($"{BotAuthenticationDefaults.AuthenticationScheme} needs {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
@@ -34,9 +54,18 @@ public class BotTokenValidator
                 throw new Exception($"Invalid {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
 
             // update name-identifier
-            var userId = await _authenticationProvider.GetUserId(context.Principal);
-            if (userId!=null)
+            var userIdCacheKey = $"graymint:auth:bot:userid:{accessTokenHash}";
+            var userId = await _memoryCache.GetOrCreateAsync(userIdCacheKey, entry =>
+            {
+                entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);
+                return _authenticationProvider.GetUserId(context.Principal);
+            });
+            if (userId != null)
+            {
                 AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId.Value);
+                AuthorizationCache.AddKey(_memoryCache, userId.Value, userIdCacheKey);
+                AuthorizationCache.AddKey(_memoryCache, userId.Value, authCodeCacheKey);
+            }
 
             await _authenticationProvider.OnAuthenticated(context.Principal);
         }

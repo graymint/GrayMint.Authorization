@@ -6,22 +6,34 @@ namespace GrayMint.Authorization.Abstractions;
 
 public static class AuthorizationCache
 {
-    public static void AddKey(IMemoryCache memoryCache, Guid userId, string key)
+    private static string BuildUserIdCacheKey(Guid userId)
     {
-        CreateKey(memoryCache, userId, key);
+        return $"graymint:auth:userid:{userId}";
     }
 
     public static string CreateKey(IMemoryCache memoryCache, Guid userId, string key)
     {
-        return CreateKeyInternal(memoryCache, $"graymint:auth:userid:{userId}", key);
+        return CreateKeyInternal(memoryCache, BuildUserIdCacheKey(userId), key);
     }
 
     public static void ResetUser(IMemoryCache memoryCache, Guid userId)
     {
-        ResetUser(memoryCache, $"graymint:auth:userid:{userId}");
+        ResetUser(memoryCache, BuildUserIdCacheKey(userId));
     }
 
-    public static string CreateKeyInternal(IMemoryCache memoryCache, string userKey, string key)
+    public static void AddKey(IMemoryCache memoryCache, Guid userId, string key)
+    {
+        var keys = memoryCache.GetOrCreate(BuildUserIdCacheKey(userId), entry =>
+            {
+                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
+                return new HashSet<string>();
+            }
+        );
+
+        keys?.Add(key);
+    }
+
+    private static string CreateKeyInternal(IMemoryCache memoryCache, string userKey, string key)
     {
         var keys = memoryCache.GetOrCreate(userKey, entry =>
             {
