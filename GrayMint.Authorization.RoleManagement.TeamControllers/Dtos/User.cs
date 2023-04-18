@@ -1,6 +1,6 @@
 ﻿using GrayMint.Authorization.UserManagement.Abstractions;
 
-namespace GrayMint.Authorization.RoleManagement.RoleControllers.Dtos;
+namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
 public class User : IUser
 {

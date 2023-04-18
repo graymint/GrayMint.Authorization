@@ -2,11 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Authentications.BotAuthentication;
-using GrayMint.Authorization.RoleManagement.RoleControllers.Exceptions;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 using GrayMint.Authorization.Test.Helper;
-using GrayMint.Authorization.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
-using GrayMint.Common.Test.Api;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -20,7 +19,7 @@ public class UserTest
     public async Task ResetAuthUserToken()
     {
         var testInit = await TestInit.Create();
-        await testInit.AddNewUser(Roles.SystemAdmin);
+        await testInit.AddNewBot(Roles.SystemAdmin);
         var apiKey = await testInit.TeamClient.ResetCurrentUserApiKeyAsync();
 
         // call api buy retrieved token
@@ -45,15 +44,15 @@ public class UserTest
     public async Task ResetSystemBotAuthToken()
     {
         var testInit = await TestInit.Create();
-        var user = await testInit.AddNewUser(Roles.SystemAdmin);
+        var user = await testInit.AddNewBot(Roles.SystemAdmin);
 
         // call api buy retrieved token
-        var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(0, user.UserId);
+        var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         testInit.SetApiKey(apiKey);
         await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()); // make sure the current token is working
 
         //reset token
-        await testInit.TeamClient.ResetBotApiKeyAsync(0, user.UserId);
+        await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         await Task.Delay(200);
         try
         {
@@ -70,18 +69,19 @@ public class UserTest
     public async Task ResetAppBotAuthToken()
     {
         var testInit = await TestInit.Create();
-        var apiKey = await testInit.AddNewUser(Roles.AppAdmin, false);
-        var userRole = await testInit.TeamClient.GetUserAsync(testInit.AppId, apiKey.UserId);
+        var apiKey = await testInit.AddNewBot(Roles.AppAdmin, false);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppId, userId: apiKey.UserId);
+        var userRole = userRoles.Items.Single();
         Assert.IsNotNull(userRole.User);
         Assert.IsNull(userRole.User.AccessedTime, "Newly created bot should not have AccessTime before login.");
 
         // call api buy retrieved token
-        apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(testInit.App.AppId, apiKey.UserId);
+        apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         testInit.SetApiKey(apiKey);
         await testInit.ItemsClient.CreateAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
 
         //reset token
-        await testInit.TeamClient.ResetBotApiKeyAsync(testInit.AppId, apiKey.UserId);
+        await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         await Task.Delay(200);
         try
         {
@@ -99,16 +99,12 @@ public class UserTest
     {
         using var testInit = await TestInit.Create();
 
-        var userRole = await testInit.TeamClient.AddUserAsync(0, new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.SystemAdmin.RoleId
-        });
+        var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
         Assert.IsNotNull(userRole.User);
 
         try
         {
-            await testInit.TeamClient.ResetBotApiKeyAsync(0, userRole.User.UserId);
+            await testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (ApiException ex)
@@ -122,16 +118,12 @@ public class UserTest
     {
         using var testInit = await TestInit.Create();
 
-        var userRole = await testInit.TeamClient.AddUserAsync(testInit.AppId, new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.AppAdmin.RoleId
-        });
+        var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
         Assert.IsNotNull(userRole.User);
 
         try
         {
-            await testInit.TeamClient.ResetBotApiKeyAsync(testInit.AppId, userRole.User.UserId);
+            await testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (ApiException ex)

@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.RoleManagement.RoleControllers.Dtos;
+﻿namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
 public class UserApiKey
 {

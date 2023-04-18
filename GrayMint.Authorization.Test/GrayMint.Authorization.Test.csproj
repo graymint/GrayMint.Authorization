@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.WebApiSample.csproj" />
+    <ProjectReference Include="..\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties api_4api_1nswag__JsonSchema="https://docs.renovatebot.com/renovate-schema.json" /></VisualStudio></ProjectExtensions>

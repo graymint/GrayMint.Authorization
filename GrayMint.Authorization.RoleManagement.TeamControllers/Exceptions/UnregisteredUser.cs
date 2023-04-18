@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.RoleManagement.RoleControllers.Exceptions;
+﻿namespace GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 
 public class UnregisteredUser : Exception
 {

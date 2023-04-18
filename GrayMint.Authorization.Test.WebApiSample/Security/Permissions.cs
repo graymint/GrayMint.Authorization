@@ -1,4 +1,4 @@
-namespace GrayMint.Authorization.WebApiSample.Security;
+namespace GrayMint.Authorization.Test.WebApiSample.Security;
 
 public static class Permissions
 {

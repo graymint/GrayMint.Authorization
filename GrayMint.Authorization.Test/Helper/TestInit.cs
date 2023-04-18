@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
-using GrayMint.Authorization.WebApiSample;
+using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Common.Test.Api;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -58,19 +58,27 @@ public class TestInit : IDisposable
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }
 
-    public async Task<UserApiKey> AddNewUser(SimpleRole simpleRole, bool setAsCurrent = true)
+    public async Task<UserApiKey> AddNewBot(SimpleRole simpleRole, bool setAsCurrent = true)
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
         HttpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(SystemAdminApiKey.Authorization);
 
         var resourceId = simpleRole.IsRoot ? 0 : App.AppId;
-        var apiKey = await TeamClient.AddNewBotAsync(resourceId, new TeamAddBotParam { Name = Guid.NewGuid().ToString(), RoleId = simpleRole.RoleId });
+        var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString()});
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
             ? AuthenticationHeaderValue.Parse(apiKey.Authorization) : oldAuthorization;
 
         return apiKey;
     }
+
+    public async Task<UserRole> AddNewUser(SimpleRole simpleRole)
+    {
+        var resourceId = simpleRole.IsRoot ? 0 : App.AppId;
+        var apiKey = await TeamClient.AddUserByEmailAsync(resourceId, simpleRole.RoleId, NewEmail());
+        return apiKey;
+    }
+
 
     public void SetApiKey(UserApiKey apiKey)
     {
@@ -81,7 +89,7 @@ public class TestInit : IDisposable
         string environment = "Development", bool useCognito = false)
     {
         appSettings ??= new Dictionary<string, string?>();
-        if (!useCognito) appSettings["Auth:CognitoClientId"]="ignore";
+        if (!useCognito) appSettings["Auth:CognitoClientId"] = "ignore";
         var testInit = new TestInit(appSettings, environment);
         await testInit.Init();
         return testInit;

@@ -1,4 +1,4 @@
-namespace GrayMint.Authorization.WebApiSample.Models;
+namespace GrayMint.Authorization.Test.WebApiSample.Models;
 
 public class Item
 {

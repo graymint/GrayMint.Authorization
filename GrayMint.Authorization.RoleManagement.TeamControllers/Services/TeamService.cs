@@ -3,31 +3,31 @@ using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
-using GrayMint.Authorization.RoleManagement.RoleControllers.Dtos;
-using GrayMint.Authorization.RoleManagement.RoleControllers.Exceptions;
-using GrayMint.Authorization.RoleManagement.RoleControllers.Security;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.Extensions.Options;
 
-namespace GrayMint.Authorization.RoleManagement.RoleControllers.Services;
+namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 
-public class RoleService
+public class TeamService
 {
     private readonly IRoleProvider _roleProvider;
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
     private readonly RoleAuthorizationService _roleAuthorizationService;
-    public RoleControllerOptions RoleControllersOptions { get; }
+    public TeamControllerOptions TeamControllersOptions { get; }
     public string GetRootResourceId() => _roleProvider.GetRootResourceId();
 
-    public RoleService(
+    public TeamService(
         IRoleProvider roleProvider,
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider,
-        IOptions<RoleControllerOptions> roleControllersOptions,
+        IOptions<TeamControllerOptions> teamControllersOptions,
         BotAuthenticationTokenBuilder botAuthenticationTokenBuilder,
         RoleAuthorizationService roleAuthorizationService)
     {
@@ -36,7 +36,7 @@ public class RoleService
         _authorizationProvider = authorizationProvider;
         _botAuthenticationTokenBuilder = botAuthenticationTokenBuilder;
         _roleAuthorizationService = roleAuthorizationService;
-        RoleControllersOptions = roleControllersOptions.Value;
+        TeamControllersOptions = teamControllersOptions.Value;
     }
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
@@ -47,13 +47,18 @@ public class RoleService
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
 
-    public async Task<UserApiKey> AddNewBot(string resourceId, TeamAddBotParam addParam)
+    public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
     {
         // check is a bot already exists with the same name
         var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true);
         if (userRoles.Items.Any(x => addParam.Name.Equals(x.User?.FirstName, StringComparison.OrdinalIgnoreCase) && x.User.IsBot))
             throw new AlreadyExistsException("Bots");
 
+        // check bot policy
+        if (!TeamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
+            throw new InvalidOperationException("Bot can not be an owner.");
+
+        // create
         var email = $"{Guid.NewGuid()}@bot";
         var user = await _userProvider.Create(new UserCreateRequest
         {
@@ -62,7 +67,7 @@ public class RoleService
             IsBot = true
         });
 
-        await _roleProvider.AddUser(roleId: addParam.RoleId, userId: user.UserId, resourceId: resourceId);
+        await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
         var authenticationHeader = await _botAuthenticationTokenBuilder.CreateAuthenticationHeader(user.UserId.ToString(), user.Email);
         var ret = new UserApiKey
         {
@@ -75,6 +80,12 @@ public class RoleService
     public async Task<UserApiKey> ResetUserApiKey(Guid userId)
     {
         var user = await _userProvider.Get(userId);
+
+        // check AllowUserApiKey for user
+        if (!user.IsBot && !TeamControllersOptions.AllowUserApiKey)
+            throw new UnauthorizedAccessException("User ApiKey is not enabled.");
+
+        // reset the api key
         await _userProvider.ResetAuthorizationCode(user.UserId);
         var authenticationHeader = await _botAuthenticationTokenBuilder.CreateAuthenticationHeader(user.UserId.ToString(), user.Email);
         var ret = new UserApiKey
@@ -96,11 +107,19 @@ public class RoleService
 
     public async Task<UserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
+        // check is already exists
         var userRoles = await _roleProvider.GetUserRoles(resourceId: resourceId, userId: userId);
-        if (userRoles.Items.Any())
+        if (userRoles.Items.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
-        await _roleProvider.AddUser(roleId: roleId, userId: userId, resourceId: resourceId);
+        // add to role
+        await _roleProvider.AddUser(resourceId: resourceId, roleId: roleId, userId: userId);
+
+        // remove from other roles if MultipleRoles is not allowed
+        if (!TeamControllersOptions.AllowMultipleRoles)
+            foreach (var userRole in userRoles.Items.Where(x => x.Role.RoleId != roleId))
+                await RemoveUser(resourceId, userRole.Role.RoleId, userId);
+
         var userRoleList = await GetUserRoles(resourceId: resourceId, userId: userId);
         return userRoleList.Items.Single(x => x.UserId == userId);
     }
@@ -131,7 +150,7 @@ public class RoleService
             resourceId: resourceId, roleId: roleId, userId: userId);
 
         // get users of userRoles
-        var userList = await _userProvider.GetUsers(search, 
+        var userList = await _userProvider.GetUsers(search,
             userRoleList.Items.Select(x => x.UserId), isBot: isBot);
 
         // attach user to UserRoles
@@ -152,9 +171,14 @@ public class RoleService
         return ret;
     }
 
-    public Task RemoveUser(string resourceId, Guid roleId, Guid userId)
+    public async Task RemoveUser(string resourceId, Guid roleId, Guid userId)
     {
-        return _roleProvider.RemoveUser(resourceId: resourceId, roleId, userId);
+        await _roleProvider.RemoveUser(resourceId: resourceId, roleId, userId);
+
+        // delete if user does not have any more roles in the system
+        var userRoles = await GetUserRoles(userId: userId, recordCount: 1);
+        if (!userRoles.Items.Any())
+            await DeleteUser(userId);
     }
 
     public Task DeleteUser(Guid userId)
@@ -165,7 +189,7 @@ public class RoleService
     public async Task<IEnumerable<Role>> GetRoles(string resourceId)
     {
         var roles = await _roleProvider.GetRoles(resourceId);
-        return roles.Select(x=>new Role(x));
+        return roles.Select(x => new Role(x));
     }
 
     public async Task<UserApiKey> CreateSystemApiKey()
@@ -180,7 +204,7 @@ public class RoleService
             var permissions = await _roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
             if (permissions.Contains(RolePermissions.RoleWrite))
             {
-                var user = await AddNewBot(rootResourceId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}", RoleId = systemRole.RoleId });
+                var user = await AddNewBot(rootResourceId, systemRole.RoleId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
                 return user;
             }
         }
@@ -246,7 +270,12 @@ public class RoleService
     public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, Guid userId, Guid? newRoleId)
     {
         // check is AllowOwnerSelfRemove allowed
-        if (RoleControllersOptions.AllowOwnerSelfRemove)
+        if (TeamControllersOptions.AllowOwnerSelfRemove)
+            return;
+
+        // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
+        // the old roles won't be changed
+        if (TeamControllersOptions.AllowMultipleRoles && newRoleId != null)
             return;
 
         // check is caller changing himself

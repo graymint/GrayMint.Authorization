@@ -1,16 +1,16 @@
 using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
-using GrayMint.Authorization.RoleManagement.RoleControllers;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.TeamControllers;
+using GrayMint.Authorization.Test.WebApiSample.Persistence;
+using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders;
-using GrayMint.Authorization.WebApiSample.Persistence;
-using GrayMint.Authorization.WebApiSample.Security;
 using GrayMint.Common.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.WebApiSample;
+namespace GrayMint.Authorization.Test.WebApiSample;
 
 public class Program
 {
@@ -31,7 +31,7 @@ public class Program
         builder.Services.AddGrayMintRoleAuthorization(new RoleAuthorizationOptions { AuthenticationSchemes = authenticationSchemes } );
         builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintSimpleUserProvider(authConfiguration.Get<SimpleUserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintRoleController(builder.Configuration.GetSection("RoleController").Get<RoleControllerOptions>());
+        builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("RoleController").Get<TeamControllerOptions>());
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Add services to the container.

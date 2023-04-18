@@ -1,6 +1,6 @@
 using System.Net;
 using GrayMint.Authorization.Test.Helper;
-using GrayMint.Authorization.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
@@ -16,18 +16,15 @@ public class AppTeamControllerTest
     {
         using var testInit = await TestInit.Create();
 
-        var apiKey = await testInit.TeamClient.AddNewBotAsync(testInit.AppId, new TeamAddBotParam
-        {
-            Name = Guid.NewGuid().ToString(),
-            RoleId = Roles.AppAdmin.RoleId
-        });
+        var apiKey = await testInit.TeamClient.AddNewBotAsync(testInit.AppId, Roles.AppAdmin.RoleId, 
+            new TeamAddBotParam
+            {
+                Name = Guid.NewGuid().ToString(),
+            });
 
         testInit.SetApiKey(apiKey);
-        await testInit.TeamClient.AddUserAsync(testInit.AppId, new TeamAddUserParam
-        {
-            Email = TestInit.NewEmail(),
-            RoleId = Roles.AppAdmin.RoleId
-        });
+        await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, Roles.AppAdmin.RoleId, 
+            TestInit.NewEmail(), new TeamAddEmailParam());
     }
 
     [TestMethod]
@@ -50,7 +47,7 @@ public class AppTeamControllerTest
     public async Task List_UserApps()
     {
         using var testInit1 = await TestInit.Create();
-        await testInit1.AddNewUser(Roles.AppOwner);
+        await testInit1.AddNewBot(Roles.AppOwner);
         var apps = await testInit1.TeamClient.ListCurrentUserResourcesAsync();
         Assert.IsTrue(apps.Any(x => x.AppId == testInit1.AppId));
     }
@@ -66,10 +63,9 @@ public class AppTeamControllerTest
         // --------
         try
         {
-            await testInit.TeamClient.AddNewBotAsync(testInit.AppId, new TeamAddBotParam
+            await testInit.TeamClient.AddNewBotAsync(testInit.AppId, Roles.AppOwner.RoleId, new TeamAddBotParam
             {
                 Name = Guid.NewGuid().ToString(),
-                RoleId = Roles.AppOwner.RoleId
             });
             Assert.Fail("InvalidOperationException was expected.");
         }
@@ -80,34 +76,64 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Bot_can_not_be_added()
+    public async Task Bot_can_not_be_added_if_it_belong_to_alien_resource()
     {
         using var testInit1 = await TestInit.Create();
-        var apiKey1 = await testInit1.TeamClient.AddNewBotAsync(testInit1.AppId, new TeamAddBotParam
-        {
-            Name = Guid.NewGuid().ToString(),
-            RoleId = Roles.AppAdmin.RoleId
-        });
-        var botUserRole = await testInit1.TeamClient.GetUserAsync(testInit1.AppId, apiKey1.UserId);
-        Assert.IsNotNull(botUserRole.User);
+        var apiKey1 = await testInit1.AddNewBot(Roles.AppAdmin, false);
+        var botUserRoles = await testInit1.TeamClient.ListUserRolesAsync(resourceId: testInit1.AppId, userId: apiKey1.UserId, roleId: Roles.AppAdmin.RoleId);
+        var botUserRole = botUserRoles.Items.FirstOrDefault();
+        Assert.IsNotNull(botUserRole);
 
+        // change the current user to another resource
         using var testInit2 = await TestInit.Create();
+        await testInit2.AddNewBot(Roles.AppAdmin);
         try
         {
-            await testInit2.TeamClient.AddUserAsync(testInit2.AppId, new TeamAddUserParam
-            {
-                Email = botUserRole.User.Email,
-                RoleId = Roles.AppAdmin.RoleId
-            });
-            Assert.Fail("InvalidOperationException was expected.");
+            await testInit2.TeamClient.AddUserByEmailAsync(testInit2.AppId, Roles.AppAdmin.RoleId, botUserRole.User!.Email);
+            Assert.Fail("UnauthorizedAccessException was expected.");
         }
         catch (ApiException ex)
         {
-            Assert.AreEqual(nameof(InvalidOperationException), ex.ExceptionTypeName);
+            Assert.AreEqual(nameof(UnauthorizedAccessException), ex.ExceptionTypeName);
+            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
         }
 
+        try
+        {
+            await testInit2.TeamClient.AddUserAsync(testInit2.AppId, Roles.AppAdmin.RoleId, botUserRole.User!.UserId);
+            Assert.Fail("UnauthorizedAccessException was expected.");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual(nameof(UnauthorizedAccessException), ex.ExceptionTypeName);
+            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
+        }
     }
 
+
+    [TestMethod]
+    public async Task Bot_can_not_be_reset_if_it_belong_to_alien_resource()
+    {
+        using var testInit1 = await TestInit.Create();
+        var apiKey1 = await testInit1.AddNewBot(Roles.AppAdmin, false);
+        var botUserRoles = await testInit1.TeamClient.ListUserRolesAsync(resourceId: testInit1.AppId, userId: apiKey1.UserId, roleId: Roles.AppAdmin.RoleId);
+        var botUserRole = botUserRoles.Items.FirstOrDefault();
+        Assert.IsNotNull(botUserRole);
+
+        // change the current user to another resource
+        using var testInit2 = await TestInit.Create();
+        await testInit2.AddNewBot(Roles.AppAdmin);
+        try
+        {
+            await testInit2.TeamClient.ResetBotApiKeyAsync(apiKey1.UserId);
+            Assert.Fail("UnauthorizedAccessException was expected.");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual(nameof(UnauthorizedAccessException), ex.ExceptionTypeName);
+            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
+        }
+    }
 
     [TestMethod]
     public async Task Crud()
@@ -115,48 +141,37 @@ public class AppTeamControllerTest
         using var testInit = await TestInit.Create();
 
         // create
-        var addUserParam = new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.AppAdmin.RoleId
-        };
-        var userRole = await testInit.TeamClient.AddUserAsync(testInit.AppId, addUserParam);
+        var roleId = Roles.AppAdmin.RoleId;
+        var email = $"{Guid.NewGuid()}@mail.com";
+        var userRole = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, roleId, email);
         Assert.IsNotNull(userRole.User);
-        Assert.AreEqual(addUserParam.Email, userRole.User.Email);
-        Assert.AreEqual(addUserParam.RoleId, userRole.Role.RoleId);
+        Assert.AreEqual(email, userRole.User.Email);
+        Assert.AreEqual(roleId, userRole.Role.RoleId);
 
         // get
-        userRole = await testInit.TeamClient.GetUserAsync(testInit.AppId, userRole.User.UserId);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppId, userId: userRole.User.UserId);
+        userRole = userRoles.Items.Single();
         Assert.IsNotNull(userRole.User);
-        Assert.AreEqual(addUserParam.Email, userRole.User.Email);
-        Assert.AreEqual(addUserParam.RoleId, userRole.Role.RoleId);
+        Assert.AreEqual(email, userRole.User.Email);
+        Assert.AreEqual(roleId, userRole.Role.RoleId);
 
-        // update 
-        var teamUserUpdate = new TeamUpdateUserParam
-        {
-            RoleId = new PatchOfGuid { Value = Roles.AppReader.RoleId }
-        };
-        userRole = await testInit.TeamClient.UpdateUserAsync(testInit.AppId, userRole.User.UserId, teamUserUpdate);
+        // add to another role
+        roleId = Roles.AppReader.RoleId;
+        userRole = await testInit.TeamClient.AddUserAsync(resourceId: testInit.AppId, roleId: roleId, userId: userRole.User.UserId);
         Assert.IsNotNull(userRole.User);
-        Assert.AreEqual(addUserParam.Email, userRole.User.Email);
-        Assert.AreEqual(teamUserUpdate.RoleId.Value, userRole.Role.RoleId);
+        Assert.AreEqual(email, userRole.User.Email);
+        Assert.AreEqual(roleId, userRole.Role.RoleId);
 
-        userRole = await testInit.TeamClient.GetUserAsync(testInit.AppId, userRole.User.UserId);
+        userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppId, userId: userRole.User.UserId);
+        userRole = userRoles.Items.Single();
         Assert.IsNotNull(userRole.User);
-        Assert.AreEqual(addUserParam.Email, userRole.User.Email);
-        Assert.AreEqual(teamUserUpdate.RoleId.Value, userRole.Role.RoleId);
+        Assert.AreEqual(email, userRole.User.Email);
+        Assert.AreEqual(roleId, userRole.Role.RoleId);
 
         // delete
-        await testInit.TeamClient.RemoveUserAsync(testInit.AppId, userRole.User.UserId);
-        try
-        {
-            await testInit.TeamClient.GetUserAsync(testInit.AppId, userRole.User.UserId);
-            Assert.Fail("NotExistsException was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual(nameof(NotExistsException), ex.ExceptionTypeName);
-        }
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppId, roleId, userRole.User.UserId);
+        var userRoleResult = await testInit.TeamClient.ListUserRolesAsync(testInit.AppId, userRole.User.UserId);
+        Assert.AreEqual(0, userRoleResult.Items.Count);
     }
 
 
@@ -166,16 +181,12 @@ public class AppTeamControllerTest
         using var testInit = await TestInit.Create();
 
         // create
-        var addUserParam = new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.AppAdmin.RoleId
-        };
-        await testInit.TeamClient.AddUserAsync(testInit.AppId, addUserParam);
+        var email = $"{Guid.NewGuid()}@mail.com";
+        await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, Roles.AppAdmin.RoleId, email);
 
         try
         {
-            await testInit.TeamClient.AddUserAsync(testInit.AppId, addUserParam);
+            await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, Roles.AppAdmin.RoleId, email);
             Assert.Fail("AlreadyExistsException was expected.");
         }
         catch (ApiException ex)
@@ -190,22 +201,13 @@ public class AppTeamControllerTest
         using var testInit = await TestInit.Create();
 
         // create
-        var userRole1 = await testInit.TeamClient.AddUserAsync(testInit.AppId, new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.AppAdmin.RoleId
-        });
+        var userRole1 = await testInit.AddNewUser(Roles.AppAdmin);
         Assert.IsNotNull(userRole1.User);
 
-
-        var userRole2 = await testInit.TeamClient.AddUserAsync(testInit.AppId, new TeamAddUserParam
-        {
-            Email = $"{Guid.NewGuid()}@mail.com",
-            RoleId = Roles.AppReader.RoleId
-        });
+        var userRole2 = await testInit.AddNewUser(Roles.AppReader);
         Assert.IsNotNull(userRole2.User);
 
-        var userRoles = await testInit.TeamClient.ListUsersAsync(testInit.AppId);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppId);
         var userRole1B = userRoles.Items.Single(x => x.User?.UserId == userRole1.User.UserId);
         var userRole2B = userRoles.Items.Single(x => x.User?.UserId == userRole2.User.UserId);
         Assert.IsNotNull(userRole1B.User);
@@ -221,22 +223,18 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Owner_should_not_change_by_admins()
+    public async Task Owner_should_not_be_changed_by_admins()
     {
         using var testInit = await TestInit.Create();
-        var ownerApiKey = await testInit.AddNewUser(Roles.AppOwner, false);
-        var adminApiKey = await testInit.AddNewUser(Roles.AppAdmin);
+        var ownerApiKey = await testInit.AddNewBot(Roles.AppOwner, false);
+        var adminApiKey = await testInit.AddNewBot(Roles.AppAdmin);
 
         // ---------------
         // Check: add
         // ---------------
         try
         {
-            await testInit.TeamClient.AddUserAsync(testInit.AppId, new TeamAddUserParam
-            {
-                Email = $"{Guid.NewGuid()}@mail.com",
-                RoleId = Roles.AppOwner.RoleId
-            });
+            await testInit.AddNewUser(Roles.AppOwner);
             Assert.Fail($"{nameof(UnauthorizedAccessException)} was expected.");
         }
         catch (ApiException ex)
@@ -249,10 +247,7 @@ public class AppTeamControllerTest
         // ---------------
         try
         {
-            await testInit.TeamClient.UpdateUserAsync(testInit.AppId, adminApiKey.UserId, new TeamUpdateUserParam
-            {
-                RoleId = new PatchOfGuid { Value = Roles.AppOwner.RoleId }
-            });
+            await testInit.TeamClient.AddUserAsync(testInit.AppId, Roles.AppOwner.RoleId, adminApiKey.UserId);
             Assert.Fail($"{nameof(UnauthorizedAccessException)} was expected.");
         }
         catch (ApiException ex)
@@ -265,7 +260,7 @@ public class AppTeamControllerTest
         // ---------------
         try
         {
-            await testInit.TeamClient.RemoveUserAsync(testInit.AppId, ownerApiKey.UserId);
+            await testInit.TeamClient.RemoveUserAsync(testInit.AppId, Roles.AppOwner.RoleId, ownerApiKey.UserId);
             Assert.Fail($"{nameof(UnauthorizedAccessException)} was expected.");
         }
         catch (ApiException ex)
@@ -278,17 +273,14 @@ public class AppTeamControllerTest
     public async Task Owner_should_not_remove_update_himself()
     {
         using var testInit = await TestInit.Create();
-        var apiKey = await testInit.AddNewUser(Roles.AppOwner);
+        var apiKey = await testInit.AddNewBot(Roles.AppOwner);
 
         // ---------------
         // Check: update
         // ---------------
         try
         {
-            await testInit.TeamClient.UpdateUserAsync(testInit.AppId, apiKey.UserId, new TeamUpdateUserParam
-            {
-                RoleId = new PatchOfGuid { Value = Roles.AppAdmin.RoleId }
-            });
+            await testInit.TeamClient.AddUserAsync(testInit.AppId, Roles.AppAdmin.RoleId , apiKey.UserId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (ApiException ex)
@@ -301,7 +293,7 @@ public class AppTeamControllerTest
         // ---------------
         try
         {
-            await testInit.TeamClient.RemoveUserAsync(testInit.AppId, apiKey.UserId);
+            await testInit.TeamClient.RemoveUserAsync(testInit.AppId, Roles.AppOwner.RoleId, apiKey.UserId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (ApiException ex)
@@ -314,9 +306,9 @@ public class AppTeamControllerTest
     public async Task Owner_should_remove_other()
     {
         using var testInit = await TestInit.Create();
-        var owner1ApiKey = await testInit.AddNewUser(Roles.AppOwner, false);
-        await testInit.AddNewUser(Roles.AppOwner);
-        await testInit.TeamClient.RemoveUserAsync(testInit.AppId, owner1ApiKey.UserId);
+        var ownerUserRole = await testInit.AddNewUser(Roles.AppOwner);
+        await testInit.AddNewBot(Roles.AppOwner);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppId, ownerUserRole.Role.RoleId, ownerUserRole.User!.UserId);
     }
 
 }

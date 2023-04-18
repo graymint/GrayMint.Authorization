@@ -1,7 +1,7 @@
-using GrayMint.Authorization.RoleManagement.RoleControllers.Security;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 
-namespace GrayMint.Authorization.WebApiSample.Security;
+namespace GrayMint.Authorization.Test.WebApiSample.Security;
 
 public static class Roles
 {

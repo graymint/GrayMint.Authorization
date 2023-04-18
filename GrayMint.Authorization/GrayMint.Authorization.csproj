@@ -18,8 +18,8 @@
     <ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleControllers\GrayMint.Authorization.RoleManagement.RoleControllers.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.SimpleRoleProviders\GrayMint.Authorization.RoleManagement.SimpleRoleProviders.csproj" />
+    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.UserManagement.SimpleUserProviders\GrayMint.Authorization.UserManagement.SimpleUserProviders.csproj" />
   </ItemGroup>

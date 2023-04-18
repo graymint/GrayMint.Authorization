@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "GrayMint.Authorization.RoleManagement.RoleControllers": {
+    "GrayMint.Authorization.RoleManagement.TeamControllers": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

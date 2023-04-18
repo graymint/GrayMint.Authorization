@@ -1,7 +1,7 @@
-﻿using GrayMint.Authorization.WebApiSample.Models;
+﻿using GrayMint.Authorization.Test.WebApiSample.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.WebApiSample.Persistence;
+namespace GrayMint.Authorization.Test.WebApiSample.Persistence;
 
 // ReSharper disable once PartialTypeWithSinglePart
 public partial class WebApiSampleDbContext : DbContext

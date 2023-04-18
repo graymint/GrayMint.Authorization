@@ -2,7 +2,7 @@ $curDir = $PSScriptRoot;
 $solutionDir = (Split-Path $PSScriptRoot -Parent);
 
 # variables
-$projectFile="$solutionDir\GrayMint.Common.Test.WebApiSample\GrayMint.Common.Test.WebApiSample.csproj";
+$projectFile="$solutionDir\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj";
 $namespace = "GrayMint.Common.Test.Api";
 $nswagFile = "$curDir/Api/Api.nswag";
 

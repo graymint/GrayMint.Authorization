@@ -3,7 +3,7 @@ using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
 using GrayMint.Authorization.Test.Helper;
-using GrayMint.Authorization.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -39,11 +39,7 @@ public class AwsCognitoTest
         // add user to appCreator role
         try
         {
-            await testInit.TeamClient.AddUserAsync(0, new Common.Test.Api.TeamAddUserParam
-            {
-                Email = "unit-tester@local",
-                RoleId = Roles.SystemAdmin.RoleId
-            });
+            await testInit.TeamClient.AddUserByEmailAsync(0, Roles.SystemAdmin.RoleId, "unit-tester@local");
         }
         catch (ApiException ex)
         {
