@@ -59,7 +59,7 @@ public class AppTeamControllerTest
     public async Task Bot_can_not_be_owner()
     {
         using var testInit = await TestInit.Create(
-            appSettings: new Dictionary<string, string?> { { "TeamController:AllowBotAppOwner", "false" } });
+            appSettings: new Dictionary<string, string?> { { "RoleController:AllowBotAppOwner", "false" } });
 
         // --------
         // Check: Bot can't be an owner
