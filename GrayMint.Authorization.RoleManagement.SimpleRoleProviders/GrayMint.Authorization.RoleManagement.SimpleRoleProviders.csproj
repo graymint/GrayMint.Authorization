@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.132" />
+    <PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.133" />
   </ItemGroup>
 
   <ItemGroup>
