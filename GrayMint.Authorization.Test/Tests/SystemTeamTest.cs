@@ -46,10 +46,10 @@ public class AppTeamControllerTest
     [TestMethod]
     public async Task List_UserApps()
     {
-        using var testInit1 = await TestInit.Create();
-        await testInit1.AddNewBot(Roles.AppOwner);
-        var apps = await testInit1.TeamClient.ListCurrentUserResourcesAsync();
-        Assert.IsTrue(apps.Any(x => x.AppId == testInit1.AppId));
+        using var testInit = await TestInit.Create();
+        await testInit.AddNewBot(Roles.AppOwner);
+        var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync();
+        Assert.IsTrue(apps.Any(x => x.AppId == testInit.AppId));
     }
 
     [TestMethod]

@@ -16,7 +16,8 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
-    protected abstract string ToResourceId(TResourceId resourceId);
+    protected abstract TResourceId RootResourceId { get; }
+
     protected abstract Task<IEnumerable<TResource>> GetResources(IEnumerable<string> resourceId);
 
     protected TeamControllerBase(
@@ -69,9 +70,14 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     [HttpGet("users/current/resources")]
     public async Task<IEnumerable<TResource>> ListCurrentUserResources()
     {
+        var rootResourceId = GetRootResourceId();
         var userId = await _teamService.GetUserId(User);
         var userRoles = await _teamService.GetUserRoles(userId: userId);
-        var resourceIds = userRoles.Items.Distinct().Select(x => x.ResourceId);
+        var resourceIds = userRoles.Items
+            .Where(x => x.ResourceId != rootResourceId)
+            .Select(x => FromResourceId(x.ResourceId))
+            .Distinct();
+
         return await GetResources(resourceIds);
     }
 
@@ -113,6 +119,9 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
             search: search, isBot: isBot,
             recordIndex: recordIndex, recordCount: recordCount);
 
+        foreach (var userRole in userRoles.Items)
+            userRole.ResourceId = FromResourceId(userRole.ResourceId);
+
         var ret = new ListResult<TUserRole>
         {
             TotalCount = userRoles.TotalCount,
@@ -140,6 +149,8 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
 
         await VerifyWritePermissionOnRole(resourceId, roleId);
         var res = await _teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email);
+
+        res.ResourceId = FromResourceId(res.ResourceId);
         return ToDto(res);
     }
 
@@ -157,6 +168,8 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
             await VerifyWritePermissionOnBot(userId: userId);
 
         var res = await _teamService.AddUser(ToResourceId(resourceId), roleId, userId);
+
+        res.ResourceId = FromResourceId(res.ResourceId);
         return ToDto(res);
     }
 
@@ -177,6 +190,16 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
             await _teamService.VerifyWritePermissionOnUser(User, resId, userId);
+    }
+
+    private string FromResourceId(string resourceId)
+    {
+        return resourceId == GetRootResourceId() ? RootResourceId.ToString()! : resourceId;
+    }
+
+    private string ToResourceId(TResourceId resourceId)
+    {
+        return resourceId.ToString() == RootResourceId.ToString() ? GetRootResourceId() : resourceId.ToString()!;
     }
 
     protected Task VerifyReadPermissionOnRole(TResourceId resourceId)

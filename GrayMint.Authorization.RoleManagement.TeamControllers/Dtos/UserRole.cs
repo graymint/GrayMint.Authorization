@@ -10,12 +10,13 @@ public class UserRole : IUserRole
     public UserRole(IUserRole userRole, IUser? user)
     {
         _userRole = userRole;
+        ResourceId = _userRole.ResourceId;
         User = user != null ? new User(user) : null;
         Role = new Role(userRole.Role);
     }
 
     public User? User { get; set; }
-    public string ResourceId => _userRole.ResourceId;
+    public string ResourceId { get; internal set; }
     public Guid UserId => _userRole.UserId;
     IRole IUserRole.Role => _userRole.Role;
     public Role Role { get; }

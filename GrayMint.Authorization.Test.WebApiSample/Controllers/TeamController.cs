@@ -20,14 +20,11 @@ public class TeamController : TeamControllerBase<App, int>
         _dbContext = dbContext;
     }
 
-    protected override string ToResourceId(int appId)
-    {
-        return appId == 0 ? GetRootResourceId() : appId.ToString();
-    }
+    protected override int RootResourceId => 0;
 
     protected override async Task<IEnumerable<App>> GetResources(IEnumerable<string> resourceIds)
     {
-        var appIds = resourceIds.Except(new[] { GetRootResourceId() }).Select(int.Parse);
+        var appIds = resourceIds.Select(int.Parse);
         var ret = await _dbContext.Apps
             .Where(x => appIds.Contains(x.AppId))
             .ToArrayAsync();
