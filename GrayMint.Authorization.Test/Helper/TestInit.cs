@@ -86,11 +86,11 @@ public class TestInit : IDisposable
     }
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
-        string environment = "Development", bool useCognito = false, bool allowUserMultirole = false)
+        string environment = "Development", bool useCognito = false, bool allowUserMultiRole = false)
     {
         appSettings ??= new Dictionary<string, string?>();
         if (!useCognito) appSettings["Auth:CognitoClientId"] = "ignore";
-        appSettings["TeamController:AllowUserMultirole"] = allowUserMultirole.ToString();
+        appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         var testInit = new TestInit(appSettings, environment);
         await testInit.Init();
         return testInit;

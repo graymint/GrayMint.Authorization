@@ -270,9 +270,9 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Owner_should_not_remove_update_himself(bool allowUserMultirole)
+    public async Task Owner_should_not_remove_update_himself(bool allowUserMultiRole)
     {
-        using var testInit = await TestInit.Create(allowUserMultirole: allowUserMultirole);
+        using var testInit = await TestInit.Create(allowUserMultiRole: allowUserMultiRole);
         var apiKey = await testInit.AddNewBot(Roles.AppOwner);
 
         // ---------------
@@ -314,7 +314,7 @@ public class AppTeamControllerTest
     [TestMethod]
     public async Task Multi_roles()
     {
-        using var testInit = await TestInit.Create(allowUserMultirole: true);
+        using var testInit = await TestInit.Create(allowUserMultiRole: true);
         var userRole1 = await testInit.AddNewUser(Roles.AppAdmin);
         await testInit.TeamClient.AddUserAsync(resourceId: testInit.AppId, roleId: Roles.AppReader.RoleId, userId: userRole1.UserId);
         var appRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppId, userId: userRole1.UserId);
