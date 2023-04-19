@@ -9,7 +9,7 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/v{version:apiVersion}/team")]
-public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRole, TRole>
+public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     : ControllerBase where TResourceId : notnull
 {
     private readonly TeamService _teamService;
@@ -17,8 +17,6 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
     protected abstract TResourceId RootResourceId { get; }
-
-    protected abstract Task<IEnumerable<TResource>> GetResources(IEnumerable<string> resourceId);
 
     protected TeamControllerBase(
         TeamService teamService)
@@ -68,17 +66,15 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
 
     [Authorize]
     [HttpGet("users/current/resources")]
-    public async Task<IEnumerable<TResource>> ListCurrentUserResources()
+    public async Task<IEnumerable<string>> ListCurrentUserResources()
     {
-        var rootResourceId = GetRootResourceId();
         var userId = await _teamService.GetUserId(User);
         var userRoles = await _teamService.GetUserRoles(userId: userId);
         var resourceIds = userRoles.Items
-            .Where(x => x.ResourceId != rootResourceId)
             .Select(x => FromResourceId(x.ResourceId))
             .Distinct();
 
-        return await GetResources(resourceIds);
+        return resourceIds;
     }
 
     [HttpPost("users/{userId:guid}/reset-api-key")]
@@ -228,8 +224,8 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     }
 }
 
-public abstract class TeamControllerBase<TResource, TResourceId>
-    : TeamControllerBase<TResource, TResourceId, User, UserRole, Role> where TResourceId : notnull
+public abstract class TeamControllerBase<TResourceId>
+    : TeamControllerBase<TResourceId, User, UserRole, Role> where TResourceId : notnull
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {

@@ -2,13 +2,14 @@ using GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 using GrayMint.Authorization.Test.WebApiSample.Models;
 using GrayMint.Authorization.Test.WebApiSample.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
 [ApiController]
-public class TeamController : TeamControllerBase<App, int>
+public class TeamController : TeamControllerBase<int>
 {
     private readonly WebApiSampleDbContext _dbContext;
 
@@ -22,9 +23,16 @@ public class TeamController : TeamControllerBase<App, int>
 
     protected override int RootResourceId => 0;
 
-    protected override async Task<IEnumerable<App>> GetResources(IEnumerable<string> resourceIds)
+    [Authorize]
+    [HttpGet("users/current/apps")]
+    public async Task<IEnumerable<App>> ListCurrentUserApps()
     {
-        var appIds = resourceIds.Select(int.Parse);
+        var resourceIds = await ListCurrentUserResources();
+
+        var appIds = resourceIds
+            .Where(x => x != RootResourceId.ToString())
+            .Select(int.Parse);
+
         var ret = await _dbContext.Apps
             .Where(x => appIds.Contains(x.AppId))
             .ToArrayAsync();

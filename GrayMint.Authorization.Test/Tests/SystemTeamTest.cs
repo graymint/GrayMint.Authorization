@@ -48,7 +48,7 @@ public class AppTeamControllerTest
     {
         using var testInit = await TestInit.Create();
         await testInit.AddNewBot(Roles.AppOwner);
-        var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync();
+        var apps = await testInit.TeamClient.ListCurrentUserAppsAsync();
         Assert.IsTrue(apps.Any(x => x.AppId == testInit.AppId));
     }
 
