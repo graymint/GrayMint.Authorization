@@ -116,11 +116,11 @@ public class TeamService
         await _roleProvider.AddUser(resourceId: resourceId, roleId: roleId, userId: userId);
 
         // remove from other roles if MultipleRoles is not allowed
-        if (!TeamControllersOptions.AllowMultipleRoles)
+        if (!TeamControllersOptions.AllowUserMultirole)
             foreach (var userRole in userRoles.Items.Where(x => x.Role.RoleId != roleId))
                 await RemoveUser(resourceId, userRole.Role.RoleId, userId);
 
-        var userRoleList = await GetUserRoles(resourceId: resourceId, userId: userId);
+        var userRoleList = await GetUserRoles(resourceId: resourceId, roleId: roleId, userId: userId);
         return userRoleList.Items.Single(x => x.UserId == userId);
     }
 
@@ -275,7 +275,7 @@ public class TeamService
 
         // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
         // the old roles won't be changed
-        if (TeamControllersOptions.AllowMultipleRoles && newRoleId != null)
+        if (TeamControllersOptions.AllowUserMultirole && newRoleId != null)
             return;
 
         // check is caller changing himself

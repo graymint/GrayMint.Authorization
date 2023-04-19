@@ -31,7 +31,7 @@ public class Program
         builder.Services.AddGrayMintRoleAuthorization(new RoleAuthorizationOptions { AuthenticationSchemes = authenticationSchemes } );
         builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintSimpleUserProvider(authConfiguration.Get<SimpleUserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("RoleController").Get<TeamControllerOptions>());
+        builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Add services to the container.

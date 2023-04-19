@@ -16,14 +16,14 @@ public class AppTeamControllerTest
     {
         using var testInit = await TestInit.Create();
 
-        var apiKey = await testInit.TeamClient.AddNewBotAsync(testInit.AppId, Roles.AppAdmin.RoleId, 
+        var apiKey = await testInit.TeamClient.AddNewBotAsync(testInit.AppId, Roles.AppAdmin.RoleId,
             new TeamAddBotParam
             {
                 Name = Guid.NewGuid().ToString(),
             });
 
         testInit.SetApiKey(apiKey);
-        await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, Roles.AppAdmin.RoleId, 
+        await testInit.TeamClient.AddUserByEmailAsync(testInit.AppId, Roles.AppAdmin.RoleId,
             TestInit.NewEmail(), new TeamAddEmailParam());
     }
 
@@ -56,7 +56,7 @@ public class AppTeamControllerTest
     public async Task Bot_can_not_be_owner()
     {
         using var testInit = await TestInit.Create(
-            appSettings: new Dictionary<string, string?> { { "RoleController:AllowBotAppOwner", "false" } });
+            appSettings: new Dictionary<string, string?> { { "TeamController:AllowBotAppOwner", "false" } });
 
         // --------
         // Check: Bot can't be an owner
@@ -270,9 +270,9 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Owner_should_not_remove_update_himself()
+    public async Task Owner_should_not_remove_update_himself(bool allowUserMultirole)
     {
-        using var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(allowUserMultirole: allowUserMultirole);
         var apiKey = await testInit.AddNewBot(Roles.AppOwner);
 
         // ---------------
@@ -280,7 +280,7 @@ public class AppTeamControllerTest
         // ---------------
         try
         {
-            await testInit.TeamClient.AddUserAsync(testInit.AppId, Roles.AppAdmin.RoleId , apiKey.UserId);
+            await testInit.TeamClient.AddUserAsync(testInit.AppId, Roles.AppAdmin.RoleId, apiKey.UserId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (ApiException ex)
@@ -311,4 +311,16 @@ public class AppTeamControllerTest
         await testInit.TeamClient.RemoveUserAsync(testInit.AppId, ownerUserRole.Role.RoleId, ownerUserRole.User!.UserId);
     }
 
+    [TestMethod]
+    public async Task Multi_roles()
+    {
+        using var testInit = await TestInit.Create(allowUserMultirole: true);
+        var userRole1 = await testInit.AddNewUser(Roles.AppAdmin);
+        await testInit.TeamClient.AddUserAsync(resourceId: testInit.AppId, roleId: Roles.AppReader.RoleId, userId: userRole1.UserId);
+        var appRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppId, userId: userRole1.UserId);
+        Assert.AreEqual(2, appRoles.TotalCount);
+        Assert.AreEqual(2, appRoles.Items.Count);
+        Assert.IsTrue(appRoles.Items.Any(x=>x.Role.RoleId== Roles.AppAdmin.RoleId));
+        Assert.IsTrue(appRoles.Items.Any(x=>x.Role.RoleId== Roles.AppReader.RoleId));
+    }
 }
