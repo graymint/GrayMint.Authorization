@@ -126,7 +126,8 @@ public class SimpleUserProvider : IUserProvider
         return user;
     }
 
-    public async Task<ListResult<IUser>> GetUsers(string? search = null,
+    public async Task<ListResult<IUser>> GetUsers(
+        string? search = null, string? firstName = null, string? lastName = null,
         IEnumerable<Guid>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
@@ -137,7 +138,9 @@ public class SimpleUserProvider : IUserProvider
         var query = _simpleUserDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
-                (userIds == null || userIds.Contains(x.UserId)))
+                (userIds == null || userIds.Contains(x.UserId)) &&
+                (firstName == null || (x.FirstName != null && x.FirstName.StartsWith(firstName))) &&
+                (lastName == null || (x.LastName != null && x.LastName.StartsWith(lastName))))
             .Where(x =>
                 string.IsNullOrEmpty(search) ||
                 (x.UserId == searchGuid && searchGuid != Guid.Empty) ||

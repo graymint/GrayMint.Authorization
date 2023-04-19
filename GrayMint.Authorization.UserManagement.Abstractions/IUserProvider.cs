@@ -15,7 +15,8 @@ public interface IUserProvider
     Task Remove(Guid userId);
     Task ResetAuthorizationCode(Guid userId);
     Task<ListResult<IUser>> GetUsers(
-        string? search = null, IEnumerable<Guid>? userIds = null, bool? isBot = null,
+        string? search = null, string? firstName = null, string? lastName = null,
+        IEnumerable<Guid>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null);
 
 }

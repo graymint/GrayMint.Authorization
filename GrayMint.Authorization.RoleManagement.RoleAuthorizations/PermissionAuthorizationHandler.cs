@@ -1,9 +1,7 @@
 ﻿using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
-using GrayMint.Authorization.Abstractions;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 

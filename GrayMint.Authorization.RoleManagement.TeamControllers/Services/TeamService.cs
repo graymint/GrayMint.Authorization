@@ -50,7 +50,7 @@ public class TeamService
     public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
     {
         // check is a bot already exists with the same name
-        var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true, search: addParam.Name);
+        var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true, firstName: addParam.Name);
         if (userRoles.Items.Any(x => addParam.Name.Equals(x.User?.FirstName, StringComparison.OrdinalIgnoreCase) && x.User.IsBot))
             throw new AlreadyExistsException("Bots");
 
@@ -142,7 +142,7 @@ public class TeamService
 
     public async Task<ListResult<UserRole>> GetUserRoles(
         string? resourceId = null, Guid? roleId = null, Guid? userId = null,
-        string? search = null, bool? isBot = null,
+        string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
         // get userRoles
@@ -150,8 +150,8 @@ public class TeamService
             resourceId: resourceId, roleId: roleId, userId: userId);
 
         // get users of userRoles
-        var userList = await _userProvider.GetUsers(search,
-            userRoleList.Items.Select(x => x.UserId), isBot: isBot);
+        var userList = await _userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
+            userIds: userRoleList.Items.Select(x => x.UserId), isBot: isBot);
 
         // attach user to UserRoles
         var userRoles = userRoleList.Items
