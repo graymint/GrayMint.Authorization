@@ -53,6 +53,9 @@ public partial class SimpleUserDbContext : DbContext
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();
+            
+            entity.HasIndex(e => e.FirstName);
+            entity.HasIndex(e => e.LastName);
 
             entity.Property(e => e.IsBot)
                 .HasDefaultValue(false);

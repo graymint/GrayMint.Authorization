@@ -50,7 +50,7 @@ public class TeamService
     public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
     {
         // check is a bot already exists with the same name
-        var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true);
+        var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true, search: addParam.Name);
         if (userRoles.Items.Any(x => addParam.Name.Equals(x.User?.FirstName, StringComparison.OrdinalIgnoreCase) && x.User.IsBot))
             throw new AlreadyExistsException("Bots");
 
