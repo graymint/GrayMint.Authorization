@@ -148,7 +148,8 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
-        await VerifyAppOwnerPolicy(resourceId, userId, roleId);
+        await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
+
 
         // check write permission on bot
         var user = await _teamService.GetUser(userId);
@@ -165,7 +166,7 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
-        await VerifyAppOwnerPolicy(resourceId, userId, null);
+        await VerifyAppOwnerPolicy(resourceId, userId, roleId, false);
         await _teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
@@ -193,9 +194,9 @@ public abstract class TeamControllerBase<TResource, TResourceId, TUser, TUserRol
         return _teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
     }
 
-    protected Task VerifyAppOwnerPolicy(TResourceId resourceId, Guid userId, Guid? newRoleId)
+    protected Task VerifyAppOwnerPolicy(TResourceId resourceId, Guid userId, Guid targetRoleId, bool isAdding)
     {
-        return _teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, newRoleId);
+        return _teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
     }
 
     protected string GetRootResourceId()

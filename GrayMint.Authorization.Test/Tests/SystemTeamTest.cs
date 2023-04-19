@@ -270,9 +270,22 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Owner_should_not_remove_update_himself(bool allowUserMultiRole)
+    public async Task Owner_can_add_or_update_himself_to_other_role_in_MultiRole()
     {
-        using var testInit = await TestInit.Create(allowUserMultiRole: allowUserMultiRole);
+        using var testInit = await TestInit.Create(allowUserMultiRole: true);
+        var apiKey = await testInit.AddNewBot(Roles.AppOwner);
+
+        await testInit.TeamClient.AddUserAsync(testInit.AppId, Roles.AppAdmin.RoleId, apiKey.UserId);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppId, Roles.AppAdmin.RoleId, apiKey.UserId);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppId, userId: apiKey.UserId);
+        Assert.AreEqual(1, userRoles.TotalCount);
+        Assert.AreEqual(Roles.AppOwner.RoleId, userRoles.Items.Single().Role.RoleId);
+    }
+
+    [TestMethod]
+    public async Task Owner_should_not_remove_update_his_role()
+    {
+        using var testInit = await TestInit.Create();
         var apiKey = await testInit.AddNewBot(Roles.AppOwner);
 
         // ---------------

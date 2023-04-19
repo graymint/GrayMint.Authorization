@@ -267,15 +267,11 @@ public class TeamService
 
 
     // can not change its own owner role unless it has global TeamWrite permission
-    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, Guid userId, Guid? newRoleId)
+    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, Guid userId, Guid targetRoleId, bool isAdding)
     {
+
         // check is AllowOwnerSelfRemove allowed
         if (TeamControllersOptions.AllowOwnerSelfRemove)
-            return;
-
-        // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
-        // the old roles won't be changed
-        if (TeamControllersOptions.AllowUserMultiRole && newRoleId != null)
             return;
 
         // check is caller changing himself
@@ -291,9 +287,21 @@ public class TeamService
         if (!isCallerOwner)
             return;
 
-        // error if the new role is not owner
-        var isNewRoleOwner = newRoleId != null && await IsResourceOwnerRole(resourceId, newRoleId.Value);
-        if (!isNewRoleOwner)
+        var exception = new InvalidOperationException("You are an owner and can not remove yourself. Ask other owners or delete the project.");
+        var targetRoleIsOwner = await IsResourceOwnerRole(resourceId, targetRoleId);
+
+        // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
+        // the old roles won't be changed
+        if (TeamControllersOptions.AllowUserMultiRole)
+        {
+            if (!isAdding && targetRoleIsOwner)
+                throw exception;
+            return;
+        }
+
+        // MultiRole is not enable 
+        if ((isAdding && !targetRoleIsOwner) || // Owners can't change his role to any other non owner role
+            (!isAdding && targetRoleIsOwner))   // Owners can't remove hos owner role
             throw new InvalidOperationException("You are an owner and can not remove yourself. Ask other owners or delete the project.");
     }
 }
