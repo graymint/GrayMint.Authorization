@@ -9,7 +9,7 @@
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Common</RepositoryUrl>
     <LangVersion>latest</LangVersion>
-    <Version>2.0.11</Version>
+    <Version>2.0.12</Version>
     <IsPackable>false</IsPackable>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
