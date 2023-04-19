@@ -112,7 +112,7 @@ public class AppTeamControllerTest
 
 
     [TestMethod]
-    public async Task Bot_can_not_be_reset_if_it_belong_to_alien_resource()
+    public async Task Bot_can_not_be_reset_if_belongs_to_alien_resource()
     {
         using var testInit1 = await TestInit.Create();
         var apiKey1 = await testInit1.AddNewBot(Roles.AppAdmin, false);
