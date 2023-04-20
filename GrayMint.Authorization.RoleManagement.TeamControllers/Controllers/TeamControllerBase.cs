@@ -9,14 +9,12 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/v{version:apiVersion}/team")]
-public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
-    : ControllerBase where TResourceId : notnull
+public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase 
 {
     private readonly TeamService _teamService;
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
-    protected abstract TResourceId RootResourceId { get; }
 
     protected TeamControllerBase(
         TeamService teamService)
@@ -71,7 +69,7 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
         var userId = await _teamService.GetUserId(User);
         var userRoles = await _teamService.GetUserRoles(userId: userId);
         var resourceIds = userRoles.Items
-            .Select(x => FromResourceId(x.ResourceId))
+            .Select(x => x.ResourceId)
             .Distinct();
 
         return resourceIds;
@@ -96,7 +94,7 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     }
 
     [HttpGet("resources/{resourceId}/roles")]
-    public async Task<IEnumerable<TRole>> ListRoles(TResourceId resourceId)
+    public async Task<IEnumerable<TRole>> ListRoles(string resourceId)
     {
         await VerifyReadPermissionOnRole(resourceId);
         var roles = await _teamService.GetRoles(ToResourceId(resourceId));
@@ -104,7 +102,7 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     }
 
     [HttpGet("resources/{resourceId}/users")]
-    public async Task<ListResult<TUserRole>> ListUserRoles(TResourceId resourceId,
+    public async Task<ListResult<TUserRole>> ListUserRoles(string resourceId,
         Guid? roleId = null, Guid? userId = null,
         string? search = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
@@ -115,9 +113,6 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
             search: search, isBot: isBot,
             recordIndex: recordIndex, recordCount: recordCount);
 
-        foreach (var userRole in userRoles.Items)
-            userRole.ResourceId = FromResourceId(userRole.ResourceId);
-
         var ret = new ListResult<TUserRole>
         {
             TotalCount = userRoles.TotalCount,
@@ -127,7 +122,7 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     }
 
     [HttpPost("resources/{resourceId}/roles/{roleId:guid}/bots")]
-    public async Task<UserApiKey> AddNewBot(TResourceId resourceId, Guid roleId, TeamAddBotParam addParam)
+    public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         var res = await _teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam);
@@ -135,7 +130,7 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     }
 
     [HttpPost("resources/{resourceId}/roles/{roleId:guid}/users/email:{email}")]
-    public async Task<TUserRole> AddUserByEmail(TResourceId resourceId, Guid roleId, string email, TeamAddEmailParam? addParam = null)
+    public async Task<TUserRole> AddUserByEmail(string resourceId, Guid roleId, string email, TeamAddEmailParam? addParam = null)
     {
         _ = addParam; //reserved
 
@@ -145,13 +140,11 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
 
         await VerifyWritePermissionOnRole(resourceId, roleId);
         var res = await _teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email);
-
-        res.ResourceId = FromResourceId(res.ResourceId);
         return ToDto(res);
     }
 
     [HttpPost("resources/{resourceId}/roles/{roleId:guid}/users/{userId:guid}")]
-    public async Task<TUserRole> AddUser(TResourceId resourceId, Guid roleId, Guid userId)
+    public async Task<TUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
@@ -164,14 +157,12 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
             await VerifyWritePermissionOnBot(userId: userId);
 
         var res = await _teamService.AddUser(ToResourceId(resourceId), roleId, userId);
-
-        res.ResourceId = FromResourceId(res.ResourceId);
         return ToDto(res);
     }
 
 
     [HttpDelete("resources/{resourceId}/roles/{roleId:guid}/users/{userId:guid}")]
-    public async Task RemoveUser(TResourceId resourceId, Guid roleId, Guid userId)
+    public async Task RemoveUser(string resourceId, Guid roleId, Guid userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
@@ -188,32 +179,27 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
             await _teamService.VerifyWritePermissionOnUser(User, resId, userId);
     }
 
-    private string FromResourceId(string resourceId)
+    private static string ToResourceId(string resourceId)
     {
-        return resourceId == GetRootResourceId() ? RootResourceId.ToString()! : resourceId;
+        return resourceId;
     }
 
-    private string ToResourceId(TResourceId resourceId)
-    {
-        return resourceId.ToString() == RootResourceId.ToString() ? GetRootResourceId() : resourceId.ToString()!;
-    }
-
-    protected Task VerifyReadPermissionOnRole(TResourceId resourceId)
+    protected Task VerifyReadPermissionOnRole(string resourceId)
     {
         return _teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<UserRole[]> VerifyWritePermissionOnUser(TResourceId resourceId, Guid userId)
+    protected Task<UserRole[]> VerifyWritePermissionOnUser(string resourceId, Guid userId)
     {
         return _teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
 
-    protected Task VerifyWritePermissionOnRole(TResourceId resourceId, Guid roleId)
+    protected Task VerifyWritePermissionOnRole(string resourceId, Guid roleId)
     {
         return _teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
     }
 
-    protected Task VerifyAppOwnerPolicy(TResourceId resourceId, Guid userId, Guid targetRoleId, bool isAdding)
+    protected Task VerifyAppOwnerPolicy(string resourceId, Guid userId, Guid targetRoleId, bool isAdding)
     {
         return _teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
     }
@@ -224,8 +210,8 @@ public abstract class TeamControllerBase<TResourceId, TUser, TUserRole, TRole>
     }
 }
 
-public abstract class TeamControllerBase<TResourceId>
-    : TeamControllerBase<TResourceId, User, UserRole, Role> where TResourceId : notnull
+public abstract class TeamControllerBase
+    : TeamControllerBase<User, UserRole, Role>
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {

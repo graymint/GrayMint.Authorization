@@ -18,6 +18,8 @@ public class TestInit : IDisposable
     public IServiceScope Scope { get; }
     public App App { get; private set; } = default!;
     public int AppId => App.AppId;
+    public string AppResourceId => App.AppId.ToString();
+    public string RootResourceId => "*";
     public CognitoAuthenticationOptions CognitoAuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<CognitoAuthenticationOptions>>().Value;
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
@@ -63,7 +65,7 @@ public class TestInit : IDisposable
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
         HttpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(SystemAdminApiKey.Authorization);
 
-        var resourceId = simpleRole.IsRoot ? 0 : App.AppId;
+        var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
         var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString()});
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
@@ -74,7 +76,7 @@ public class TestInit : IDisposable
 
     public async Task<UserRole> AddNewUser(SimpleRole simpleRole)
     {
-        var resourceId = simpleRole.IsRoot ? 0 : App.AppId;
+        var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
         var apiKey = await TeamClient.AddUserByEmailAsync(resourceId, simpleRole.RoleId, NewEmail());
         return apiKey;
     }

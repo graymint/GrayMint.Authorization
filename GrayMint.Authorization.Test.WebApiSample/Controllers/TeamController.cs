@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
 [ApiController]
-public class TeamController : TeamControllerBase<int>
+public class TeamController : TeamControllerBase
 {
     private readonly WebApiSampleDbContext _dbContext;
 
@@ -21,8 +21,6 @@ public class TeamController : TeamControllerBase<int>
         _dbContext = dbContext;
     }
 
-    protected override int RootResourceId => 0;
-
     [Authorize]
     [HttpGet("users/current/apps")]
     public async Task<IEnumerable<App>> ListCurrentUserApps()
@@ -30,7 +28,7 @@ public class TeamController : TeamControllerBase<int>
         var resourceIds = await ListCurrentUserResources();
 
         var appIds = resourceIds
-            .Where(x => x != RootResourceId.ToString())
+            .Where(x => x != GetRootResourceId())
             .Select(int.Parse);
 
         var ret = await _dbContext.Apps

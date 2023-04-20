@@ -70,7 +70,7 @@ public class UserTest
     {
         var testInit = await TestInit.Create();
         var apiKey = await testInit.AddNewBot(Roles.AppAdmin, false);
-        var userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppId, userId: apiKey.UserId);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId, userId: apiKey.UserId);
         var userRole = userRoles.Items.Single();
         Assert.IsNotNull(userRole.User);
         Assert.IsNull(userRole.User.AccessedTime, "Newly created bot should not have AccessTime before login.");
