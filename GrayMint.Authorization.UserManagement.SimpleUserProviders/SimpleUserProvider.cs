@@ -77,7 +77,7 @@ public class SimpleUserProvider : IUserProvider
     public async Task UpdateAccessedTime(Guid userId)
     {
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
-        user.AccessedTime = DateTime.Now;
+        user.AccessedTime = DateTime.UtcNow;
         await _simpleUserDbContext.SaveChangesAsync();
 
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
