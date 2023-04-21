@@ -5,11 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>2.0.16</Version>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+    <PackageIcon>GrayMint.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\GrayMint.png" Link="Resources\GrayMint.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

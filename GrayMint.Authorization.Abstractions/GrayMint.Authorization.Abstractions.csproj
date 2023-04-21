@@ -5,15 +5,23 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Version>2.0.16</Version>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+    <PackageIcon>GrayMint.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\GrayMint.png" Link="Resources\GrayMint.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
