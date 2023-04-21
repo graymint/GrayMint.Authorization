@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>2.0.19</Version>
+    <Version>2.0.20</Version>
     <IsPackable>false</IsPackable>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
