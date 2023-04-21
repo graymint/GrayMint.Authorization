@@ -1,6 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Memory;
@@ -30,11 +29,10 @@ public class BotTokenValidator
             if (context.Principal == null)
                 throw new Exception("Principal has not been validated.");
 
-            var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
-            var accessTokenHash = Convert.ToBase64String(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(jwtSecurityToken.RawData)));
+            var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
 
             // get authCode and manage cache
-            var authCodeCacheKey = $"graymint:auth:bot:auth-code:token-hash={accessTokenHash}";
+            var authCodeCacheKey = $"graymint:auth:bot:auth-code:jti={tokenId}";
             var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
             {
                 entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);
@@ -53,7 +51,7 @@ public class BotTokenValidator
                 throw new Exception($"Invalid {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
 
             // update name-identifier
-            var userIdCacheKey = $"graymint:auth:bot:userid:{accessTokenHash}";
+            var userIdCacheKey = $"graymint:auth:bot:userid:jti={tokenId}";
             var userId = await _memoryCache.GetOrCreateAsync(userIdCacheKey, entry =>
             {
                 entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);

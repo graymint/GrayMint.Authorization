@@ -1,8 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Serialization;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Common.Utils;
@@ -77,10 +75,8 @@ public class CognitoTokenValidator
             return;
         }
 
-
         // validate audience or client
         var jwtSecurityToken = (JwtSecurityToken)context.SecurityToken;
-        var accessTokenHash = Convert.ToBase64String(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(jwtSecurityToken.RawData)));
         var tokenUse = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type == "token_use")?.Value 
                        ?? throw new UnauthorizedAccessException("Could not find token_use.");
 
@@ -102,7 +98,8 @@ public class CognitoTokenValidator
         }
 
         // get user_info from authority by AccessToken
-        var userInfoCacheKey = $"graymint:cognito:user-info:token-cache={accessTokenHash}";
+        var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        var userInfoCacheKey = $"graymint:cognito:user-info:jti={tokenId}";
         var userInfo = await _memoryCache.GetOrCreateAsync(userInfoCacheKey, entry =>
         {
             entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
