@@ -4,13 +4,13 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2.0.18</Version>
+    <Version>2.0.19</Version>
     <IsPackable>true</IsPackable>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-    <PackageIcon>GrayMint.png</PackageIcon>
+    <PackageIcon>GrayMint.Authorization.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\GrayMint.png" Link="Resources\GrayMint.png">
+    <None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
