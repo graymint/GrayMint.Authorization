@@ -101,7 +101,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return roles.Select(ToDto);
     }
 
-    [HttpGet("resources/{resourceId}/users")]
+    [HttpGet("resources/{resourceId}/user-roles")]
     public async Task<ListResult<TUserRole>> ListUserRoles(string resourceId,
         Guid? roleId = null, Guid? userId = null,
         string? search = null, bool? isBot = null,
