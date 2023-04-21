@@ -28,17 +28,19 @@ public class BotAuthenticationTokenBuilder
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(ClaimsIdentity claimsIdentity)
     {
-        // get authcode by standard claim
-        var nameClaim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub);
-        if (nameClaim != null) claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, nameClaim.Value));
+        // get authcode by transforming jwt claim to .net claim
+        var tempIdentity = claimsIdentity.Clone();
+        var nameClaim = tempIdentity.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub);
+        if (nameClaim != null) tempIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, nameClaim.Value));
 
-        var emailClaim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Email);
-        if (emailClaim != null) claimsIdentity.AddClaim(new Claim(ClaimTypes.Email, emailClaim.Value));
+        var emailClaim = tempIdentity.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Email);
+        if (emailClaim != null) tempIdentity.AddClaim(new Claim(ClaimTypes.Email, emailClaim.Value));
 
-        var authorizationCode = await _authenticationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity));
+        var authorizationCode = await _authenticationProvider.GetAuthorizationCode(new ClaimsPrincipal(tempIdentity));
         if (string.IsNullOrEmpty(authorizationCode))
             throw new Exception("Could not get the AuthorizationCode.");
 
+        // add authorization code to claim
         claimsIdentity.AddClaim(new Claim(BotAuthenticationDefaults.AuthorizationCodeTypeName, authorizationCode));
 
         // create jwt
