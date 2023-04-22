@@ -26,7 +26,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         if (userId == null) return principal;
 
         //get userRoles
-        var userRoles = await  _roleProvider.GetUserRoles(userId: userId.Value);
+        var userRoles = await _roleProvider.GetUserRoles(userId: userId.Value);
 
         // Add the following claims
         // /apps/*/RoleName
@@ -38,7 +38,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
             claimsIdentity.AddClaim(RoleAuthorization.CreateRoleClaim(userRole.ResourceId, userRole.Role.RoleName));
 
             // add standard claim role
-            if (userRole.ResourceId == resourceId && !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
+            if (userRole.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase) && !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, userRole.Role.RoleName));
         }
 

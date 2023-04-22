@@ -142,7 +142,7 @@ public class SimpleRoleProvider : IRoleProvider
         var results = userRoles
             .Where(x =>
                 (roleId == null || x.RoleId == roleId) &&
-                (resourceId == null || x.ResourceId == resourceId))
+                (resourceId == null || x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(x => x.ResourceId)
             .Skip(recordIndex)
             .Take(recordCount)
