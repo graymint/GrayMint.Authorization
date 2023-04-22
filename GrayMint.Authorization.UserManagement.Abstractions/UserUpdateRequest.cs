@@ -8,7 +8,6 @@ public class UserUpdateRequest
     public Patch<string?>? FirstName { get; set; }
     public Patch<string?>? LastName { get; set; }
     public Patch<string?>? Description { get; set; }
-    public Patch<bool>? IsBot { get; init; }
     public Patch<string?>? ExData { get; set; }
 }
 

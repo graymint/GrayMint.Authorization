@@ -7,7 +7,7 @@ using GrayMint.Authorization.RoleManagement.TeamControllers;
 
 namespace GrayMint.Authorization;
 
-public interface IAuthorizationImporter
+internal interface IAuthorizationImporter
 {
     public SimpleUserProviderOptions SimpleUserProviderOptions { get; set; }
     public SimpleRoleProviderOptions SimpleRoleProviderOptions { get; set; }

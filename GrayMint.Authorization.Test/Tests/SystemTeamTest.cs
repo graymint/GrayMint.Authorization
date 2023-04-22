@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class AppTeamControllerTest
+public class TeamControllerTest
 {
     [TestMethod]
     public async Task Bot_create()
@@ -26,6 +26,22 @@ public class AppTeamControllerTest
         await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppAdmin.RoleId,
             TestInit.NewEmail(), new TeamAddEmailParam());
     }
+
+    [TestMethod]
+    public async Task Bot_update()
+    {
+        using var testInit = await TestInit.Create();
+
+        var apiKey = await testInit.AddNewBot(Roles.AppWriter, false);
+        var newName = Guid.NewGuid().ToString();
+        var user = await testInit.TeamClient.UpdateBotAsync(apiKey.UserId, 
+            new TeamUpdateBotParam { Name = new PatchOfString { Value = newName }});
+        Assert.AreEqual(newName, user.FirstName);
+
+        var userRole = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: apiKey.UserId);
+        Assert.AreEqual(newName, userRole.Items.SingleOrDefault()?.User?.FirstName);
+    }
+
 
     [TestMethod]
     public async Task List_Roles()
@@ -53,7 +69,7 @@ public class AppTeamControllerTest
     }
 
     [TestMethod]
-    public async Task Bot_can_not_be_owner()
+    public async Task Bot_can_not_be_created_as_owner()
     {
         using var testInit = await TestInit.Create(
             appSettings: new Dictionary<string, string?> { { "TeamController:AllowBotAppOwner", "false" } });
@@ -74,6 +90,24 @@ public class AppTeamControllerTest
             Assert.AreEqual(nameof(InvalidOperationException), ex.ExceptionTypeName);
         }
     }
+
+    [TestMethod]
+    public async Task Bot_can_not_be_added_to_owners()
+    {
+        using var testInit = await TestInit.Create(appSettings: new Dictionary<string, string?> { { "TeamController:AllowBotAppOwner", "false" } });
+        var apiKey = await testInit.AddNewBot(Roles.AppWriter, setAsCurrent: false);
+        try
+        {
+            await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppOwner.RoleId, apiKey.UserId);
+            Assert.Fail("InvalidOperationException was expected.");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual(nameof(InvalidOperationException), ex.ExceptionTypeName);
+        }
+
+    }
+
 
     [TestMethod]
     public async Task Bot_can_not_be_added_if_it_belong_to_alien_resource()
@@ -333,7 +367,7 @@ public class AppTeamControllerTest
         var appRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: userRole1.UserId);
         Assert.AreEqual(2, appRoles.TotalCount);
         Assert.AreEqual(2, appRoles.Items.Count);
-        Assert.IsTrue(appRoles.Items.Any(x=>x.Role.RoleId== Roles.AppAdmin.RoleId));
-        Assert.IsTrue(appRoles.Items.Any(x=>x.Role.RoleId== Roles.AppReader.RoleId));
+        Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId));
+        Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppReader.RoleId));
     }
 }

@@ -46,14 +46,18 @@ public class TeamService
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
+    public async Task<IUser> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
+    {
+        var user = await _userProvider.Update(userId, new UserUpdateRequest
+        {
+            FirstName = updateParam.Name,
+        });
+
+        return user;
+    }
 
     public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
     {
-        // check is a bot already exists with the same name
-        var userRoles = await GetUserRoles(resourceId: resourceId, isBot: true, firstName: addParam.Name);
-        if (userRoles.Items.Any(x => addParam.Name.Equals(x.User?.FirstName, StringComparison.OrdinalIgnoreCase) && x.User.IsBot))
-            throw new AlreadyExistsException("Bots");
-
         // check bot policy
         if (!TeamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
@@ -107,6 +111,11 @@ public class TeamService
 
     public async Task<UserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
+        // check bot policy
+        var user = await _userProvider.Get(userId);
+        if (user.IsBot && !TeamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
+            throw new InvalidOperationException("Bot can not be an owner.");
+
         // check is already exists
         var userRoles = await _roleProvider.GetUserRoles(resourceId: resourceId, userId: userId);
         if (userRoles.Items.Any(x => x.Role.RoleId == roleId))

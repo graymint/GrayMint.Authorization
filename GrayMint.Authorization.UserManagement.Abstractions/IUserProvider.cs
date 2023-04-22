@@ -8,7 +8,7 @@ namespace GrayMint.Authorization.UserManagement.Abstractions;
 public interface IUserProvider
 {
     Task<IUser> Create(UserCreateRequest request);
-    Task Update(Guid userId, UserUpdateRequest request);
+    Task<IUser> Update(Guid userId, UserUpdateRequest request);
     Task<IUser> Get(Guid userId);
     Task<IUser?> FindByEmail(string email);
     Task<IUser> GetByEmail(string email);

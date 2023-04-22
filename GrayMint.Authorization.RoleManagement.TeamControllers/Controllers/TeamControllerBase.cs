@@ -75,23 +75,23 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return resourceIds;
     }
 
-    [HttpPost("users/{userId:guid}/reset-api-key")]
+    [HttpPost("users/{userId:guid}/bot/reset-api-key")]
     public async Task<UserApiKey> ResetBotApiKey(Guid userId)
     {
-        var userRoles = await _teamService.GetUserRoles(userId: userId);
-        var user = userRoles.Items.FirstOrDefault()?.User;
-        if (user == null)
-            throw new UnauthorizedAccessException("UserId does not belong to any role.");
-
-        // check is a bot user
-        if (user is not { IsBot: true })
-            throw new InvalidOperationException("Only a bot ApiKey can be reset by this api.");
-
-        // check reset permission
         await VerifyWritePermissionOnBot(userId);
         var res = await _teamService.ResetUserApiKey(userId);
         return res;
     }
+
+    [HttpPatch("users/{userId:guid}/bot")]
+    public async Task<TUser> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
+    {
+        var userRoles = await VerifyWritePermissionOnBot(userId);
+        var user = await _teamService.UpdateBot(userId, updateParam);
+        return ToDto(new User(user));
+
+    }
+
 
     [HttpGet("resources/{resourceId}/roles")]
     public async Task<IEnumerable<TRole>> ListRoles(string resourceId)
@@ -170,13 +170,25 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         await _teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
-    private async Task VerifyWritePermissionOnBot(Guid userId)
+    private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(Guid userId)
     {
-        // check is user have permission over all resources that the bot belong to
         var userRoles = await _teamService.GetUserRoles(userId: userId);
+
+        // find user
+        var user = userRoles.Items.FirstOrDefault()?.User;
+        if (user == null)
+            throw new UnauthorizedAccessException("UserId does not belong to any role.");
+
+        // check is a bot user
+        if (user is not { IsBot: true })
+            throw new InvalidOperationException("This operation can only be performed on bots.");
+
+        // check is the caller has permission over all resources that the bot belong to
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
             await _teamService.VerifyWritePermissionOnUser(User, resId, userId);
+
+        return userRoles.Items;
     }
 
     private static string ToResourceId(string resourceId)

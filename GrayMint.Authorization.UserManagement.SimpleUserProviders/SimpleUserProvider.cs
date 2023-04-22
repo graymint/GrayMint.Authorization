@@ -43,13 +43,12 @@ public class SimpleUserProvider : IUserProvider
         return res.Entity.ToDto();
     }
 
-    public async Task Update(Guid userId, UserUpdateRequest request)
+    public async Task<IUser> Update(Guid userId, UserUpdateRequest request)
     {
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
         if (request.Description != null) user.Description = request.Description;
-        if (request.IsBot != null) user.IsBot = request.IsBot;
         if (request.ExData != null) user.ExData = request.ExData;
         if (request.Email != null)
         {
@@ -60,6 +59,7 @@ public class SimpleUserProvider : IUserProvider
 
         await _simpleUserDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
+        return user.ToDto();
     }
 
     public async Task<IUser> Get(Guid userId)
