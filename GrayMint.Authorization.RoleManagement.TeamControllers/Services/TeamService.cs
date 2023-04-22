@@ -165,6 +165,7 @@ public class TeamService
         // attach user to UserRoles
         var userRoles = userRoleList.Items
             .Select(x => new UserRole(x, userList.Items.SingleOrDefault(y => y.UserId == x.UserId)))
+            .OrderBy(x=>x.User?.FirstName)
             .ToArray();
 
         // filter user search
