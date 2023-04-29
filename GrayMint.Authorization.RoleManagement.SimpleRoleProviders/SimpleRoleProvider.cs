@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using GrayMint.Authorization.Abstractions;
@@ -26,6 +27,9 @@ public class SimpleRoleProvider : IRoleProvider
         IOptions<SimpleRoleProviderOptions> simpleRoleProviderOptions,
         IMemoryCache memoryCache)
     {
+        if (simpleRoleProviderOptions.Value.Roles.GroupBy(x => x.RoleId).Any(g => g.Count() > 1))
+            throw new DuplicateNameException("Duplicate RoleId has been found.");
+
         _simpleRoleDbContext = simpleRoleDbContext;
         _memoryCache = memoryCache;
         _roles = simpleRoleProviderOptions.Value.Roles;
@@ -96,7 +100,7 @@ public class SimpleRoleProvider : IRoleProvider
         int recordIndex = 0, int? recordCount = null)
     {
         recordCount ??= int.MaxValue;
-        if (userId != null) 
+        if (userId != null)
             return await GetUserRolesWithUserFilter(resourceId, userId.Value, roleId, recordIndex, recordCount.Value);
 
         await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();
