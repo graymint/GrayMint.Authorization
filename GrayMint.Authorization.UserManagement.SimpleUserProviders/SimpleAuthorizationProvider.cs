@@ -4,11 +4,11 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 
 namespace GrayMint.Authorization.UserManagement.SimpleUserProviders;
 
-public class SimpleAuthenticationProvider : IAuthorizationProvider
+public class SimpleAuthorizationProvider : IAuthorizationProvider
 {
     private readonly IUserProvider _userProvider;
 
-    public SimpleAuthenticationProvider(IUserProvider userProvider)
+    public SimpleAuthorizationProvider(IUserProvider userProvider)
     {
         _userProvider = userProvider;
     }

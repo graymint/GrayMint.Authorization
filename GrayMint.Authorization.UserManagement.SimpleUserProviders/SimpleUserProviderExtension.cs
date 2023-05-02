@@ -18,7 +18,7 @@ public static class SimpleUserProviderExtension
         services.AddDbContext<SimpleUserDbContext>(dbOptionsAction);
         services.AddSingleton(Options.Create(userOptions));
         services.AddScoped<IUserProvider, SimpleUserProvider>();
-        services.AddScoped<IAuthorizationProvider, SimpleAuthenticationProvider>();
+        services.AddScoped<IAuthorizationProvider, SimpleAuthorizationProvider>();
     }
 
     public static async Task UseGrayMintSimpleUserProvider(this IServiceProvider serviceProvider)
