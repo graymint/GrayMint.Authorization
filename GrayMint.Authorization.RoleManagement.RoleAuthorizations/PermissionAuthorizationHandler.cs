@@ -52,7 +52,6 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
             return;
         }
 
-        // check cache
         // get user permissions
         var userPermissions = await _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
 

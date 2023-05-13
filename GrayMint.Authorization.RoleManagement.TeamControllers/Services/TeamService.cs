@@ -149,6 +149,11 @@ public class TeamService
         return new User(user);
     }
 
+    public Task<string[]> GetUserPermissions(string resourceId, Guid userId)
+    {
+        return _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+    }
+
     public async Task<ListResult<UserRole>> GetUserRoles(
         string? resourceId = null, Guid? roleId = null, Guid? userId = null,
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,

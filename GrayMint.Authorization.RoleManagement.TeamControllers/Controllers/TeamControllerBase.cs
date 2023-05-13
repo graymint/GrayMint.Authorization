@@ -75,6 +75,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return resourceIds;
     }
 
+    [Authorize]
+    [HttpGet("users/current/resources/{resourceId}/permissions")]
+    public async Task<IEnumerable<string>> ListCurrentUserPermissions(string resourceId)
+    {
+        var userId = await _teamService.GetUserId(User);
+        var permissions = await _teamService.GetUserPermissions(resourceId, userId);
+        return permissions;
+    }
+
     [HttpPost("users/{userId:guid}/bot/reset-api-key")]
     public async Task<UserApiKey> ResetBotApiKey(Guid userId)
     {
@@ -86,7 +95,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     [HttpPatch("users/{userId:guid}/bot")]
     public async Task<TUser> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
     {
-        var userRoles = await VerifyWritePermissionOnBot(userId);
+        await VerifyWritePermissionOnBot(userId);
         var user = await _teamService.UpdateBot(userId, updateParam);
         return ToDto(new User(user));
 
@@ -170,6 +179,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         await _teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Local
     private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(Guid userId)
     {
         var userRoles = await _teamService.GetUserRoles(userId: userId);

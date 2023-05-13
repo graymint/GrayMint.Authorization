@@ -19,9 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.User
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{CE787F94-2BCB-4BD4-8719-D5BEBF689408}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test", "GrayMint.Authorization.Test\GrayMint.Authorization.Test.csproj", "{84A70C14-AD5D-4E99-B8F7-B5650A1B758A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test", "Tests\GrayMint.Authorization.Test\GrayMint.Authorization.Test.csproj", "{84A70C14-AD5D-4E99-B8F7-B5650A1B758A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test.WebApiSample", "GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj", "{7D93F4BF-FE6A-469F-BBE1-84F1177DEE57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test.WebApiSample", "Tests\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj", "{7D93F4BF-FE6A-469F-BBE1-84F1177DEE57}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization", "GrayMint.Authorization\GrayMint.Authorization.csproj", "{C81941CE-C72D-4BCE-BEC8-849343FBD990}"
 EndProject

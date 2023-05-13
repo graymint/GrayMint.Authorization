@@ -42,6 +42,36 @@ public class TeamControllerTest
         Assert.AreEqual(newName, userRole.Items.SingleOrDefault()?.User?.FirstName);
     }
 
+    [TestMethod]
+    public async Task GetUserPermissions_SingleRole()
+    {
+        using var testInit = await TestInit.Create();
+        await testInit.AddNewBot(Roles.AppReader);
+        var permissions = await testInit.TeamClient.ListCurrentUserPermissionsAsync(testInit.AppResourceId);
+        foreach (var permission in Roles.AppReader.Permissions)
+            Assert.IsTrue(permissions.Contains(permission));
+
+        Assert.AreEqual(Roles.AppReader.Permissions.Length, permissions.Count);
+    }
+
+    [TestMethod]
+    public async Task GetUserPermissions_MultiRole()
+    {
+        using var testInit = await TestInit.Create(allowUserMultiRole: true);
+        var apiKey = await testInit.AddNewBot(Roles.AppReader, false);
+        await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppAdmin.RoleId, apiKey.UserId);
+        testInit.SetApiKey(apiKey);
+
+        var permissions = await testInit.TeamClient.ListCurrentUserPermissionsAsync(testInit.AppResourceId);
+        foreach (var permission in Roles.AppReader.Permissions)
+            Assert.IsTrue(permissions.Contains(permission));
+
+        foreach (var permission in Roles.AppWriter.Permissions)
+            Assert.IsTrue(permissions.Contains(permission));
+
+        Assert.AreEqual(Roles.AppReader.Permissions.Union(Roles.AppAdmin.Permissions).Distinct().Count(), permissions.Count);
+    }
+
 
     [TestMethod]
     public async Task List_Roles()

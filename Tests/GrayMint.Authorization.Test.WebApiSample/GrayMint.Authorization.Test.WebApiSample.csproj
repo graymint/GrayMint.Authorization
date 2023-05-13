@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GrayMint.Authorization\GrayMint.Authorization.csproj" />
+    <ProjectReference Include="..\..\GrayMint.Authorization\GrayMint.Authorization.csproj" />
   </ItemGroup>
 
 </Project>
