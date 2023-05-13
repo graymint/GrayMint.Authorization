@@ -7,6 +7,7 @@
     <LangVersion>latest</LangVersion>
     <Version>2.0.25</Version>
     <IsPackable>false</IsPackable>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
@@ -14,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.133" />
+    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.135" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.5" />
   </ItemGroup>
 

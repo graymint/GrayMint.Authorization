@@ -10,6 +10,7 @@
     <LangVersion>latest</LangVersion>
     <Version>2.0.25</Version>
     <IsPackable>true</IsPackable>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
@@ -18,7 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.133" />
+    <PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.135" />
   </ItemGroup>
 
   <ItemGroup>
