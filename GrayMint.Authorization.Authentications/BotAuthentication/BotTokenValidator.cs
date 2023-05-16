@@ -1,5 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using GrayMint.Authorization.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Memory;
@@ -12,6 +14,7 @@ public class BotTokenValidator
     private readonly IAuthorizationProvider _authenticationProvider;
     private readonly IMemoryCache _memoryCache;
     private readonly BotAuthenticationOptions _botAuthenticationOptions;
+    private static MD5 _md5 = MD5.Create(); // S
     public BotTokenValidator(
         IAuthorizationProvider authenticationProvider,
         IMemoryCache memoryCache,
@@ -22,6 +25,12 @@ public class BotTokenValidator
         _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
+    public static string ComputeHash(string input)
+    {
+        var hashBytes = _md5.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+    }
+
     public async Task Validate(TokenValidatedContext context)
     {
         try
@@ -30,7 +39,7 @@ public class BotTokenValidator
                 throw new Exception("Principal has not been validated.");
 
             var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
-            if (string.IsNullOrEmpty(tokenId)) tokenId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier); // todo: for compatibility
+            if (string.IsNullOrEmpty(tokenId)) tokenId = ComputeHash(((JwtSecurityToken)context.SecurityToken).RawData); // todo: for compatibility
 
             // get authCode and manage cache
             var authCodeCacheKey = $"graymint:auth:bot:auth-code:jti={tokenId}";
