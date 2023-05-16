@@ -30,6 +30,7 @@ public class BotTokenValidator
                 throw new Exception("Principal has not been validated.");
 
             var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+            if (string.IsNullOrEmpty(tokenId)) tokenId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier); // todo: for compatibility
 
             // get authCode and manage cache
             var authCodeCacheKey = $"graymint:auth:bot:auth-code:jti={tokenId}";
