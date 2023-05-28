@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
@@ -14,7 +15,13 @@ internal static class UserRoleConverter
         {
             ResourceId = model.ResourceId,
             UserId = model.UserId,
-            Role = roles.Single(x => x.RoleId == model.RoleId)
+            Role = roles.SingleOrDefault(x => x.RoleId == model.RoleId) ?? new SimpleRole
+            {
+                RoleId = model.RoleId,
+                RoleName = $"<{model.RoleId}>",
+                IsRoot = false,
+                Permissions = Array.Empty<string>()
+            }
         };
         return userRole;
     }
