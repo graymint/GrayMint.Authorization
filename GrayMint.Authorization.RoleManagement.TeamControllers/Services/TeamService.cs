@@ -63,7 +63,7 @@ public class TeamService
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // create
-        var email = $"{Guid.NewGuid()}@bot";
+        var email = $"{Guid.NewGuid()}@bot.local";
         var user = await _userProvider.Create(new UserCreateRequest
         {
             Email = email,
