@@ -258,7 +258,7 @@ public class TeamService
 
     public async Task<UserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, Guid userId)
     {
-        // check user permission over all of the user roles
+        // check user permission over all of the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
         if (!userRoles.Items.Any())
             throw new UnauthorizedAccessException();

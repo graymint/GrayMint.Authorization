@@ -156,7 +156,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<TUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        await VerifyWritePermissionOnUser(resourceId, userId);
+        //await VerifyWritePermissionOnUser(resourceId, userId); any user can be added to a resource except bots
         await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
 
 

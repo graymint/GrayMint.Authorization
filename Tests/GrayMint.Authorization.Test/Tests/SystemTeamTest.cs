@@ -400,4 +400,25 @@ public class TeamControllerTest
         Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId));
         Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppReader.RoleId));
     }
+
+    [TestMethod]
+    public async Task AppAdmin_add_a_root_user_to_his_app()
+    {
+        // ---------
+        // Create
+        // ---------
+        using var testInit = await TestInit.Create();
+        var systemAdmin = await testInit.AddNewUser(Roles.SystemAdmin);
+        await testInit.AddNewBot(Roles.AppAdmin);
+        await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, systemAdmin.UserId);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId, userId: systemAdmin.UserId);
+        var userRole = userRoles.Items.Single();
+        Assert.AreEqual(Roles.AppReader.RoleId, userRole.Role.RoleId);
+
+        // remove it
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, systemAdmin.UserId);
+        userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId, userId: systemAdmin.UserId);
+        userRole = userRoles.Items.SingleOrDefault();
+        Assert.IsNull(userRole);
+    }
 }
