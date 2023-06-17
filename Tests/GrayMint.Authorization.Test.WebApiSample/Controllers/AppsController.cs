@@ -12,16 +12,22 @@ namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 public class AppsController : ControllerBase
 {
     private readonly WebApiSampleDbContext _dbContext;
+    private readonly ILogger<App> _logger;
 
-    public AppsController(WebApiSampleDbContext dbContext)
+    public AppsController(
+        WebApiSampleDbContext dbContext, 
+        ILogger<App> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     [HttpPost]
     [AuthorizePermission(Permissions.SystemWrite)]
     public async Task<App> CreateApp(string appName)
     {
+        _logger.LogInformation("Creating app. AppName: {appName}", appName);
+
         var ret = await _dbContext.Apps.AddAsync(new App { AppName = appName });
         await _dbContext.SaveChangesAsync();
         return ret.Entity;
