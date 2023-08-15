@@ -7,11 +7,11 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
 internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
 {
-    private readonly IRoleProvider _roleProvider;
+    private readonly IRoleAuthorizationProvider _roleProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
 
     public RoleAuthorizationClaimsTransformation(
-        IRoleProvider roleProvider,
+        IRoleAuthorizationProvider roleProvider,
         IAuthorizationProvider authorizationProvider)
     {
         _roleProvider = roleProvider;

@@ -95,6 +95,16 @@ public class SimpleRoleProvider : IRoleProvider
         return Task.FromResult((IRole?)role);
     }
 
+    public Task<ListResult<IUserRole>> GetUserRoles( Guid userId)
+    {
+        return GetUserRoles(resourceId: null, userId: userId, roleId: null);
+    }
+
+    public Task<ListResult<IUserRole>> GetUserRoles(string resourceId, Guid userId)
+    {
+        return GetUserRoles(resourceId: resourceId, userId: userId, roleId: null);
+    }
+
     public async Task<ListResult<IUserRole>> GetUserRoles(
         string? resourceId = null, Guid? roleId = null, Guid? userId = null,
         int recordIndex = 0, int? recordCount = null)

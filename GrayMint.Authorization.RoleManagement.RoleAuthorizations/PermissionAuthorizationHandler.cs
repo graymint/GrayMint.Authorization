@@ -8,11 +8,11 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
     private readonly RoleAuthorizationOptions _roleAuthorizationOptions;
-    private readonly IRoleProvider _roleProvider;
+    private readonly IRoleAuthorizationProvider _roleProvider;
 
     public PermissionAuthorizationHandler(
         IOptions<RoleAuthorizationOptions> options,
-        IRoleProvider roleProvider)
+        IRoleAuthorizationProvider roleProvider)
     {
         _roleProvider = roleProvider;
         _roleAuthorizationOptions = options.Value;
