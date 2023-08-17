@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization", "G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.RoleManagement.TeamControllers", "GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj", "{7421C0F4-BDD6-4C90-AC6B-E95CF2982FA3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.PermissionAuthorizations", "GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj", "{2B052F47-5CB7-4244-A67A-EE9ECE72200D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,10 @@ Global
 		{7421C0F4-BDD6-4C90-AC6B-E95CF2982FA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7421C0F4-BDD6-4C90-AC6B-E95CF2982FA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7421C0F4-BDD6-4C90-AC6B-E95CF2982FA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B052F47-5CB7-4244-A67A-EE9ECE72200D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B052F47-5CB7-4244-A67A-EE9ECE72200D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B052F47-5CB7-4244-A67A-EE9ECE72200D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B052F47-5CB7-4244-A67A-EE9ECE72200D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

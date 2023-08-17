@@ -7,26 +7,26 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
 internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
 {
-    private readonly IRoleAuthorizationProvider _roleProvider;
+    private readonly IRoleAuthorizationProvider _roleAuthorizationProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
 
     public RoleAuthorizationClaimsTransformation(
-        IRoleAuthorizationProvider roleProvider,
+        IRoleAuthorizationProvider roleAuthorizationProvider,
         IAuthorizationProvider authorizationProvider)
     {
-        _roleProvider = roleProvider;
+        _roleAuthorizationProvider = roleAuthorizationProvider;
         _authorizationProvider = authorizationProvider;
     }
 
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         // add simple roles to app-role claims
-        var resourceId = _roleProvider.GetRootResourceId();
+        var resourceId = _roleAuthorizationProvider.GetRootResourceId();
         var userId = await _authorizationProvider.GetUserId(principal);
         if (userId == null) return principal;
 
         //get userRoles
-        var userRoles = await _roleProvider.GetUserRoles(userId: userId.Value);
+        var userRoles = await _roleAuthorizationProvider.GetUserRoles(userId: userId.Value);
 
         // Add the following claims
         // /apps/*/RoleName

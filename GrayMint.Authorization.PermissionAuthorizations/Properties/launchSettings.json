@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "GrayMint.Authorization.ResourceClaimAuthorizations": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:58981;http://localhost:58982"
+    }
+  }
+}

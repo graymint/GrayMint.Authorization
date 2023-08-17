@@ -8,13 +8,13 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
     private readonly RoleAuthorizationOptions _roleAuthorizationOptions;
-    private readonly IRoleAuthorizationProvider _roleProvider;
+    private readonly IRoleAuthorizationProvider _roleAuthorizationProvider;
 
     public PermissionAuthorizationHandler(
         IOptions<RoleAuthorizationOptions> options,
-        IRoleAuthorizationProvider roleProvider)
+        IRoleAuthorizationProvider roleAuthorizationProvider)
     {
-        _roleProvider = roleProvider;
+        _roleAuthorizationProvider = roleAuthorizationProvider;
         _roleAuthorizationOptions = options.Value;
     }
 
@@ -28,7 +28,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
 
             HttpContext httpContext =>
                 httpContext.GetRouteValue(_roleAuthorizationOptions.ResourceParamName)?.ToString()
-                ?? _roleProvider.GetRootResourceId(),
+                ?? _roleAuthorizationProvider.GetRootResourceId(),
 
             _ => null
         };
@@ -53,7 +53,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
         }
 
         // get user permissions
-        var userPermissions = await _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+        var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
 
         // validate roles
         var succeeded = userPermissions.Any(x => x == requirement.PermissionId);

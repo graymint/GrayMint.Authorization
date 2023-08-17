@@ -9,13 +9,13 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 public class RoleAuthorizationHandler : AuthorizationHandler<RolesAuthorizationRequirement>
 {
     private readonly RoleAuthorizationOptions _roleAuthorizationOptions;
-    private readonly IRoleAuthorizationProvider _roleProvider;
+    private readonly IRoleAuthorizationProvider _roleAuthorizationProvider;
 
     public RoleAuthorizationHandler(
         IOptions<RoleAuthorizationOptions> roleAuthorizationOptions,
-        IRoleProvider roleProvider)
+        IRoleAuthorizationProvider roleAuthorizationProvider)
     {
-        _roleProvider = roleProvider;
+        _roleAuthorizationProvider = roleAuthorizationProvider;
         _roleAuthorizationOptions = roleAuthorizationOptions.Value;
     }
 
@@ -49,14 +49,14 @@ public class RoleAuthorizationHandler : AuthorizationHandler<RolesAuthorizationR
         }
 
         // check cache
-        var userRoles = await _roleProvider.GetUserRoles(resourceId: resourceId, userId: userId);
+        var userRoles = await _roleAuthorizationProvider.GetUserRoles(resourceId: resourceId, userId: userId);
         var succeeded = userRoles.Items.Any(x => requirement.AllowedRoles.Any(y => y == x.Role.RoleName));
 
         // look for system resource
         if (!succeeded)
         {
-            var rootResourceId = _roleProvider.GetRootResourceId();
-            userRoles = await _roleProvider.GetUserRoles(resourceId: rootResourceId, userId: userId);
+            var rootResourceId = _roleAuthorizationProvider.GetRootResourceId();
+            userRoles = await _roleAuthorizationProvider.GetUserRoles(resourceId: rootResourceId, userId: userId);
             succeeded = userRoles.Items.Any(x => requirement.AllowedRoles.Any(y => y == x.Role.RoleName));
         }
 
