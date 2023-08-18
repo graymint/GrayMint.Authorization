@@ -1,24 +1,39 @@
 ﻿using GrayMint.Authorization.Abstractions;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.RegularExpressions;
 
 namespace GrayMint.Authorization.PermissionAuthorizations;
 
 internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
+    private static IEnumerable<string> ExtractRouteResourceArgs(string input)
+    {
+        const string pattern = @"\{([^{}]+)\}";
+        var matches = Regex.Matches(input, pattern);
 
+        foreach (Match match in matches)
+            yield return match.Groups[1].Value;
+    }
+
+    public static string BuildResourceByRouteData(HttpContext httpContext, string resourceRoute)
+    {
+        var args = ExtractRouteResourceArgs(resourceRoute);
+        foreach (var arg in args)
+        {
+            var argValue = httpContext.GetRouteValue(arg) as string;
+            if (string.IsNullOrEmpty(argValue)) argValue = "*";
+            resourceRoute = resourceRoute.Replace("{" + arg + "}", argValue);
+        }
+
+        return resourceRoute;
+    }
     private static string GetResourceId(object? resource, PermissionAuthorizationRequirement requirement)
     {
-        if (resource is PermissionResource permissionResource)
-            return permissionResource.ResourceId;
+        if (resource is string permissionResource)
+            return permissionResource;
 
-        if (resource is HttpContext httpContext && !string.IsNullOrEmpty(requirement.ResourceRouteName))
-        {
-            var resourceId = httpContext.GetRouteValue(requirement.ResourceRouteName)?.ToString();
-            if (!string.IsNullOrEmpty(resourceId) && !string.IsNullOrEmpty(requirement.ResourceValuePrefix))
-                resourceId = requirement.ResourceValuePrefix + ":" + resourceId;
-
-            return resourceId ?? AuthorizationConstants.RootResourceId;
-        }
+        if (resource is HttpContext httpContext)
+            return BuildResourceByRouteData(httpContext, requirement.ResourceRoute ?? AuthorizationConstants.RootResourceId);
 
         return AuthorizationConstants.RootResourceId;
     }

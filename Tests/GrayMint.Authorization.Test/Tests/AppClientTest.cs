@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
@@ -9,10 +10,12 @@ namespace GrayMint.Authorization.Test.Tests;
 [TestClass]
 public class AccessTest
 {
+
     [TestMethod]
     public async Task Foo()
     {
         await Task.Delay(0);
+
     }
 
     [TestMethod]

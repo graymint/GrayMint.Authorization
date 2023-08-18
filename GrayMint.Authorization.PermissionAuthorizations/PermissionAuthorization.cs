@@ -16,5 +16,4 @@ public static class PermissionAuthorization
     {
         return $"graymint:permission:{permission}Policy";
     }
-
 }

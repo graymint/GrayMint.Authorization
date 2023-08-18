@@ -34,6 +34,7 @@ public class Program
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
+
         // Add services to the container.
         var webApp = builder.Build();
         webApp.UseGrayMintCommonServices(new UseServicesOptions());

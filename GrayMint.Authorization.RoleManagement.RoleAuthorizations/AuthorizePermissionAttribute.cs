@@ -9,7 +9,6 @@ public class AuthorizePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizat
     private readonly string _permission;
 
     public AuthorizePermissionAttribute(string permission)
-        //: base(RoleAuthorization.Policy)
     {
         _permission = permission;
     }

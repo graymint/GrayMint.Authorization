@@ -6,50 +6,27 @@ namespace GrayMint.Authorization.PermissionAuthorizations;
 
 public class AuthorizePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizationFilter
 {
-    private readonly PermissionAuthorizationRequirement _requirement;
+    private readonly string _permission;
+
+    /// <summary>
+    /// Eg: *, {appId}, appId:{appId}
+    /// </summary>
+    public string? ResourceRoute { get; init; }
 
     public AuthorizePermissionAttribute(string permission)
     {
-        _requirement = new PermissionAuthorizationRequirement
-        {
-            Permission = permission,
-        };
-    }
-
-    public AuthorizePermissionAttribute(string resourceRouteName, string permission, string? resourceValuePrefix = null)
-    {
-        _requirement = new PermissionAuthorizationRequirement
-        {
-            Permission = permission,
-            ResourceRouteName = resourceRouteName,
-            ResourceValuePrefix = resourceValuePrefix
-        };
+        _permission = permission;
     }
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
-        // find policy
-        var policyName = PermissionAuthorization.BuildPermissionPolicyName(_requirement.Permission);
-        var policy = await context.HttpContext.RequestServices.GetRequiredService<IAuthorizationPolicyProvider>().GetPolicyAsync(policyName);
-        if (policy == null)
-        {
-            context.Result = new StatusCodeResult(StatusCodes.Status403Forbidden);
-            return;
-        }
-
-        // find policy requirement and merge into new one
-        var policyPermissionRequirement = policy.Requirements.OfType<PermissionAuthorizationRequirement>().First();
+        // authorize
+        var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
         var requirement = new PermissionAuthorizationRequirement
         {
-            Permission = _requirement.Permission,
-            ResourceRouteName = _requirement.ResourceRouteName,
-            ResourceValuePrefix = string.IsNullOrEmpty(_requirement.ResourceValuePrefix) && _requirement.ResourceRouteName == policyPermissionRequirement.ResourceRouteName
-                ? policyPermissionRequirement.ResourceValuePrefix
-                : _requirement.ResourceValuePrefix
+            Permission = _permission,
+            ResourceRoute = ResourceRoute
         };
-
-       // authorize
-        var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
         var result = await authorizationService.AuthorizeAsync(context.HttpContext.User, context.HttpContext, requirement);
 
         if (!result.Succeeded)
