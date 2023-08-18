@@ -29,20 +29,11 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
         if (userIdString == null || !Guid.TryParse(userIdString, out var userId))
             return;
 
-        // add user permissions
-        var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
-        await AddUserPermissionsToClaims(context.User, resourceId, userId);
-        if (resourceId != AuthorizationConstants.RootResourceId)
-            await AddUserPermissionsToClaims(context.User, AuthorizationConstants.RootResourceId, userId);
-    }
-
-    private async Task AddUserPermissionsToClaims(ClaimsPrincipal user, string resourceId, Guid userId)
-    {
-        var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
-
         // Add UserPermissions to claims
+        var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
+        var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
         var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
         var identity = new ClaimsIdentity(claims);
-        user.AddIdentity(identity);
+        context.User.AddIdentity(identity);
     }
 }

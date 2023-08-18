@@ -25,8 +25,7 @@ public class TeamService
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
 
     public TeamControllerOptions TeamControllersOptions { get; }
-    public string GetRootResourceId() => _roleProvider.GetRootResourceId();
-
+    
     public TeamService(
         IRoleProvider roleProvider,
         IUserProvider userProvider,
@@ -45,7 +44,9 @@ public class TeamService
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
     {
-        if (resourceId == _roleProvider.GetRootResourceId()) return false; //SystemResource can not be owned
+        //SystemResource can not be owned
+        if (resourceId == GetRootResourceId()) 
+            return false; 
 
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
@@ -213,7 +214,7 @@ public class TeamService
 
     public async Task<UserApiKey> CreateSystemApiKey()
     {
-        var rootResourceId = _roleProvider.GetRootResourceId();
+        var rootResourceId = GetRootResourceId();
         var systemRoles = await _roleProvider.GetRoles(rootResourceId);
         if (!systemRoles.Any())
             throw new NotExistsException("Could not find any system roles.");
@@ -327,5 +328,10 @@ public class TeamService
         if ((isAdding && !targetRoleIsOwner) || // Owners can't change his role to any other non owner role
             (!isAdding && targetRoleIsOwner))   // Owners can't remove hos owner role
             throw new InvalidOperationException("You are an owner and can not remove yourself. Ask other owners or delete the project.");
+    }
+
+    public string GetRootResourceId()
+    {
+        return AuthorizationConstants.RootResourceId;
     }
 }

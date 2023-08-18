@@ -21,7 +21,6 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         // add simple roles to app-role claims
-        var resourceId = _roleAuthorizationProvider.GetRootResourceId();
         var userId = await _authorizationProvider.GetUserId(principal);
         if (userId == null) return principal;
 
@@ -35,10 +34,11 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         foreach (var userRole in userRoles.Items)
         {
             // add GrayMint claim
+        const string rootResourceId = AuthorizationConstants.RootResourceId;
             claimsIdentity.AddClaim(RoleAuthorization.CreateRoleClaim(userRole.ResourceId, userRole.Role.RoleName));
 
             // add standard claim role
-            if (userRole.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase) && !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
+            if (userRole.ResourceId.Equals(rootResourceId, StringComparison.OrdinalIgnoreCase) && !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, userRole.Role.RoleName));
         }
 
