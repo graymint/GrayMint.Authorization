@@ -3,22 +3,22 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
-public class UserRole : IUserRole
+public class TeamUserRole : IUserRole
 {
     private readonly IUserRole _userRole;
     
-    public UserRole(IUserRole userRole, IUser? user)
+    public TeamUserRole(IUserRole userRole, IUser? user)
     {
         _userRole = userRole;
-        User = user != null ? new User(user) : null;
-        Role = new Role(userRole.Role);
+        User = user != null ? new TeamUser(user) : null;
+        Role = new TeamRole(userRole.Role);
     }
 
 
-    public User? User { get; }
+    public TeamUser? User { get; }
     public string ResourceId => _userRole.ResourceId;
     public Guid UserId => _userRole.UserId;
-    public Role Role { get; } // returning an interface will cause problem for nswag client generator
+    public TeamRole Role { get; } // returning an interface will cause problem for nswag client generator
     IRole IUserRole.Role => _userRole.Role;
 
 }

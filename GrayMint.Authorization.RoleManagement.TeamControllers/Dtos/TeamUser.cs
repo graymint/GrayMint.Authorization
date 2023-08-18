@@ -2,11 +2,11 @@
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
-public class User : IUser
+public class TeamUser : IUser
 {
     private readonly IUser _user;
 
-    public User(IUser user)
+    public TeamUser(IUser user)
     {
         _user = user;
     }

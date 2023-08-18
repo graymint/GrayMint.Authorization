@@ -12,9 +12,9 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase 
 {
     private readonly TeamService _teamService;
-    protected abstract TUser ToDto(User user);
-    protected abstract TRole ToDto(Role role);
-    protected abstract TUserRole ToDto(UserRole user);
+    protected abstract TUser ToDto(TeamUser user);
+    protected abstract TRole ToDto(TeamRole role);
+    protected abstract TUserRole ToDto(TeamUserRole user);
 
     protected TeamControllerBase(
         TeamService teamService)
@@ -97,7 +97,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     {
         await VerifyWritePermissionOnBot(userId);
         var user = await _teamService.UpdateBot(userId, updateParam);
-        return ToDto(new User(user));
+        return ToDto(new TeamUser(user));
 
     }
 
@@ -180,7 +180,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     }
 
     // ReSharper disable once UnusedMethodReturnValue.Local
-    private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(Guid userId)
+    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(Guid userId)
     {
         var userRoles = await _teamService.GetUserRoles(userId: userId);
 
@@ -211,7 +211,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return _teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<UserRole[]> VerifyWritePermissionOnUser(string resourceId, Guid userId)
+    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, Guid userId)
     {
         return _teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
@@ -233,13 +233,13 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 }
 
 public abstract class TeamControllerBase
-    : TeamControllerBase<User, UserRole, Role>
+    : TeamControllerBase<TeamUser, TeamUserRole, TeamRole>
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {
     }
 
-    protected override User ToDto(User user) => new(user);
-    protected override Role ToDto(Role role) => new(role);
-    protected override UserRole ToDto(UserRole userRole) => userRole;
+    protected override TeamUser ToDto(TeamUser user) => new(user);
+    protected override TeamRole ToDto(TeamRole role) => new(role);
+    protected override TeamUserRole ToDto(TeamUserRole userRole) => userRole;
 }

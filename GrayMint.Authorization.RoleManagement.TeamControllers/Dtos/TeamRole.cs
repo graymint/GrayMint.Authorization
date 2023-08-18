@@ -2,11 +2,11 @@
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
-public class Role : IRole
+public class TeamRole : IRole
 {
     private readonly IRole _role;
 
-    public Role(IRole role)
+    public TeamRole(IRole role)
     {
         _role = role;
     }

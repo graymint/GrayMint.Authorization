@@ -106,7 +106,7 @@ public class TeamService
         return ret;
     }
 
-    public async Task<UserRole> AddUserByEmail(string resourceId, Guid roleId, string email)
+    public async Task<TeamUserRole> AddUserByEmail(string resourceId, Guid roleId, string email)
     {
         // create user if not found
         var user = await _userProvider.FindByEmail(email);
@@ -114,7 +114,7 @@ public class TeamService
         return await AddUser(resourceId, roleId, user.UserId);
     }
 
-    public async Task<UserRole> AddUser(string resourceId, Guid roleId, Guid userId)
+    public async Task<TeamUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
         // check bot policy
         var user = await _userProvider.Get(userId);
@@ -148,10 +148,10 @@ public class TeamService
         return await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUser();
     }
 
-    public async Task<User> GetUser(Guid userId)
+    public async Task<TeamUser> GetUser(Guid userId)
     {
         var user = await _userProvider.Get(userId);
-        return new User(user);
+        return new TeamUser(user);
     }
 
     public Task<string[]> GetUserPermissions(string resourceId, Guid userId)
@@ -159,7 +159,7 @@ public class TeamService
         return _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
     }
 
-    public async Task<ListResult<UserRole>> GetUserRoles(
+    public async Task<ListResult<TeamUserRole>> GetUserRoles(
         string? resourceId = null, Guid? roleId = null, Guid? userId = null,
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
@@ -174,7 +174,7 @@ public class TeamService
 
         // attach user to UserRoles
         var userRoles = userRoleList.Items
-            .Select(x => new UserRole(x, userList.Items.SingleOrDefault(y => y.UserId == x.UserId)))
+            .Select(x => new TeamUserRole(x, userList.Items.SingleOrDefault(y => y.UserId == x.UserId)))
             .OrderBy(x => x.User?.FirstName)
             .ToArray();
 
@@ -183,7 +183,7 @@ public class TeamService
             userRoles = userRoles.Where(x => x.User != null).ToArray();
 
         // create the result
-        var ret = new ListResult<UserRole>
+        var ret = new ListResult<TeamUserRole>
         {
             Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue),
             TotalCount = userRoles.Length
@@ -206,10 +206,10 @@ public class TeamService
         return _userProvider.Remove(userId);
     }
 
-    public async Task<IEnumerable<Role>> GetRoles(string resourceId)
+    public async Task<IEnumerable<TeamRole>> GetRoles(string resourceId)
     {
         var roles = await _roleProvider.GetRoles(resourceId);
-        return roles.Select(x => new Role(x));
+        return roles.Select(x => new TeamRole(x));
     }
 
     public async Task<UserApiKey> CreateSystemApiKey()
@@ -232,7 +232,7 @@ public class TeamService
         throw new NotExistsException($"Could not find {nameof(RolePermissions.RoleWrite)} in any system roles.");
     }
 
-    public async Task<User> Register(ClaimsPrincipal caller)
+    public async Task<TeamUser> Register(ClaimsPrincipal caller)
     {
         var email =
             caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
@@ -246,7 +246,7 @@ public class TeamService
             Description = null
         });
 
-        return new User(ret);
+        return new TeamUser(ret);
     }
 
     public async Task<bool> CheckUserPermission(ClaimsPrincipal caller, string resourceId, string permission)
@@ -266,7 +266,7 @@ public class TeamService
             throw new UnauthorizedAccessException();
     }
 
-    public async Task<UserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, Guid userId)
+    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, Guid userId)
     {
         // check user permission over all of the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
