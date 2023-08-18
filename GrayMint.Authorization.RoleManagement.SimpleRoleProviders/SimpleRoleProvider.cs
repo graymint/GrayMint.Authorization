@@ -47,7 +47,7 @@ public class SimpleRoleProvider : IRoleProvider
                 ResourceId = resourceId,
             });
         await _simpleRoleDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
         return entry.Entity.ToDto(_roles);
     }
 
@@ -63,7 +63,7 @@ public class SimpleRoleProvider : IRoleProvider
             });
 
         await _simpleRoleDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
     }
 
     public Task<IRole[]> GetRoles(string resourceId)
@@ -133,7 +133,7 @@ public class SimpleRoleProvider : IRoleProvider
     private async Task<ListResult<IUserRole>> GetUserRolesWithUserFilter(string? resourceId, Guid userId,
         Guid? roleId, int recordIndex, int recordCount)
     {
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "user-roles");
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "user-roles");
         var userRoles = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
         {
             await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();

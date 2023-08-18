@@ -15,27 +15,27 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
     public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal)
     {
-        var userId = await GetUserId(principal);
-        if (userId == null) return null;
-        var user = await _userProvider.Get(userId.Value);
+        if (!Guid.TryParse(await GetUserId(principal), out var userId))
+            return null;
+
+        var user = await _userProvider.Get(userId);
         return user.AuthorizationCode;
     }
 
-    public async Task<Guid?> GetUserId(ClaimsPrincipal principal)
+    public async Task<string?> GetUserId(ClaimsPrincipal principal)
     {
         var email = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
         if (email == null) return null;
         var user = await _userProvider.FindByEmail(email);
-        return user?.UserId;
+        return user?.UserId.ToString();
     }
 
     public async Task OnAuthenticated(ClaimsPrincipal principal)
     {
-        var userId = await GetUserId(principal);
-        if (userId == null)
+        if (!Guid.TryParse(await GetUserId(principal), out var userId))
             return;
 
-        var user = await _userProvider.Get(userId.Value);
+        var user = await _userProvider.Get(userId);
 
         //update profile by claim
         var givenName = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.GivenName)?.Value;

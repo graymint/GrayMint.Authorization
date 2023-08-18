@@ -139,8 +139,8 @@ public class CognitoTokenValidator
         var userId =  await _authenticationProvider.GetUserId(context.Principal);
         if (userId != null)
         {
-            AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId.Value);
-            AuthorizationCache.AddKey(_memoryCache, userId.Value, userInfoCacheKey);
+            AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId);
+            AuthorizationCache.AddKey(_memoryCache, userId, userInfoCacheKey);
         }
 
         // notify authenticated

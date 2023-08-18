@@ -23,7 +23,7 @@ public class TestBotAuthenticationProvider : IAuthorizationProvider
         return await original.First(x => x != this).GetAuthorizationCode(principal);
     }
 
-    public async Task<Guid?> GetUserId(ClaimsPrincipal principal)
+    public async Task<string?> GetUserId(ClaimsPrincipal principal)
     {
         await using var scope = _serviceScopeFactory.CreateAsyncScope();
         var original = scope.ServiceProvider.GetServices<IAuthorizationProvider>();

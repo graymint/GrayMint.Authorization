@@ -1,5 +1,4 @@
 using GrayMint.Authorization.PermissionAuthorizations;
-using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.Test.WebApiSample.Models;
 using GrayMint.Authorization.Test.WebApiSample.Persistence;
 using GrayMint.Authorization.Test.WebApiSample.Security;

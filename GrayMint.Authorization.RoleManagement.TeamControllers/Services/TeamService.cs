@@ -3,15 +3,14 @@ using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
@@ -145,7 +144,8 @@ public class TeamService
 
     public async Task<Guid> GetUserId(ClaimsPrincipal user)
     {
-        return await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUser();
+        var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUser();
+        return Guid.Parse(userId);
     }
 
     public async Task<TeamUser> GetUser(Guid userId)
@@ -300,8 +300,8 @@ public class TeamService
             return;
 
         // check is caller changing himself
-        var callerUserId = await _authorizationProvider.GetUserId(caller);
-        if (callerUserId != userId)
+        var callerUserIdStr = await _authorizationProvider.GetUserId(caller);
+        if (!Guid.TryParse(callerUserIdStr, out var callerUserId) || callerUserId != userId)
             return;
 
         // check is caller the owner of the resource

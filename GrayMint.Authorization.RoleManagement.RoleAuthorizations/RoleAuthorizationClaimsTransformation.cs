@@ -21,11 +21,12 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         // add simple roles to app-role claims
-        var userId = await _authorizationProvider.GetUserId(principal);
-        if (userId == null) return principal;
+        var userIdStr = await _authorizationProvider.GetUserId(principal);
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return principal;
 
         //get userRoles
-        var userRoles = await _roleAuthorizationProvider.GetUserRoles(userId: userId.Value);
+        var userRoles = await _roleAuthorizationProvider.GetUserRoles(userId: userId);
 
         // Add the following claims
         // /resources/*/RoleName
@@ -43,7 +44,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         }
 
         // update nameIdentifier to userId
-        AuthorizationUtil.UpdateNameIdentifier(principal, userId.Value);
+        AuthorizationUtil.UpdateNameIdentifier(principal, userId.ToString());
 
         principal.AddIdentity(claimsIdentity);
         return principal;

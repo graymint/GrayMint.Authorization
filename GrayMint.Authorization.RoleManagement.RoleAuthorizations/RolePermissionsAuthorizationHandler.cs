@@ -1,5 +1,4 @@
-﻿using GrayMint.Authorization.Abstractions;
-using GrayMint.Authorization.PermissionAuthorizations;
+﻿using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -26,7 +25,7 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
 
         // get userId
         var userIdString = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userIdString == null || !Guid.TryParse(userIdString, out var userId))
+        if (!Guid.TryParse(userIdString, out var userId))
             return;
 
         // Add UserPermissions to claims

@@ -69,9 +69,9 @@ public class BotTokenValidator
             });
             if (userId != null)
             {
-                AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId.Value);
-                AuthorizationCache.AddKey(_memoryCache, userId.Value, userIdCacheKey);
-                AuthorizationCache.AddKey(_memoryCache, userId.Value, authCodeCacheKey);
+                AuthorizationUtil.UpdateNameIdentifier(context.Principal, userId);
+                AuthorizationCache.AddKey(_memoryCache, userId, userIdCacheKey);
+                AuthorizationCache.AddKey(_memoryCache, userId, authCodeCacheKey);
             }
 
             await _authenticationProvider.OnAuthenticated(context.Principal);

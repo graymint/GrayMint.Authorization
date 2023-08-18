@@ -58,13 +58,13 @@ public class SimpleUserProvider : IUserProvider
         }
 
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
         return user.ToDto();
     }
 
     public async Task<IUser> Get(Guid userId)
     {
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
             entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
@@ -80,7 +80,7 @@ public class SimpleUserProvider : IUserProvider
         user.AccessedTime = DateTime.UtcNow;
         await _simpleUserDbContext.SaveChangesAsync();
 
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
         _memoryCache.Set(cacheKey, user, TimeSpan.FromMinutes(60));
     }
 
@@ -91,7 +91,7 @@ public class SimpleUserProvider : IUserProvider
         var user = new UserModel { UserId = userId };
         _simpleUserDbContext.Users.Remove(user);
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
     }
 
     public async Task ResetAuthorizationCode(Guid userId)
@@ -99,7 +99,7 @@ public class SimpleUserProvider : IUserProvider
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
         user.AuthCode = Guid.NewGuid().ToString();
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
     }
 
     public async Task<IUser?> FindByEmail(string email)
@@ -114,7 +114,7 @@ public class SimpleUserProvider : IUserProvider
         if (user != null)
         {
             _memoryCache.Set(cacheKey, user);
-            AuthorizationCache.AddKey(_memoryCache, user.UserId, cacheKey);
+            AuthorizationCache.AddKey(_memoryCache, user.UserId.ToString(), cacheKey);
         }
 
         return user?.ToDto();
