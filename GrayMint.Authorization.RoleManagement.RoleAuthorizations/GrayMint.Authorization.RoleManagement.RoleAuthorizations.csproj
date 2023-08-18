@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj" />
+    <ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj" />
   </ItemGroup>
 

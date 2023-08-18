@@ -8,6 +8,7 @@ using GrayMint.Authorization.Test.WebApiSample.Persistence;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders;
 using GrayMint.Common.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample;
@@ -25,15 +26,26 @@ public class Program
             .AddBotAuthentication(authConfiguration.Get<BotAuthenticationOptions>(), builder.Environment.IsProduction())
             .AddCognitoAuthentication(authConfiguration.Get<CognitoAuthenticationOptions>());
 
-        var authenticationSchemes = authConfiguration.GetValue<string>("CognitoClientId") == "ignore"
-            ? new[] { BotAuthenticationDefaults.AuthenticationScheme }
-            : new[] { BotAuthenticationDefaults.AuthenticationScheme, CognitoAuthenticationDefaults.AuthenticationScheme };
-        builder.Services.AddGrayMintRoleAuthorization(new RoleAuthorizationOptions { AuthenticationSchemes = authenticationSchemes } );
+        builder.Services.AddGrayMintRoleAuthorization();
         builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintSimpleUserProvider(authConfiguration.Get<SimpleUserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-
+        
+        // Add authorization policies
+        builder.Services.AddAuthorization(options =>
+        {
+            // create default policy
+            var policyBuilder = new AuthorizationPolicyBuilder();
+            policyBuilder.RequireAuthenticatedUser();
+            policyBuilder.AddAuthenticationSchemes(BotAuthenticationDefaults.AuthenticationScheme);
+            if (authConfiguration.GetValue<string>("CognitoClientId") != "ignore")
+                policyBuilder.AddAuthenticationSchemes(CognitoAuthenticationDefaults.AuthenticationScheme);
+            
+            var defaultPolicy = policyBuilder.Build();
+            options.AddPolicy("DefaultPolicy", defaultPolicy);
+            options.DefaultPolicy = defaultPolicy;
+        });
 
         // Add services to the container.
         var webApp = builder.Build();

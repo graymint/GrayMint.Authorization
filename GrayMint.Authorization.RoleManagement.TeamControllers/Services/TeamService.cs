@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.BotAuthentication;
+using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
@@ -9,6 +10,8 @@ using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
@@ -18,8 +21,9 @@ public class TeamService
     private readonly IRoleProvider _roleProvider;
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
+    private readonly IAuthorizationService _authorizationService;
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
-    private readonly RoleAuthorizationService _roleAuthorizationService;
+
     public TeamControllerOptions TeamControllersOptions { get; }
     public string GetRootResourceId() => _roleProvider.GetRootResourceId();
 
@@ -29,13 +33,13 @@ public class TeamService
         IAuthorizationProvider authorizationProvider,
         IOptions<TeamControllerOptions> teamControllersOptions,
         BotAuthenticationTokenBuilder botAuthenticationTokenBuilder,
-        RoleAuthorizationService roleAuthorizationService)
+        IAuthorizationService authorizationService)
     {
         _roleProvider = roleProvider;
         _userProvider = userProvider;
         _authorizationProvider = authorizationProvider;
         _botAuthenticationTokenBuilder = botAuthenticationTokenBuilder;
-        _roleAuthorizationService = roleAuthorizationService;
+        _authorizationService = authorizationService;
         TeamControllersOptions = teamControllersOptions.Value;
     }
 
@@ -170,7 +174,7 @@ public class TeamService
         // attach user to UserRoles
         var userRoles = userRoleList.Items
             .Select(x => new UserRole(x, userList.Items.SingleOrDefault(y => y.UserId == x.UserId)))
-            .OrderBy(x=>x.User?.FirstName)
+            .OrderBy(x => x.User?.FirstName)
             .ToArray();
 
         // filter user search
@@ -246,7 +250,12 @@ public class TeamService
 
     public async Task<bool> CheckUserPermission(ClaimsPrincipal caller, string resourceId, string permission)
     {
-        var ret = await _roleAuthorizationService.AuthorizePermissionAsync(caller, resourceId, permission);
+        if (caller.Identity?.IsAuthenticated == false)
+            return false;
+
+        var ret = await _authorizationService.AuthorizeAsync(caller, resourceId, 
+            new PermissionAuthorizationRequirement { Permission = permission });
+
         return ret.Succeeded;
     }
 

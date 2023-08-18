@@ -8,7 +8,7 @@ public static class PermissionAuthorization
 
     public static Claim BuildPermissionClaim(string resourceId, string permission)
     {
-        var claimValue = $"/resources/{resourceId}/permissions/{permission}".ToLower();
+        var claimValue = $"/resources/{resourceId}/permissions/{permission}";
         return new Claim(PermissionClaimType, claimValue);
     }
 

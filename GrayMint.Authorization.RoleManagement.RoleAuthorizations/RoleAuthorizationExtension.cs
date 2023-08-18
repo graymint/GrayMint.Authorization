@@ -1,34 +1,20 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using GrayMint.Authorization.PermissionAuthorizations;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
 public static class RoleAuthorizationExtension
 {
-    public static IServiceCollection AddGrayMintRoleAuthorization(this IServiceCollection services,
-        RoleAuthorizationOptions roleAuthOptions) 
+    public static IServiceCollection AddGrayMintRoleAuthorization(this IServiceCollection services) 
     {
-        // check duplicate roles
-        services.AddAuthorization(options =>
-        {
-            // create default policy
-            var policyBuilder = new AuthorizationPolicyBuilder();
-            foreach(var scheme in roleAuthOptions.AuthenticationSchemes)
-                policyBuilder.AddAuthenticationSchemes(scheme);
+        // make sure PermissionAuthorization is added before RoleAuthorization
+        if (services.Any(x => x.ServiceType == typeof(IAuthorizationHandler) && x.ImplementationType==typeof(PermissionAuthorizationHandler) ))
+            throw new InvalidOperationException($"{nameof(PermissionAuthorization)} should not be added before {nameof(RoleAuthorization)}.");
 
-            policyBuilder.RequireAuthenticatedUser();
-            var rolePolicy = policyBuilder.Build();
-            options.AddPolicy(RoleAuthorization.Policy, rolePolicy);
-            options.DefaultPolicy = rolePolicy;
-        });
-
-        services.AddSingleton(Options.Create(roleAuthOptions));
-        services.AddScoped<IAuthorizationHandler, RoleAuthorizationHandler>();
-        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-        services.AddScoped<RoleAuthorizationService>();
+        services.AddScoped<IAuthorizationHandler, RolePermissionsAuthorizationHandler>();
         services.AddTransient<IClaimsTransformation, RoleAuthorizationClaimsTransformation>();
+        services.AddGrayMintPermissionAuthorization();
         return services;
     }
 }

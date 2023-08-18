@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace GrayMint.Authorization.PermissionAuthorizations;
 
-internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
+public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
     private static IEnumerable<string> ExtractRouteResourceArgs(string input)
     {
@@ -15,7 +15,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
             yield return match.Groups[1].Value;
     }
 
-    public static string BuildResourceByRouteData(HttpContext httpContext, string resourceRoute)
+    private static string BuildResourceByRouteData(HttpContext httpContext, string resourceRoute)
     {
         var args = ExtractRouteResourceArgs(resourceRoute);
         foreach (var arg in args)
@@ -27,13 +27,13 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
 
         return resourceRoute;
     }
-    private static string GetResourceId(object? resource, PermissionAuthorizationRequirement requirement)
+    public static string GetResourceId(object? resource, string? resourceRoute)
     {
         if (resource is string permissionResource)
             return permissionResource;
 
         if (resource is HttpContext httpContext)
-            return BuildResourceByRouteData(httpContext, requirement.ResourceRoute ?? AuthorizationConstants.RootResourceId);
+            return BuildResourceByRouteData(httpContext, resourceRoute ?? AuthorizationConstants.RootResourceId);
 
         return AuthorizationConstants.RootResourceId;
     }
@@ -43,7 +43,7 @@ internal class PermissionAuthorizationHandler : AuthorizationHandler<PermissionA
         PermissionAuthorizationRequirement requirement)
     {
         // get resource id 
-        var resourceId = GetResourceId(context.Resource, requirement);
+        var resourceId = GetResourceId(context.Resource, requirement.ResourceRoute);
         var requiredClaim = PermissionAuthorization.BuildPermissionClaim(resourceId, requirement.Permission);
 
         // check user has requiredClaim

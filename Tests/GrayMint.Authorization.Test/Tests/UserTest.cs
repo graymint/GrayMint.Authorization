@@ -78,14 +78,14 @@ public class UserTest
         // call api buy retrieved token
         apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.ItemsClient.CreateAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         await Task.Delay(200);
         try
         {
-            await testInit.ItemsClient.CreateAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
+            await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
             Assert.Fail("Unauthorized Exception was expected.");
         }
         catch (ApiException ex)

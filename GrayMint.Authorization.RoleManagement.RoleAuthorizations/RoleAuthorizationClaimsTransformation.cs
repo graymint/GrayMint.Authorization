@@ -29,8 +29,8 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         var userRoles = await _roleAuthorizationProvider.GetUserRoles(userId: userId.Value);
 
         // Add the following claims
-        // /apps/*/RoleName
-        // /apps/appId/RoleName
+        // /resources/*/RoleName
+        // /resources/appId/RoleName
         var claimsIdentity = new ClaimsIdentity();
         foreach (var userRole in userRoles.Items)
         {
@@ -43,13 +43,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         }
 
         // update nameIdentifier to userId
-        if (principal.Identity is ClaimsIdentity identity)
-        {
-            identity.RemoveClaim(identity.FindFirst(ClaimTypes.NameIdentifier));
-            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()));
-        }
-        else
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()));
+        AuthorizationUtil.UpdateNameIdentifier(principal, userId.Value);
 
         principal.AddIdentity(claimsIdentity);
         return principal;

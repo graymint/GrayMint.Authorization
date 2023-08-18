@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.RegularExpressions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
@@ -48,31 +47,18 @@ public class AccessTest
 
 
     [TestMethod]
-    public async Task AppUser_access()
+    public async Task SystemUser_access_by_role()
     {
         using var testInit = await TestInit.Create();
 
         // Create an AppCreator
         // **** Check: accept create item by AllApps access
         await testInit.AddNewBot(Roles.SystemAdmin);
-        await testInit.ItemsClient.CreateAsync(testInit.App.AppId, Guid.NewGuid().ToString());
+        var item = await testInit.ItemsClient.CreateByRoleAsync(testInit.App.AppId, Guid.NewGuid().ToString());
 
-        // **** Check: accept create item by the App permission
-        await testInit.AddNewBot(Roles.AppWriter);
-        await testInit.ItemsClient.CreateAsync(testInit.App.AppId, Guid.NewGuid().ToString());
-
-        // **** Check: refuse if caller does not have all the app permission
-        try
-        {
-            using var testInit2 = await TestInit.Create();
-            testInit.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter)); //another app
-            await testInit.ItemsClient.CreateAsync(testInit.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
+        // **** Check: accept get item by AllApps access
+        await testInit.AddNewBot(Roles.SystemReader);
+        await testInit.ItemsClient.GetByRoleAsync(testInit.App.AppId, item.ItemId);
     }
 
     [TestMethod]

@@ -27,10 +27,9 @@ public class AuthorizePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizat
             Permission = _permission,
             ResourceRoute = ResourceRoute
         };
-        var result = await authorizationService.AuthorizeAsync(context.HttpContext.User, context.HttpContext, requirement);
 
+        var result = await authorizationService.AuthorizeAsync(context.HttpContext.User, context.HttpContext, requirement);
         if (!result.Succeeded)
             context.Result = new StatusCodeResult(StatusCodes.Status403Forbidden);
     }
 }
-
