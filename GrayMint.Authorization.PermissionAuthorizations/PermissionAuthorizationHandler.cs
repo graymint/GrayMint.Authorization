@@ -21,7 +21,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
         foreach (var arg in args)
         {
             var argValue = httpContext.GetRouteValue(arg) as string;
-            if (string.IsNullOrEmpty(argValue)) argValue = "*";
+            if (string.IsNullOrEmpty(argValue)) argValue = AuthorizationConstants.RootResourceId;
             resourceRoute = resourceRoute.Replace("{" + arg + "}", argValue);
         }
 
