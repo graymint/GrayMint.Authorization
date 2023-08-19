@@ -12,8 +12,8 @@ public class JwtUtil
         return CreateSymmetricJwt(key, issuer, audience, subject, email, null, roles);
     }
 
-    public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null, string? email = null,
-        Claim[]? claims = null, string[]? roles = null)
+    public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null, 
+        string? email = null, Claim[]? claims = null, string[]? roles = null, DateTime? expirationTime = null)
     {
         var claimsList = new List<Claim>
         {
@@ -31,7 +31,7 @@ public class JwtUtil
         var token = new JwtSecurityToken(issuer,
             claims: claimsList.ToArray(),
             audience: audience,
-            expires: DateTime.Now.AddYears(10),
+            expires: expirationTime ?? DateTime.Now.AddYears(10),
             signingCredentials: signingCredentials);
 
         var handler = new JwtSecurityTokenHandler();

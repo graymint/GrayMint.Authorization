@@ -18,15 +18,15 @@ public class BotAuthenticationTokenBuilder
         _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
-    public Task<AuthenticationHeaderValue> CreateAuthenticationHeader(string subject, string email)
+    public Task<AuthenticationHeaderValue> CreateAuthenticationHeader(string subject, string email, DateTime? expirationTime = null)
     {
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, subject));
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
-        return CreateAuthenticationHeader(claimsIdentity);
+        return CreateAuthenticationHeader(claimsIdentity, expirationTime);
     }
 
-    public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(ClaimsIdentity claimsIdentity)
+    public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(ClaimsIdentity claimsIdentity, DateTime? expirationTime = null)
     {
         // get authcode by transforming jwt claim to .net claim
         var tempIdentity = claimsIdentity.Clone();
@@ -46,12 +46,11 @@ public class BotAuthenticationTokenBuilder
         // create jwt
         var audience = string.IsNullOrEmpty(_botAuthenticationOptions.BotAudience) ? _botAuthenticationOptions.BotIssuer : _botAuthenticationOptions.BotAudience;
         var jwt = JwtUtil.CreateSymmetricJwt(
-            _botAuthenticationOptions.BotKey,
-            _botAuthenticationOptions.BotIssuer,
-            audience,
-            null, //read from claims,
-            null,
-            claimsIdentity.Claims.ToArray());
+            key: _botAuthenticationOptions.BotKey,
+            issuer: _botAuthenticationOptions.BotIssuer,
+            audience: audience,
+            claims: claimsIdentity.Claims.ToArray(),
+            expirationTime: expirationTime);
 
         return new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, jwt);
     }
