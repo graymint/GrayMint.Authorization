@@ -4,7 +4,7 @@ namespace GrayMint.Authorization.PermissionAuthorizations;
 
 public static class PermissionAuthorization
 {
-    public const string PermissionClaimType = "graymint-permission";
+    public const string PermissionClaimType = "permission";
 
     public static Claim BuildPermissionClaim(string resourceId, string permission)
     {

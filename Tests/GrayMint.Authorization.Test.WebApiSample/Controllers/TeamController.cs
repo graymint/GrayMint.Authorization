@@ -14,9 +14,9 @@ public class TeamController : TeamControllerBase
     private readonly WebApiSampleDbContext _dbContext;
 
     public TeamController(
-        TeamService roleService,
+        TeamService teamService,
         WebApiSampleDbContext dbContext) :
-        base(roleService)
+        base(teamService)
     {
         _dbContext = dbContext;
     }

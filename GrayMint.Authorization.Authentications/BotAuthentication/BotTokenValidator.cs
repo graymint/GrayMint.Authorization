@@ -14,7 +14,7 @@ public class BotTokenValidator
     private readonly IAuthorizationProvider _authenticationProvider;
     private readonly IMemoryCache _memoryCache;
     private readonly BotAuthenticationOptions _botAuthenticationOptions;
-    private static MD5 _md5 = MD5.Create(); // S
+    private readonly MD5 _md5 = MD5.Create(); 
     public BotTokenValidator(
         IAuthorizationProvider authenticationProvider,
         IMemoryCache memoryCache,
@@ -25,7 +25,7 @@ public class BotTokenValidator
         _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
-    public static string ComputeHash(string input)
+    private string ComputeHash(string input)
     {
         var hashBytes = _md5.ComputeHash(Encoding.UTF8.GetBytes(input));
         return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();

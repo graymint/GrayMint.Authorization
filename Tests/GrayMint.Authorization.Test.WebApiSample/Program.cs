@@ -32,7 +32,7 @@ public class Program
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         
-        // Add authorization policies
+        // Add authorization
         builder.Services.AddAuthorization(options =>
         {
             // create default policy
