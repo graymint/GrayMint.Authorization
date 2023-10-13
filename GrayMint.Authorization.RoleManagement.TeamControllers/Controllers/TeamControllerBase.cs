@@ -60,19 +60,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         await _teamService.ResetAuthorizationCode(userId);
     }
 
-    // todo
-    [Obsolete]
-    [HttpPost("users/current/register")]
-    [Authorize]
-    public virtual async Task<TUser> RegisterCurrentUser()
-    {
-        if (!_teamService.TeamControllersOptions.AllowUserSelfRegister)
-            throw new UnauthorizedAccessException("Self-Register is not enabled.");
-
-        var res = await _teamService.Register(User);
-        return ToDto(res);
-    }
-
     [HttpGet("users/current")]
     [Authorize]
     public async Task<TUser> GetCurrentUser()
