@@ -1,13 +1,11 @@
+using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Security.Claims;
-using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -132,21 +130,8 @@ public class UserTest
         }
     }
 
-    private static async Task<AuthenticationHeaderValue> CreateUnregisteredUserAuthorization(IServiceScope scope, string email, Claim[]? claims = null)
-    {
-        var claimsIdentity = new ClaimsIdentity();
-        claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, email));
-        claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
-        claimsIdentity.AddClaim(new Claim("test_authenticated", "1"));
-        if (claims != null)
-            claimsIdentity.AddClaims(claims);
-
-        var authenticationTokenBuilder = scope.ServiceProvider.GetRequiredService<BotAuthenticationTokenBuilder>();
-        return await authenticationTokenBuilder.CreateAuthenticationHeader(claimsIdentity);
-    }
-
     [TestMethod]
-    public async Task RegisterCurrentUser()
+    public async Task SignUp()
     {
         var testInit = await TestInit.Create();
         var userEmail = TestInit.NewEmail();
@@ -154,7 +139,8 @@ public class UserTest
         // ------------
         // Check: New user should not exist if not he hasn't registered yet
         // ------------
-        testInit.HttpClient.DefaultRequestHeaders.Authorization = await CreateUnregisteredUserAuthorization(testInit.Scope, userEmail);
+        await testInit.CreateUnregisteredUser(userEmail);
+
         try
         {
             await testInit.TeamClient.GetCurrentUserAsync();
@@ -168,12 +154,88 @@ public class UserTest
         // ------------
         // Check: Register current user
         // ------------
-        await testInit.TeamClient.RegisterCurrentUserAsync();
+        var apiKey = await testInit.TeamClient.SignUpAsync();
+        testInit.SetApiKey(apiKey);
+
         var user = await testInit.TeamClient.GetCurrentUserAsync();
         Assert.AreEqual(userEmail, user.Email);
 
         // Get App Get
         var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync();
         Assert.AreEqual(0, apps.Count);
+    }
+
+    [TestMethod]
+    public async Task SignIn_should_extend_expiration()
+    {
+        var testInit = await TestInit.Create();
+
+        await testInit.CreateUnregisteredUser();
+        var apiKey1 = await testInit.TeamClient.SignUpAsync();
+        testInit.SetApiKey(apiKey1);
+        await Task.Delay(1000);
+
+        var apiKey2 = await testInit.TeamClient.SignInAsync();
+        testInit.SetApiKey(apiKey2);
+        await Task.Delay(1000);
+
+        var apiKey3 = await testInit.TeamClient.SignInAsync();
+        testInit.SetApiKey(apiKey3);
+
+        Assert.IsTrue(apiKey1.Expiration < apiKey2.Expiration);
+        Assert.IsTrue(apiKey2.Expiration < apiKey3.Expiration);
+
+    }
+
+    [TestMethod]
+    public async Task SignIn_should_not_extend_more_than_long_expiration()
+    {
+        var testInit = await TestInit.Create(new Dictionary<string, string?>
+        {
+            {"TeamController:UserTokenLongExpiration", "00:00:02" }
+        });
+
+        await testInit.CreateUnregisteredUser();
+        var apiKey = await testInit.TeamClient.SignUpAsync();
+        testInit.SetApiKey(apiKey);
+
+        // should not extend more than long expiration
+        try
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                await Task.Delay(1000);
+                apiKey = await testInit.TeamClient.SignInAsync();
+                testInit.SetApiKey(apiKey);
+            }
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
+        }
+    }
+
+    [TestMethod]
+    public async Task SignIn_using_short_and_long_expiration()
+    {
+        var testInit = await TestInit.Create(new Dictionary<string, string?>
+        {
+            {"TeamController:UserTokenShortExpiration", "00:01:00" },
+            {"TeamController:UserTokenLongExpiration", "00:10:00" }
+        });
+
+        await testInit.CreateUnregisteredUser();
+        var apiKey = await testInit.TeamClient.SignUpAsync();
+        testInit.SetApiKey(apiKey);
+        Assert.IsTrue(apiKey.Expiration <= DateTime.UtcNow.AddMinutes(1));
+
+        apiKey = await testInit.TeamClient.SignInAsync();
+        testInit.SetApiKey(apiKey);
+        Assert.IsTrue(apiKey.Expiration <= DateTime.UtcNow.AddMinutes(1));
+
+        apiKey = await testInit.TeamClient.SignInAsync(true);
+        testInit.SetApiKey(apiKey);
+        Assert.IsTrue(apiKey.Expiration > DateTime.UtcNow.AddMinutes(1) && apiKey.Expiration < DateTime.UtcNow.AddMinutes(10));
     }
 }

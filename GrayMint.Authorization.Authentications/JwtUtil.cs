@@ -1,4 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 
@@ -24,6 +25,10 @@ public class JwtUtil
         if (email != null) claimsList.Add(new Claim(JwtRegisteredClaimNames.Email, email));
         if (claims != null) claimsList.AddRange(claims);
         if (roles != null) claimsList.AddRange(roles.Select(x => new Claim(ClaimTypes.Role, x)));
+        
+        // add issued at time
+        var unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+        claimsList.Add(new Claim("iat", unixTime.ToString(), ClaimValueTypes.Integer64));
 
         // create token
         var secKey = new SymmetricSecurityKey(key);
@@ -31,7 +36,7 @@ public class JwtUtil
         var token = new JwtSecurityToken(issuer,
             claims: claimsList.ToArray(),
             audience: audience,
-            expires: expirationTime ?? DateTime.Now.AddYears(10),
+            expires: expirationTime ?? DateTime.Now.AddYears(14),
             signingCredentials: signingCredentials);
 
         var handler = new JwtSecurityTokenHandler();

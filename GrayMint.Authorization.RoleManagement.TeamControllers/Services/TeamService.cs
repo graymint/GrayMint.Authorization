@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Authentication;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.PermissionAuthorizations;
@@ -23,7 +25,7 @@ public class TeamService
     private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
 
     public TeamControllerOptions TeamControllersOptions { get; }
-    
+
     public TeamService(
         IRoleProvider roleProvider,
         IUserProvider userProvider,
@@ -43,8 +45,8 @@ public class TeamService
     public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
     {
         //SystemResource can not be owned
-        if (resourceId == GetRootResourceId()) 
-            return false; 
+        if (resourceId == GetRootResourceId())
+            return false;
 
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
@@ -74,17 +76,28 @@ public class TeamService
             IsBot = true
         });
 
+        var expirationTime = DateTime.UtcNow.AddYears(14);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
-        var authenticationHeader = await _botAuthenticationTokenBuilder.CreateAuthenticationHeader(user.UserId.ToString(), user.Email);
+        var authenticationHeader = await _botAuthenticationTokenBuilder
+            .CreateAuthenticationHeader(user.UserId.ToString(), user.Email, expirationTime);
+
         var ret = new UserApiKey
         {
+            ExpirationTime = expirationTime,
             UserId = user.UserId,
             Authorization = authenticationHeader.ToString()
         };
         return ret;
     }
 
-    public async Task<UserApiKey> ResetUserApiKey(Guid userId)
+    public async Task<IUser> ResetAuthorizationCode(Guid userId)
+    {
+        var user = await _userProvider.Get(userId);
+        await _userProvider.ResetAuthorizationCode(user.UserId);
+        return user;
+    }
+
+    public async Task<UserApiKey> ResetApiKey(Guid userId)
     {
         var user = await _userProvider.Get(userId);
 
@@ -93,10 +106,51 @@ public class TeamService
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
+        var expirationTime = DateTime.UtcNow.AddYears(14);
         await _userProvider.ResetAuthorizationCode(user.UserId);
-        var authenticationHeader = await _botAuthenticationTokenBuilder.CreateAuthenticationHeader(user.UserId.ToString(), user.Email);
+        var authenticationHeader = await _botAuthenticationTokenBuilder
+            .CreateAuthenticationHeader(user.UserId.ToString(), user.Email, expirationTime: expirationTime);
+
         var ret = new UserApiKey
         {
+            ExpirationTime = expirationTime,
+            UserId = userId,
+            Authorization = authenticationHeader.ToString(),
+        };
+
+        return ret;
+    }
+
+    public async Task<UserApiKey> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
+    {
+        var userId = await GetUserId(claimsPrincipal);
+        var user = await GetUser(userId);
+
+        if (user.IsBot)
+            throw new InvalidOperationException("Can not use this method for bots.");
+
+        // find expiration
+        var maxExpiration = DateTime.UtcNow + TeamControllersOptions.UserTokenLongExpiration;
+        var expirationTime = DateTime.UtcNow + TeamControllersOptions.UserTokenShortExpiration;
+        if (expirationTime > maxExpiration || longExpiration)
+            expirationTime = maxExpiration;
+
+        // find auth_time. it can not be older than UserTokenLongExpiration
+        var authTimeClaim = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.AuthTime);
+        var authTime = authTimeClaim?.Value != null 
+            ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(authTimeClaim.Value)).UtcDateTime 
+            : DateTime.UtcNow;
+
+        if (authTime < DateTime.UtcNow - TeamControllersOptions.UserTokenLongExpiration)
+            throw new AuthenticationException();
+
+        var authenticationHeader = await _botAuthenticationTokenBuilder
+            .CreateAuthenticationHeader(user.UserId.ToString(), 
+                user.Email, expirationTime: expirationTime, authTime: authTime);
+
+        var ret = new UserApiKey
+        {
+            ExpirationTime = expirationTime,
             UserId = userId,
             Authorization = authenticationHeader.ToString(),
         };
@@ -253,7 +307,7 @@ public class TeamService
         if (caller.Identity?.IsAuthenticated == false)
             return false;
 
-        var ret = await _authorizationService.AuthorizeAsync(caller, resourceId, 
+        var ret = await _authorizationService.AuthorizeAsync(caller, resourceId,
             new PermissionAuthorizationRequirement { Permission = permission });
 
         return ret.Succeeded;

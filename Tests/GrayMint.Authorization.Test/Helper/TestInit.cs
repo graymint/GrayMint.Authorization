@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace GrayMint.Authorization.Test.Helper;
 
@@ -66,7 +69,7 @@ public class TestInit : IDisposable
         HttpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(SystemAdminApiKey.Authorization);
 
         var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
-        var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString()});
+        var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
             ? AuthenticationHeaderValue.Parse(apiKey.Authorization) : oldAuthorization;
@@ -77,10 +80,29 @@ public class TestInit : IDisposable
     public async Task<TeamUserRole> AddNewUser(SimpleRole simpleRole)
     {
         var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
-        var apiKey = await TeamClient.AddUserByEmailAsync(resourceId, simpleRole.RoleId, NewEmail());
-        return apiKey;
+        var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, simpleRole.RoleId, NewEmail());
+        return teamUserRole;
     }
 
+    public async Task<AuthenticationHeaderValue> CreateUnregisteredUser(
+        string? email = null, Claim[]? claims = null, bool setAsCurrent = true)
+    {
+        email ??= NewEmail();
+
+        var claimsIdentity = new ClaimsIdentity();
+        claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, email));
+        claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
+        claimsIdentity.AddClaim(new Claim("test_authenticated", "1"));
+        if (claims != null)
+            claimsIdentity.AddClaims(claims);
+
+        var authenticationTokenBuilder = Scope.ServiceProvider.GetRequiredService<BotAuthenticationTokenBuilder>();
+        var authorization = await authenticationTokenBuilder.CreateAuthenticationHeader(claimsIdentity);
+        if (setAsCurrent)
+            HttpClient.DefaultRequestHeaders.Authorization = authorization;
+
+        return authorization;
+    }
 
     public void SetApiKey(UserApiKey apiKey)
     {

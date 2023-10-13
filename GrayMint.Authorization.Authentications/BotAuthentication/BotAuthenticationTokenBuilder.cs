@@ -18,11 +18,17 @@ public class BotAuthenticationTokenBuilder
         _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
-    public Task<AuthenticationHeaderValue> CreateAuthenticationHeader(string subject, string email, DateTime? expirationTime = null)
+    public Task<AuthenticationHeaderValue> CreateAuthenticationHeader(string subject, string email, 
+        DateTime? expirationTime = null, DateTime? authTime = null)
     {
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, subject));
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
+        if (authTime != null)
+        {
+            var unixTime = ((DateTimeOffset)authTime).ToUnixTimeSeconds();
+            claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.AuthTime, unixTime.ToString(), ClaimValueTypes.Integer64));
+        }
         return CreateAuthenticationHeader(claimsIdentity, expirationTime);
     }
 

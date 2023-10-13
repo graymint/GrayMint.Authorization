@@ -9,7 +9,7 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/v{version:apiVersion}/team")]
-public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase 
+public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase
 {
     private readonly TeamService _teamService;
     protected abstract TUser ToDto(TeamUser user);
@@ -33,6 +33,35 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return res;
     }
 
+    [HttpPost("users/current/signin")]
+    [Authorize]
+    public virtual async Task<UserApiKey> SignIn(bool longExpiration =  false)
+    {
+        var apiKey = await _teamService.SignIn(User, longExpiration);
+        return apiKey;
+    }
+
+    [HttpPost("users/current/signup")]
+    [Authorize]
+    public virtual async Task<UserApiKey> SignUp()
+    {
+        if (!_teamService.TeamControllersOptions.AllowUserSelfRegister)
+            throw new UnauthorizedAccessException("Self-Register is not enabled.");
+
+        await _teamService.Register(User);
+        return await _teamService.SignIn(User, false);
+    }
+
+    [HttpPost("users/current/signout-all")]
+    [Authorize]
+    public virtual async Task SignOutAll()
+    {
+        var userId = await _teamService.GetUserId(User);
+        await _teamService.ResetAuthorizationCode(userId);
+    }
+
+    // todo
+    [Obsolete]
     [HttpPost("users/current/register")]
     [Authorize]
     public virtual async Task<TUser> RegisterCurrentUser()
@@ -58,7 +87,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<UserApiKey> ResetCurrentUserApiKey()
     {
         var userId = await _teamService.GetUserId(User);
-        var res = await _teamService.ResetUserApiKey(userId);
+        var res = await _teamService.ResetApiKey(userId);
         return res;
     }
 
@@ -88,7 +117,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<UserApiKey> ResetBotApiKey(Guid userId)
     {
         await VerifyWritePermissionOnBot(userId);
-        var res = await _teamService.ResetUserApiKey(userId);
+        var res = await _teamService.ResetApiKey(userId);
         return res;
     }
 

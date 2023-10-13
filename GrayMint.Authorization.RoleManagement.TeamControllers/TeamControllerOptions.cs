@@ -8,4 +8,7 @@ public class TeamControllerOptions
     public bool AllowOwnerSelfRemove { get; set; }
     public bool AllowUserMultiRole { get; set; }
     public bool IsTestEnvironment { get; set; }
+    public TimeSpan UserTokenShortExpiration { get; set; } = TimeSpan.FromDays(3);
+    public TimeSpan UserTokenLongExpiration { get; set; } = TimeSpan.FromDays(30);
+
 }
