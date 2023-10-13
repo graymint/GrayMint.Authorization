@@ -1,11 +1,8 @@
-using System.Data;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
