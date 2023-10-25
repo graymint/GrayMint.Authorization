@@ -3,6 +3,9 @@ using GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Authentication;
+using System.Text;
+using System.Web;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
@@ -22,20 +25,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         _teamService = teamService;
     }
 
-    [HttpPost("users/system/api-key")]
-    [AllowAnonymous]
-    public async Task<UserApiKey> CreateSystemApiKey()
-    {
-        if (!_teamService.TeamControllersOptions.IsTestEnvironment)
-            throw new UnauthorizedAccessException();
-
-        var res = await _teamService.CreateSystemApiKey();
-        return res;
-    }
-
     [HttpPost("users/current/signin")]
     [Authorize]
-    public virtual async Task<UserApiKey> SignIn(bool longExpiration =  false)
+    public virtual async Task<UserApiKey> SignIn(bool longExpiration = false)
     {
         var apiKey = await _teamService.SignIn(User, longExpiration);
         return apiKey;
@@ -245,6 +237,48 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     protected string GetRootResourceId()
     {
         return _teamService.GetRootResourceId();
+    }
+
+    [HttpPost("system/api-key")]
+    [AllowAnonymous]
+    public async Task<UserApiKey> CreateSystemApiKey()
+    {
+        if (!_teamService.TeamControllersOptions.IsTestEnvironment)
+            throw new UnauthorizedAccessException();
+
+        var res = await _teamService.CreateSystemApiKey();
+        return res;
+    }
+
+    [HttpPost("system/google/signin-handler")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleSignInHandler()
+    {
+        // read all request to string
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8);
+        var queryString = await reader.ReadToEndAsync();
+
+        // read queryString to dictionary
+        var queryDictionary = HttpUtility.ParseQueryString(queryString);
+        var idToken = queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
+        var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
+
+        // Adding a parameter
+        ArgumentNullException.ThrowIfNull(_teamService.TeamControllersOptions.SignInRedirectUrl);
+        var uriBuilder = new UriBuilder(_teamService.TeamControllersOptions.SignInRedirectUrl);
+        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+        query["id_token"] = tokenInfo.Token;
+        uriBuilder.Query = query.ToString();
+
+        return Redirect(uriBuilder.ToString());
+    }
+
+    [HttpGet("system/google/id-token")]
+    [AllowAnonymous]
+    public virtual async Task<string> GetIdTokenFromGoogle(string idToken)
+    {
+        var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
+        return tokenInfo.Token;
     }
 }
 

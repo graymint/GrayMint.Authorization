@@ -41,24 +41,27 @@ public class BotTokenValidator
             var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
             if (string.IsNullOrEmpty(tokenId)) tokenId = ComputeHash(((JwtSecurityToken)context.SecurityToken).RawData); // todo: for compatibility
 
-            // get authCode and manage cache
-            var authCodeCacheKey = $"graymint:auth:bot:auth-code:jti={tokenId}";
-            var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
-            {
-                entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);
-                return _authenticationProvider.GetAuthorizationCode(context.Principal);
-            });
-
-            if (string.IsNullOrEmpty(authCode))
-                throw new Exception($"{BotAuthenticationDefaults.AuthenticationScheme} needs {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
-
-            // deserialize access token
+            // check authCode
             var tokenAuthCode = context.Principal.Claims.SingleOrDefault(x => x.Type == BotAuthenticationDefaults.AuthorizationCodeTypeName)?.Value;
-            if (string.IsNullOrEmpty(tokenAuthCode))
-                throw new Exception($"Could not find {BotAuthenticationDefaults.AuthorizationCodeTypeName} in the token.");
+            var authCodeCacheKey = $"graymint:auth:bot:auth-code:jti={tokenId}";
+            if (tokenAuthCode != AuthorizationConstants.AnyAuthCode)
+            {
+                if (string.IsNullOrEmpty(tokenAuthCode))
+                    throw new Exception($"Could not find {BotAuthenticationDefaults.AuthorizationCodeTypeName} in the token.");
 
-            if (authCode != tokenAuthCode)
-                throw new Exception($"Invalid {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
+                // get authCode and manage cache
+                var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
+                {
+                    entry.SetAbsoluteExpiration(_botAuthenticationOptions.CacheTimeout);
+                    return _authenticationProvider.GetAuthorizationCode(context.Principal);
+                });
+
+                if (string.IsNullOrEmpty(authCode))
+                    throw new Exception($"{BotAuthenticationDefaults.AuthenticationScheme} needs {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
+
+                if (authCode != tokenAuthCode)
+                    throw new Exception($"Invalid {BotAuthenticationDefaults.AuthorizationCodeTypeName}.");
+            }
 
             // update name-identifier
             var userIdCacheKey = $"graymint:auth:bot:userid:jti={tokenId}";

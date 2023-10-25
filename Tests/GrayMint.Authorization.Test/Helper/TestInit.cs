@@ -90,14 +90,17 @@ public class TestInit : IDisposable
         email ??= NewEmail();
 
         var claimsIdentity = new ClaimsIdentity();
+        claimsIdentity.AddClaim(new Claim("test_authenticated", "1"));
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, email));
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
-        claimsIdentity.AddClaim(new Claim("test_authenticated", "1"));
-        if (claims != null)
-            claimsIdentity.AddClaims(claims);
+        if (claims != null) claimsIdentity.AddClaims(claims);
 
         var authenticationTokenBuilder = Scope.ServiceProvider.GetRequiredService<BotAuthenticationTokenBuilder>();
-        var authorization = await authenticationTokenBuilder.CreateAuthenticationHeader(claimsIdentity);
+        var authorization = await authenticationTokenBuilder.CreateAuthenticationHeader(new CreateTokenParams
+        {
+            ClaimsIdentity = claimsIdentity
+        });
+
         if (setAsCurrent)
             HttpClient.DefaultRequestHeaders.Authorization = authorization;
 

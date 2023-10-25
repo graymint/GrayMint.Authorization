@@ -6,6 +6,10 @@ public class BotAuthenticationOptions
     public string? BotAudience { get; set; }
     public required byte[] BotKey { get; set; }
     public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan IdTokenExpiration { get; set; } = TimeSpan.FromMinutes(15);
+    public TimeSpan AccessTokenShortExpiration { get; set; } = TimeSpan.FromDays(3);
+    public TimeSpan AccessTokenLongExpiration { get; set; } = TimeSpan.FromDays(30);
+    public string? GoogleClientId { get; set; }
 
     public void Validate(bool isProduction)
     {

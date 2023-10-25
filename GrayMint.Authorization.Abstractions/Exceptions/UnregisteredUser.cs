@@ -1,4 +1,6 @@
-﻿namespace GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
+﻿using System;
+
+namespace GrayMint.Authorization.Abstractions.Exceptions;
 
 public class UnregisteredUser : Exception
 {

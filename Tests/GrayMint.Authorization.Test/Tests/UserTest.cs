@@ -1,5 +1,5 @@
 using System.Net;
-using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
+using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
@@ -189,7 +189,7 @@ public class UserTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"TeamController:UserTokenLongExpiration", "00:00:02" }
+            {"Auth:AccessTokenLongExpiration", "00:00:02" }
         });
 
         await testInit.CreateUnregisteredUser();
@@ -218,8 +218,8 @@ public class UserTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"TeamController:UserTokenShortExpiration", "00:01:00" },
-            {"TeamController:UserTokenLongExpiration", "00:10:00" }
+            {"Auth:AccessTokenShortExpiration", "00:01:00" },
+            {"Auth:AccessTokenLongExpiration", "00:10:00" }
         });
 
         await testInit.CreateUnregisteredUser();

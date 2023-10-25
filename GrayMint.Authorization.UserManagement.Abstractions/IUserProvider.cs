@@ -10,6 +10,7 @@ public interface IUserProvider
     Task<IUser> Create(UserCreateRequest request);
     Task<IUser> Update(Guid userId, UserUpdateRequest request);
     Task<IUser> Get(Guid userId);
+    Task<IUser?> FindById(Guid userId);
     Task<IUser?> FindByEmail(string email);
     Task<IUser> GetByEmail(string email);
     Task Remove(Guid userId);

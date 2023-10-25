@@ -24,10 +24,23 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
     public async Task<string?> GetUserId(ClaimsPrincipal principal)
     {
-        var email = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
-        if (email == null) return null;
-        var user = await _userProvider.FindByEmail(email);
-        return user?.UserId.ToString();
+        var userIdClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            var user = await _userProvider.FindById(userId);
+            if (user != null)
+                return user.UserId.ToString();
+        }
+
+        var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
+        if (emailClaim != null)
+        {
+            var user = await _userProvider.FindByEmail(emailClaim.Value);
+            if (user != null)
+                return user.UserId.ToString();
+        }
+
+        return null;
     }
 
     public async Task OnAuthenticated(ClaimsPrincipal principal)

@@ -62,16 +62,22 @@ public class SimpleUserProvider : IUserProvider
         return user.ToDto();
     }
 
-    public async Task<IUser> Get(Guid userId)
+    public async Task<IUser?> FindById(Guid userId)
     {
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
             entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
-            return _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
-        }) ?? throw new Exception("provider cache has been corrupted.");
+            return _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.UserId == userId);
+        });
 
-        return user.ToDto();
+        return user?.ToDto();
+    }
+
+    public async Task<IUser> Get(Guid userId)
+    {
+        var user = await FindById(userId) ?? throw new NotExistsException("There is no user with the given id.");
+        return user;
     }
 
     public async Task UpdateAccessedTime(Guid userId)
@@ -122,7 +128,7 @@ public class SimpleUserProvider : IUserProvider
 
     public async Task<IUser> GetByEmail(string email)
     {
-        var user = await FindByEmail(email) ?? throw new NotExistsException("There is not user with the given email.");
+        var user = await FindByEmail(email) ?? throw new NotExistsException("There is no user with the given email.");
         return user;
     }
 

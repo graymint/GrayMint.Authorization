@@ -1,12 +1,10 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Authentication;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications.BotAuthentication;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
-using GrayMint.Authorization.RoleManagement.TeamControllers.Exceptions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
@@ -78,14 +76,18 @@ public class TeamService
 
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
-        var authenticationHeader = await _botAuthenticationTokenBuilder
-            .CreateAuthenticationHeader(user.UserId.ToString(), user.Email, expirationTime);
+        var tokenInfo = await _botAuthenticationTokenBuilder
+            .CreateToken(new CreateTokenParams
+            {
+                Subject = user.UserId.ToString(),
+                ExpirationTime = expirationTime
+            });
 
         var ret = new UserApiKey
         {
             ExpirationTime = expirationTime,
             UserId = user.UserId,
-            Authorization = authenticationHeader.ToString()
+            Authorization = tokenInfo.AuthenticationHeaderValue.ToString(),
         };
         return ret;
     }
@@ -109,7 +111,12 @@ public class TeamService
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _userProvider.ResetAuthorizationCode(user.UserId);
         var authenticationHeader = await _botAuthenticationTokenBuilder
-            .CreateAuthenticationHeader(user.UserId.ToString(), user.Email, expirationTime: expirationTime);
+            .CreateAuthenticationHeader(new CreateTokenParams
+            {
+                Subject = user.UserId.ToString(),
+                Email = user.Email,
+                ExpirationTime = expirationTime
+            });
 
         var ret = new UserApiKey
         {
@@ -129,30 +136,14 @@ public class TeamService
         if (user.IsBot)
             throw new InvalidOperationException("Can not use this method for bots.");
 
-        // find expiration
-        var maxExpiration = DateTime.UtcNow + TeamControllersOptions.UserTokenLongExpiration;
-        var expirationTime = DateTime.UtcNow + TeamControllersOptions.UserTokenShortExpiration;
-        if (expirationTime > maxExpiration || longExpiration)
-            expirationTime = maxExpiration;
-
-        // find auth_time. it can not be older than UserTokenLongExpiration
-        var authTimeClaim = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.AuthTime);
-        var authTime = authTimeClaim?.Value != null 
-            ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(authTimeClaim.Value)).UtcDateTime 
-            : DateTime.UtcNow;
-
-        if (authTime < DateTime.UtcNow - TeamControllersOptions.UserTokenLongExpiration)
-            throw new AuthenticationException();
-
-        var authenticationHeader = await _botAuthenticationTokenBuilder
-            .CreateAuthenticationHeader(user.UserId.ToString(), 
-                user.Email, expirationTime: expirationTime, authTime: authTime);
+        var tokenInfo = await _botAuthenticationTokenBuilder
+            .SignIn(claimsPrincipal, longExpiration);
 
         var ret = new UserApiKey
         {
-            ExpirationTime = expirationTime,
+            ExpirationTime = tokenInfo.ExpirationTime,
             UserId = userId,
-            Authorization = authenticationHeader.ToString(),
+            Authorization = tokenInfo.AuthenticationHeaderValue.ToString(),
         };
 
         return ret;
@@ -386,5 +377,10 @@ public class TeamService
     public string GetRootResourceId()
     {
         return AuthorizationConstants.RootResourceId;
+    }
+
+    public Task<BotTokenInfo> GetIdTokenFromGoogle(string idToken)
+    {
+        return _botAuthenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
     }
 }
