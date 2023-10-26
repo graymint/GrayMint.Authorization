@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace GrayMint.Authorization.Authentications.BotAuthentication;
+namespace GrayMint.Authorization.Authentications;
 
 public class CreateTokenParams
 {

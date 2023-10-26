@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GrayMint.Authorization.Test.Helper;
 
-public class TestBotAuthenticationProvider : IAuthorizationProvider
+public class TestAuthenticationProvider : IAuthorizationProvider
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    public TestBotAuthenticationProvider(IServiceScopeFactory serviceScopeFactory)
+    public TestAuthenticationProvider(IServiceScopeFactory serviceScopeFactory)
     {
         _serviceScopeFactory = serviceScopeFactory;
     }

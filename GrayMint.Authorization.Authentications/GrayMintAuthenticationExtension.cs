@@ -5,28 +5,28 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace GrayMint.Authorization.Authentications.BotAuthentication;
+namespace GrayMint.Authorization.Authentications;
 
-public static class BotAuthenticationExtension
+public static class GrayMintAuthenticationExtension
 {
-    public static AuthenticationBuilder AddBotAuthentication(this AuthenticationBuilder authenticationBuilder,
-        BotAuthenticationOptions? botAuthenticationOptions,
+    public static AuthenticationBuilder AddGrayMintAuthentication(this AuthenticationBuilder authenticationBuilder,
+        GrayMintAuthenticationOptions? authenticationOptions,
         bool isProduction)
     {
-        if (botAuthenticationOptions is null) throw new ArgumentNullException(nameof(botAuthenticationOptions));
-        botAuthenticationOptions.Validate(isProduction);
+        if (authenticationOptions is null) throw new ArgumentNullException(nameof(authenticationOptions));
+        authenticationOptions.Validate(isProduction);
 
-        var securityKey = new SymmetricSecurityKey(botAuthenticationOptions.BotKey);
+        var securityKey = new SymmetricSecurityKey(authenticationOptions.Secret);
         authenticationBuilder
-            .AddJwtBearer(BotAuthenticationDefaults.AuthenticationScheme, options =>
+            .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     NameClaimType = JwtRegisteredClaimNames.Email,
                     RequireSignedTokens = true,
                     IssuerSigningKey = securityKey,
-                    ValidIssuer = botAuthenticationOptions.BotIssuer,
-                    ValidAudience = botAuthenticationOptions.BotAudience ?? botAuthenticationOptions.BotIssuer,
+                    ValidIssuer = authenticationOptions.Issuer,
+                    ValidAudience = authenticationOptions.Audience ?? authenticationOptions.Issuer,
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
                     ValidateIssuer = true,
@@ -38,15 +38,15 @@ public static class BotAuthenticationExtension
                     OnTokenValidated = async context =>
                     {
                         await using var scope = context.HttpContext.RequestServices.CreateAsyncScope();
-                        var tokenValidator = scope.ServiceProvider.GetRequiredService<BotTokenValidator>();
+                        var tokenValidator = scope.ServiceProvider.GetRequiredService<GrayMintTokenValidator>();
                         await tokenValidator.Validate(context);
                     }
                 };
             });
 
-        authenticationBuilder.Services.AddSingleton(Options.Create(botAuthenticationOptions));
-        authenticationBuilder.Services.AddScoped<BotTokenValidator>();
-        authenticationBuilder.Services.AddScoped<BotAuthenticationTokenBuilder>();
+        authenticationBuilder.Services.AddSingleton(Options.Create(authenticationOptions));
+        authenticationBuilder.Services.AddScoped<GrayMintTokenValidator>();
+        authenticationBuilder.Services.AddScoped<GrayMintAuthentication>();
         return authenticationBuilder;
     }
 }

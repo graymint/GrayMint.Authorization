@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
-using GrayMint.Authorization.Authentications.BotAuthentication;
+using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
@@ -42,7 +42,7 @@ public class TestInit : IDisposable
                 builder.UseEnvironment(environment);
                 builder.ConfigureServices(services =>
                 {
-                    services.AddScoped<IAuthorizationProvider, TestBotAuthenticationProvider>();
+                    services.AddScoped<IAuthorizationProvider, TestAuthenticationProvider>();
                 });
             });
 
@@ -95,7 +95,7 @@ public class TestInit : IDisposable
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
         if (claims != null) claimsIdentity.AddClaims(claims);
 
-        var authenticationTokenBuilder = Scope.ServiceProvider.GetRequiredService<BotAuthenticationTokenBuilder>();
+        var authenticationTokenBuilder = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         var authorization = await authenticationTokenBuilder.CreateAuthenticationHeader(new CreateTokenParams
         {
             ClaimsIdentity = claimsIdentity

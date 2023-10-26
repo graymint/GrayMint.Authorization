@@ -1,9 +1,9 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 
-namespace GrayMint.Authorization.Authentications.BotAuthentication;
+namespace GrayMint.Authorization.Authentications;
 
-public class BotTokenInfo
+public class TokenInfo
 {
     public required string Token { get; init; }
     public required DateTime ExpirationTime { get; init; }

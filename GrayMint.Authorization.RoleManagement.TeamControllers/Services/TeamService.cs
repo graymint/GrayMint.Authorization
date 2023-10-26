@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
-using GrayMint.Authorization.Authentications.BotAuthentication;
+using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
@@ -20,7 +20,7 @@ public class TeamService
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly IAuthorizationService _authorizationService;
-    private readonly BotAuthenticationTokenBuilder _botAuthenticationTokenBuilder;
+    private readonly GrayMintAuthentication _authenticationTokenBuilder;
 
     public TeamControllerOptions TeamControllersOptions { get; }
 
@@ -29,13 +29,13 @@ public class TeamService
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider,
         IOptions<TeamControllerOptions> teamControllersOptions,
-        BotAuthenticationTokenBuilder botAuthenticationTokenBuilder,
+        GrayMintAuthentication authenticationTokenBuilder,
         IAuthorizationService authorizationService)
     {
         _roleProvider = roleProvider;
         _userProvider = userProvider;
         _authorizationProvider = authorizationProvider;
-        _botAuthenticationTokenBuilder = botAuthenticationTokenBuilder;
+        _authenticationTokenBuilder = authenticationTokenBuilder;
         _authorizationService = authorizationService;
         TeamControllersOptions = teamControllersOptions.Value;
     }
@@ -76,7 +76,7 @@ public class TeamService
 
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
-        var tokenInfo = await _botAuthenticationTokenBuilder
+        var tokenInfo = await _authenticationTokenBuilder
             .CreateToken(new CreateTokenParams
             {
                 Subject = user.UserId.ToString(),
@@ -110,7 +110,7 @@ public class TeamService
         // reset the api key
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _userProvider.ResetAuthorizationCode(user.UserId);
-        var authenticationHeader = await _botAuthenticationTokenBuilder
+        var authenticationHeader = await _authenticationTokenBuilder
             .CreateAuthenticationHeader(new CreateTokenParams
             {
                 Subject = user.UserId.ToString(),
@@ -136,7 +136,7 @@ public class TeamService
         if (user.IsBot)
             throw new InvalidOperationException("Can not use this method for bots.");
 
-        var tokenInfo = await _botAuthenticationTokenBuilder
+        var tokenInfo = await _authenticationTokenBuilder
             .SignIn(claimsPrincipal, longExpiration);
 
         var ret = new UserApiKey
@@ -379,8 +379,8 @@ public class TeamService
         return AuthorizationConstants.RootResourceId;
     }
 
-    public Task<BotTokenInfo> GetIdTokenFromGoogle(string idToken)
+    public Task<TokenInfo> GetIdTokenFromGoogle(string idToken)
     {
-        return _botAuthenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
+        return _authenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
     }
 }

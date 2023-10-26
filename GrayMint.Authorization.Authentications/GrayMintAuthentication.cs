@@ -8,19 +8,19 @@ using GrayMint.Authorization.Abstractions.Exceptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 
-namespace GrayMint.Authorization.Authentications.BotAuthentication;
+namespace GrayMint.Authorization.Authentications;
 
-public class BotAuthenticationTokenBuilder
+public class GrayMintAuthentication
 {
     private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly BotAuthenticationOptions _botAuthenticationOptions;
+    private readonly GrayMintAuthenticationOptions _authenticationOptions;
     private readonly HttpClient _httpClient;
 
-    public BotAuthenticationTokenBuilder(IAuthorizationProvider authorizationProvider, IOptions<BotAuthenticationOptions> botAuthenticationOptions, HttpClient httpClient)
+    public GrayMintAuthentication(IAuthorizationProvider authorizationProvider, IOptions<GrayMintAuthenticationOptions> authenticationOptions, HttpClient httpClient)
     {
         _authorizationProvider = authorizationProvider;
+        _authenticationOptions = authenticationOptions.Value;
         _httpClient = httpClient;
-        _botAuthenticationOptions = botAuthenticationOptions.Value;
     }
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(CreateTokenParams createParams)
@@ -29,7 +29,7 @@ public class BotAuthenticationTokenBuilder
         return new AuthenticationHeaderValue(tokenInfo.AuthenticationScheme, tokenInfo.Token);
     }
 
-    public async Task<BotTokenInfo> CreateToken(CreateTokenParams createParams)
+    public async Task<TokenInfo> CreateToken(CreateTokenParams createParams)
     {
         var claimsIdentity = createParams.ClaimsIdentity ?? new ClaimsIdentity();
 
@@ -73,19 +73,19 @@ public class BotAuthenticationTokenBuilder
         }
 
         // add authorization code to claim
-        claimsIdentity.AddClaim(new Claim(BotAuthenticationDefaults.AuthorizationCodeTypeName, authCode));
+        claimsIdentity.AddClaim(new Claim(GrayMintAuthenticationDefaults.AuthorizationCodeTypeName, authCode));
         claimsIdentity.AddClaim(new Claim("token_use", createParams.TokenUse));
 
         // create jwt
-        var audience = string.IsNullOrEmpty(_botAuthenticationOptions.BotAudience) ? _botAuthenticationOptions.BotIssuer : _botAuthenticationOptions.BotAudience;
+        var audience = string.IsNullOrEmpty(_authenticationOptions.Audience) ? _authenticationOptions.Issuer : _authenticationOptions.Audience;
         var jwt = JwtUtil.CreateSymmetricJwt(
-                key: _botAuthenticationOptions.BotKey,
-                issuer: _botAuthenticationOptions.BotIssuer,
+                key: _authenticationOptions.Secret,
+                issuer: _authenticationOptions.Issuer,
                 audience: audience,
                 claims: claimsIdentity.Claims.ToArray(),
                 expirationTime: createParams.ExpirationTime);
 
-        var tokenInfo = new BotTokenInfo
+        var tokenInfo = new TokenInfo
         {
             Token = jwt,
             AuthenticationScheme = JwtBearerDefaults.AuthenticationScheme,
@@ -95,9 +95,9 @@ public class BotAuthenticationTokenBuilder
         return tokenInfo;
     }
 
-    private async Task<BotTokenInfo> CreateIdToken(ClaimsIdentity claimsIdentity)
+    private async Task<TokenInfo> CreateIdToken(ClaimsIdentity claimsIdentity)
     {
-        var expirationTime = DateTime.UtcNow + _botAuthenticationOptions.IdTokenExpiration;
+        var expirationTime = DateTime.UtcNow + _authenticationOptions.IdTokenExpiration;
         var token = await CreateToken(new CreateTokenParams
         {
             AuthCode = AuthorizationConstants.AnyAuthCode,
@@ -109,7 +109,7 @@ public class BotAuthenticationTokenBuilder
         return token;
     }
 
-    public async Task<BotTokenInfo> CreateIdTokenFromGoogle(string idToken)
+    public async Task<TokenInfo> CreateIdTokenFromGoogle(string idToken)
     {
         // check credential using google endpoint
         var jwtPayload = await _httpClient.GetFromJsonAsync<JwtPayload>("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken)
@@ -127,20 +127,20 @@ public class BotAuthenticationTokenBuilder
 
         // check claims
         if (emailVerifiedValue?.ToString() != "true") throw new AuthenticationException("Email is not verified.");
-        if (!jwtPayload.TryGetValue(JwtRegisteredClaimNames.Aud, out var aud) || aud.ToString() != _botAuthenticationOptions.GoogleClientId)
+        if (!jwtPayload.TryGetValue(JwtRegisteredClaimNames.Aud, out var aud) || aud.ToString() != _authenticationOptions.GoogleClientId)
             throw new AuthenticationException("Invalid audience. The token is not issued for this service.");
 
         var ret = await CreateIdToken(claimsIdentity);
         return ret;
     }
 
-    public async Task<BotTokenInfo> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
+    public async Task<TokenInfo> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
     {
         var userId = await _authorizationProvider.GetUserId(claimsPrincipal) ?? throw new UnregisteredUser();
 
         // find expiration
-        var maxExpiration = DateTime.UtcNow + _botAuthenticationOptions.AccessTokenLongExpiration;
-        var expirationTime = DateTime.UtcNow + _botAuthenticationOptions.AccessTokenShortExpiration;
+        var maxExpiration = DateTime.UtcNow + _authenticationOptions.AccessTokenLongExpiration;
+        var expirationTime = DateTime.UtcNow + _authenticationOptions.AccessTokenShortExpiration;
         if (expirationTime > maxExpiration || longExpiration)
             expirationTime = maxExpiration;
 
@@ -150,7 +150,7 @@ public class BotAuthenticationTokenBuilder
             ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(authTimeClaim.Value)).UtcDateTime
             : DateTime.UtcNow;
 
-        if (authTime < DateTime.UtcNow - _botAuthenticationOptions.AccessTokenLongExpiration)
+        if (authTime < DateTime.UtcNow - _authenticationOptions.AccessTokenLongExpiration)
             throw new AuthenticationException();
 
         var tokenInfo = await CreateToken(new CreateTokenParams

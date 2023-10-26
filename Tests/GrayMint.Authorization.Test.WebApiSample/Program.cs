@@ -1,4 +1,4 @@
-using GrayMint.Authorization.Authentications.BotAuthentication;
+using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
@@ -24,7 +24,7 @@ public class Program
         builder.AddGrayMintCommonServices(new GrayMintCommonOptions { AppName = "Web App Sample" }, new RegisterServicesOptions());
         builder.Services
             .AddAuthentication()
-            .AddBotAuthentication(authConfiguration.Get<BotAuthenticationOptions>(), builder.Environment.IsProduction())
+            .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction())
             .AddCognitoAuthentication(authConfiguration.Get<CognitoAuthenticationOptions>());
 
         builder.Services.AddGrayMintRoleAuthorization();
@@ -40,7 +40,7 @@ public class Program
             // create default policy
             var policyBuilder = new AuthorizationPolicyBuilder();
             policyBuilder.RequireAuthenticatedUser();
-            policyBuilder.AddAuthenticationSchemes(BotAuthenticationDefaults.AuthenticationScheme);
+            policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
             if (authConfiguration.GetValue<string>("CognitoClientId") != "ignore")
                 policyBuilder.AddAuthenticationSchemes(CognitoAuthenticationDefaults.AuthenticationScheme);
             
