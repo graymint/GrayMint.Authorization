@@ -46,11 +46,12 @@ public class AwsCognitoTest
             Assert.AreEqual(nameof(AlreadyExistsException), ex.ExceptionTypeName);
         }
 
-        var idToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
-        testInit.HttpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, idToken);
-
-        await testInit.AppsClient.ListAsync();
+        var cognitoIdToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
+        var idToken = await testInit.TeamClient.GetIdTokenFromCognitoAsync(cognitoIdToken);
+        
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, idToken);
+        await testInit.TeamClient.SignInAsync();
+        
         await testInit.AppsClient.ListAsync();
     }
 }

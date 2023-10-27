@@ -273,7 +273,16 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return Redirect(uriBuilder.ToString());
     }
 
-    [HttpGet("system/google/id-token")]
+    [HttpGet("system/external/cognito/id-token")]
+    [AllowAnonymous]
+    public async Task<string> GetIdTokenFromCognito(string idToken)
+    {
+        var tokenInfo = await _teamService.GetIdTokenFromCognito(idToken);
+        return tokenInfo.Token;
+    }
+
+
+    [HttpGet("system/external/google/id-token")]
     [AllowAnonymous]
     public virtual async Task<string> GetIdTokenFromGoogle(string idToken)
     {

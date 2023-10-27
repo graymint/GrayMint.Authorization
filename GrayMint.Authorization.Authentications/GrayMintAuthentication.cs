@@ -5,22 +5,36 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
+using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GrayMint.Authorization.Authentications;
 
 public class GrayMintAuthentication
 {
     private readonly IAuthorizationProvider _authorizationProvider;
+    private readonly CognitoAuthenticationOptions _cognitoOptions;
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
     private readonly HttpClient _httpClient;
+    private readonly IMemoryCache _memoryCache;
 
-    public GrayMintAuthentication(IAuthorizationProvider authorizationProvider, IOptions<GrayMintAuthenticationOptions> authenticationOptions, HttpClient httpClient)
+    public GrayMintAuthentication(
+        IAuthorizationProvider authorizationProvider,
+        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+        IOptions<CognitoAuthenticationOptions> cognitoOptions,
+        HttpClient httpClient,
+        IMemoryCache memoryCache)
     {
         _authorizationProvider = authorizationProvider;
+        _cognitoOptions = cognitoOptions.Value;
         _authenticationOptions = authenticationOptions.Value;
         _httpClient = httpClient;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(CreateTokenParams createParams)
@@ -31,7 +45,7 @@ public class GrayMintAuthentication
 
     public async Task<TokenInfo> CreateToken(CreateTokenParams createParams)
     {
-        var claimsIdentity = createParams.ClaimsIdentity ?? new ClaimsIdentity();
+        var claimsIdentity = createParams.ClaimsIdentity?.Clone() ?? new ClaimsIdentity();
 
         // add subject
         if (createParams.Subject != null)
@@ -107,6 +121,60 @@ public class GrayMintAuthentication
         });
 
         return token;
+    }
+
+    private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
+    {
+        var openIdConfig = await _memoryCache.GetOrCreateAsync(url, async entry =>
+        {
+            var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
+            entry.SetAbsoluteExpiration(_authenticationOptions.OpenIdConfigTimeout);
+            return await configurationManager.GetConfigurationAsync();
+        }) ?? throw new Exception($"Could not retrieve OpenId config. EndPoint: {url}");
+
+        return openIdConfig;
+    }
+
+    private static void AddClaim(JwtPayload source, ClaimsIdentity destination, string sourceType,
+        string? destinationType = null, string? destinationValueType = null)
+    {
+        foreach (var claim in source.Claims.Where(x => x.Type == sourceType))
+            destination.AddClaim(new Claim(destinationType ?? sourceType, claim.Value, destinationValueType ?? claim.ValueType));
+    }
+
+    public async Task<TokenInfo> CreateIdTokenFromCognito(string idToken)
+    {
+        var cognitoArn = new AwsArn(_cognitoOptions.CognitoArn);
+        var metadataAddress = $"https://{cognitoArn.Service}.{cognitoArn.Region}.amazonaws.com/{cognitoArn.ResourceId}/.well-known/openid-configuration";
+        var openIdConfig = await GetOpenIdConnectConfiguration(metadataAddress);
+
+        // Set the parameters for token validation
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true, 
+            ValidIssuer = openIdConfig.Issuer,
+            ValidateAudience = true, 
+            ValidAudience = _cognitoOptions.CognitoClientId, // Replace with your API identifier
+            ValidateLifetime = true,
+            IssuerSigningKeys = openIdConfig.SigningKeys,
+            ValidateIssuerSigningKey = true
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        tokenHandler.ValidateToken(idToken, validationParameters, out var token);
+        var jwtToken = (JwtSecurityToken)token;
+        var jwtPayload = jwtToken.Payload;
+
+        var claimsIdentity = new ClaimsIdentity();
+        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.Name);
+        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.GivenName);
+        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.Email);
+        AddClaim(jwtPayload, claimsIdentity, "email_verified");
+        AddClaim(jwtPayload, claimsIdentity, "nonce");
+        AddClaim(jwtPayload, claimsIdentity, "picture");
+        AddClaim(jwtPayload, claimsIdentity, "cognito:groups");
+        var ret = await CreateIdToken(claimsIdentity);
+        return ret;
     }
 
     public async Task<TokenInfo> CreateIdTokenFromGoogle(string idToken)

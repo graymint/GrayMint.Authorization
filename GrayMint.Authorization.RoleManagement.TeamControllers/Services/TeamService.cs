@@ -383,4 +383,9 @@ public class TeamService
     {
         return _authenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
     }
+    public Task<TokenInfo> GetIdTokenFromCognito(string idToken)
+    {
+        return _authenticationTokenBuilder.CreateIdTokenFromCognito(idToken);
+    }
+
 }

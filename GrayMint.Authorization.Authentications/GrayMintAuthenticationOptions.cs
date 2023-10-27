@@ -15,6 +15,7 @@ public class GrayMintAuthenticationOptions
     public required string Issuer { get; set; }
     public string? Audience { get; set; }
     public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan OpenIdConfigTimeout { get; set; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenExpiration { get; set; } = TimeSpan.FromMinutes(15);
     public TimeSpan AccessTokenShortExpiration { get; set; } = TimeSpan.FromDays(3);
     public TimeSpan AccessTokenLongExpiration { get; set; } = TimeSpan.FromDays(30);
