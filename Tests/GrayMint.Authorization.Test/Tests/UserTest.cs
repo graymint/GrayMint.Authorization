@@ -2,7 +2,9 @@ using System.Net;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -10,6 +12,30 @@ namespace GrayMint.Authorization.Test.Tests;
 [TestClass]
 public class UserTest
 {
+    [TestMethod]
+    public async Task LockUser()
+    {
+        var testInit = await TestInit.Create();
+        var apiKey = await testInit.AddNewBot(Roles.AppWriter);
+
+        // make sure the current token is working
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
+
+        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        await simpleUserProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
+
+        // make sure the current token is not working anymore
+        try
+        {
+            await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
+        }
+    }
+
     [TestMethod]
     public async Task ResetAuthUserToken()
     {
