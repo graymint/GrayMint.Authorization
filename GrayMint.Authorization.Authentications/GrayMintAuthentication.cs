@@ -4,7 +4,7 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
-using GrayMint.Authorization.Authentications.Utilities;
+using GrayMint.Authorization.Authentications.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 

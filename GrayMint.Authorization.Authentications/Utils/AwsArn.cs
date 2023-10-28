@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace GrayMint.Authorization.Authentications.Utilities;
+namespace GrayMint.Authorization.Authentications.Utils;
 
 public class AwsArn
 {
