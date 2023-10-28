@@ -3,13 +3,13 @@
 public class GrayMintAuthenticationOptions
 {
     [Obsolete ("Use Issuer")]
-    public string BotIssuer { get => Issuer; init { Issuer = value; Console.WriteLine("You are using an obsoleted property."); } }
+    public string BotIssuer { get => Issuer; init { Issuer = value; Console.WriteLine("You are using an obsoleted property. Property: BotIssuer"); } }
 
     [Obsolete ("Use Audience")]
-    public string? BotAudience { get => Audience; init { Audience = value; Console.WriteLine("You are using an obsoleted property."); } }
+    public string? BotAudience { get => Audience; init { Audience = value; Console.WriteLine("You are using an obsoleted property. Property: BotAudience"); } }
 
     [Obsolete ("Use Secret")]
-    public byte[] BotKey { get => Secret; init { Secret = value; Console.WriteLine("You are using an obsoleted property."); } } 
+    public byte[] BotKey { get => Secret; init { Secret = value; Console.WriteLine("You are using an obsoleted property. Property: BotKey"); } } 
 
     public required byte[] Secret { get; init; }
     public IEnumerable<byte[]> Secrets { get; init; } = Array.Empty<byte[]>();

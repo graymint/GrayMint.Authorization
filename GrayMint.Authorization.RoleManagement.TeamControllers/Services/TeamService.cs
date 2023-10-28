@@ -228,6 +228,9 @@ public class TeamService
     public async Task<User> GetUser(Guid userId)
     {
         var user = await _userProvider.Get(userId);
+
+        //AccessedTime should not be set for user due security reason and sharing user account among projects,
+        user.AccessedTime = null;
         return user;
     }
 
