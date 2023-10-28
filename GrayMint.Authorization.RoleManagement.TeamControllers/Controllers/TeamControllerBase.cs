@@ -41,7 +41,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         if (!_teamService.TeamControllersOptions.AllowUserSelfRegister)
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
-        await _teamService.Register(User);
+        await _teamService.SignUp(User);
         return await _teamService.SignIn(User, false);
     }
 
@@ -265,7 +265,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
 
         // Adding a parameter
-        ArgumentNullException.ThrowIfNull(_teamService.TeamControllersOptions.SignInRedirectUrl);
+        if (_teamService.TeamControllersOptions.SignInRedirectUrl == null) 
+            throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
+
         var uriBuilder = new UriBuilder(_teamService.TeamControllersOptions.SignInRedirectUrl);
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);
         query["id_token"] = tokenInfo.Token;

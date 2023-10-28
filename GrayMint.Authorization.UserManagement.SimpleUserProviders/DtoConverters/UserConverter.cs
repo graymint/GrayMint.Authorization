@@ -14,6 +14,7 @@ internal static class UserConverter
             IsDisabled = model.IsDisabled,
             CreatedTime = model.CreatedTime,
             AuthorizationCode = model.AuthCode,
+            Name = string.IsNullOrEmpty(model.Name) ? $"{model.FirstName} {model.LastName}".Trim() : model.Name,
             FirstName = model.FirstName,
             LastName = model.LastName,
             AccessedTime = model.AccessedTime,
@@ -21,7 +22,6 @@ internal static class UserConverter
             IsEmailVerified = model.IsEmailVerified,
             IsPhoneVerified = model.IsPhoneVerified,
             Phone = model.Phone,
-            Name = model.Name,
             PictureUrl = model.PictureUrl,
             IsBot = model.IsBot,
             ExData = model.ExData

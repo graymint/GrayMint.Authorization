@@ -309,19 +309,16 @@ public class TeamService
         throw new NotExistsException($"Could not find {nameof(RolePermissions.RoleWrite)} in any system roles.");
     }
 
-    public async Task<User> Register(ClaimsPrincipal caller)
+    public async Task<User> SignUp(ClaimsPrincipal claimsPrincipal)
     {
         var email =
-            caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
+            claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
             ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
 
-        var user = await _userProvider.Create(new UserCreateRequest
-        {
-            Email = email,
-            FirstName = caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.GivenName)?.Value,
-            LastName = caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Surname)?.Value,
-            Description = null
-        });
+        var user = await _userProvider.Create(new UserCreateRequest { Email = email });
+
+        if (claimsPrincipal.FindFirstValue("token_use") == "id")
+            await UpdateUserByClaims(user, claimsPrincipal);
 
         return user;
     }
