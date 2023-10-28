@@ -1,5 +1,4 @@
 using GrayMint.Authorization.Authentications;
-using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
@@ -24,8 +23,7 @@ public class Program
         builder.AddGrayMintCommonServices(new GrayMintCommonOptions { AppName = "Web App Sample" }, new RegisterServicesOptions());
         builder.Services
             .AddAuthentication()
-            .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction())
-            .AddCognitoAuthentication(authConfiguration.Get<CognitoAuthenticationOptions>());
+            .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction());
 
         builder.Services.AddGrayMintRoleAuthorization();
         builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
@@ -41,8 +39,6 @@ public class Program
             var policyBuilder = new AuthorizationPolicyBuilder();
             policyBuilder.RequireAuthenticatedUser();
             policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
-            if (authConfiguration.GetValue<string>("CognitoClientId") != "ignore")
-                policyBuilder.AddAuthenticationSchemes(CognitoAuthenticationDefaults.AuthenticationScheme);
             
             var defaultPolicy = policyBuilder.Build();
             options.AddPolicy("DefaultPolicy", defaultPolicy);

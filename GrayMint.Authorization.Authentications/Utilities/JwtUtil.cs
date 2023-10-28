@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 
-namespace GrayMint.Authorization.Authentications;
+namespace GrayMint.Authorization.Authentications.Utilities;
 
 public class JwtUtil
 {

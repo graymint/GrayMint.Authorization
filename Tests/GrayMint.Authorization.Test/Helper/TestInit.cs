@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
-using GrayMint.Authorization.Authentications.CognitoAuthentication;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Common.Test.Api;
@@ -23,7 +22,7 @@ public class TestInit : IDisposable
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
-    public CognitoAuthenticationOptions CognitoAuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<CognitoAuthenticationOptions>>().Value;
+    public GrayMintAuthenticationOptions AuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<GrayMintAuthenticationOptions>>().Value;
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public TeamClient TeamClient => new(HttpClient);
@@ -113,10 +112,9 @@ public class TestInit : IDisposable
     }
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
-        string environment = "Development", bool useCognito = false, bool allowUserMultiRole = false)
+        string environment = "Development", bool allowUserMultiRole = false)
     {
         appSettings ??= new Dictionary<string, string?>();
-        if (!useCognito) appSettings["Auth:CognitoClientId"] = "ignore";
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         var testInit = new TestInit(appSettings, environment);
         await testInit.Init();

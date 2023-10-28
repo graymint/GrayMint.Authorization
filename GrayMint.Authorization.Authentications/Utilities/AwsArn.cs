@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace GrayMint.Authorization.Authentications.CognitoAuthentication;
+namespace GrayMint.Authorization.Authentications.Utilities;
 
 public class AwsArn
 {

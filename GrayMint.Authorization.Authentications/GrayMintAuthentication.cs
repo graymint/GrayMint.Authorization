@@ -1,40 +1,29 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Authentication;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
-using GrayMint.Authorization.Authentications.CognitoAuthentication;
+using GrayMint.Authorization.Authentications.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 
 namespace GrayMint.Authorization.Authentications;
 
 public class GrayMintAuthentication
 {
     private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly CognitoAuthenticationOptions _cognitoOptions;
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly HttpClient _httpClient;
-    private readonly IMemoryCache _memoryCache;
+    private readonly GrayMintExternalAuthentication _grayMintExternalAuthentication;
 
     public GrayMintAuthentication(
         IAuthorizationProvider authorizationProvider,
         IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        IOptions<CognitoAuthenticationOptions> cognitoOptions,
-        HttpClient httpClient,
-        IMemoryCache memoryCache)
+        GrayMintExternalAuthentication grayMintExternalAuthentication)
     {
         _authorizationProvider = authorizationProvider;
-        _cognitoOptions = cognitoOptions.Value;
         _authenticationOptions = authenticationOptions.Value;
-        _httpClient = httpClient;
-        _memoryCache = memoryCache;
+        _grayMintExternalAuthentication = grayMintExternalAuthentication;
     }
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(CreateTokenParams createParams)
@@ -43,7 +32,7 @@ public class GrayMintAuthentication
         return new AuthenticationHeaderValue(tokenInfo.AuthenticationScheme, tokenInfo.Token);
     }
 
-    public async Task<TokenInfo> CreateToken(CreateTokenParams createParams)
+    public async Task<AccessTokenInfo> CreateToken(CreateTokenParams createParams)
     {
         var claimsIdentity = createParams.ClaimsIdentity?.Clone() ?? new ClaimsIdentity();
 
@@ -99,7 +88,7 @@ public class GrayMintAuthentication
                 claims: claimsIdentity.Claims.ToArray(),
                 expirationTime: createParams.ExpirationTime);
 
-        var tokenInfo = new TokenInfo
+        var tokenInfo = new AccessTokenInfo
         {
             Token = jwt,
             AuthenticationScheme = JwtBearerDefaults.AuthenticationScheme,
@@ -109,7 +98,7 @@ public class GrayMintAuthentication
         return tokenInfo;
     }
 
-    private async Task<TokenInfo> CreateIdToken(ClaimsIdentity claimsIdentity)
+    private async Task<AccessTokenInfo> CreateIdToken(ClaimsIdentity claimsIdentity)
     {
         var expirationTime = DateTime.UtcNow + _authenticationOptions.IdTokenExpiration;
         var token = await CreateToken(new CreateTokenParams
@@ -123,87 +112,13 @@ public class GrayMintAuthentication
         return token;
     }
 
-    private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
+    public async Task<AccessTokenInfo> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
     {
-        var openIdConfig = await _memoryCache.GetOrCreateAsync(url, async entry =>
-        {
-            var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
-            entry.SetAbsoluteExpiration(_authenticationOptions.OpenIdConfigTimeout);
-            return await configurationManager.GetConfigurationAsync();
-        }) ?? throw new Exception($"Could not retrieve OpenId config. EndPoint: {url}");
+        // make sure email is verified for id token
+        if (claimsPrincipal.FindFirstValue("token_use") == "id" && claimsPrincipal.FindFirstValue("email_verified") != "true")
+            throw new AuthenticationException("Email has not been verified.");
 
-        return openIdConfig;
-    }
-
-    private static void AddClaim(JwtPayload source, ClaimsIdentity destination, string sourceType,
-        string? destinationType = null, string? destinationValueType = null)
-    {
-        foreach (var claim in source.Claims.Where(x => x.Type == sourceType))
-            destination.AddClaim(new Claim(destinationType ?? sourceType, claim.Value, destinationValueType ?? claim.ValueType));
-    }
-
-    public async Task<TokenInfo> CreateIdTokenFromCognito(string idToken)
-    {
-        var cognitoArn = new AwsArn(_cognitoOptions.CognitoArn);
-        var metadataAddress = $"https://{cognitoArn.Service}.{cognitoArn.Region}.amazonaws.com/{cognitoArn.ResourceId}/.well-known/openid-configuration";
-        var openIdConfig = await GetOpenIdConnectConfiguration(metadataAddress);
-
-        // Set the parameters for token validation
-        var validationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true, 
-            ValidIssuer = openIdConfig.Issuer,
-            ValidateAudience = true, 
-            ValidAudience = _cognitoOptions.CognitoClientId, // Replace with your API identifier
-            ValidateLifetime = true,
-            IssuerSigningKeys = openIdConfig.SigningKeys,
-            ValidateIssuerSigningKey = true
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        tokenHandler.ValidateToken(idToken, validationParameters, out var token);
-        var jwtToken = (JwtSecurityToken)token;
-        var jwtPayload = jwtToken.Payload;
-
-        var claimsIdentity = new ClaimsIdentity();
-        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.Name);
-        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.GivenName);
-        AddClaim(jwtPayload, claimsIdentity, JwtRegisteredClaimNames.Email);
-        AddClaim(jwtPayload, claimsIdentity, "email_verified");
-        AddClaim(jwtPayload, claimsIdentity, "nonce");
-        AddClaim(jwtPayload, claimsIdentity, "picture");
-        AddClaim(jwtPayload, claimsIdentity, "cognito:groups");
-        var ret = await CreateIdToken(claimsIdentity);
-        return ret;
-    }
-
-    public async Task<TokenInfo> CreateIdTokenFromGoogle(string idToken)
-    {
-        // check credential using google endpoint
-        var jwtPayload = await _httpClient.GetFromJsonAsync<JwtPayload>("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken)
-                        ?? throw new AuthenticationException("Invalid credential.");
-
-        // convert claims
-        var claimsIdentity = new ClaimsIdentity();
-        if (jwtPayload.TryGetValue(JwtRegisteredClaimNames.Name, out var nameValue)) claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Name, nameValue.ToString()!, ClaimValueTypes.String));
-        if (jwtPayload.TryGetValue(JwtRegisteredClaimNames.GivenName, out var givenNameValue)) claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.GivenName, givenNameValue.ToString()!, ClaimValueTypes.String));
-        if (jwtPayload.TryGetValue(JwtRegisteredClaimNames.FamilyName, out var familyValue)) claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.FamilyName, familyValue.ToString()!, ClaimValueTypes.String));
-        if (jwtPayload.TryGetValue(JwtRegisteredClaimNames.Email, out var emailValue)) claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, emailValue.ToString()!, ClaimValueTypes.String));
-        if (jwtPayload.TryGetValue("email_verified", out var emailVerifiedValue)) claimsIdentity.AddClaim(new Claim("email_verified", emailVerifiedValue.ToString()!, ClaimValueTypes.Boolean));
-        if (jwtPayload.TryGetValue("nonce", out var nonceValue)) claimsIdentity.AddClaim(new Claim("nonce", nonceValue.ToString()!, ClaimValueTypes.String));
-        if (jwtPayload.TryGetValue("picture", out var pictureValue)) claimsIdentity.AddClaim(new Claim("picture", pictureValue.ToString()!, ClaimValueTypes.String));
-
-        // check claims
-        if (emailVerifiedValue?.ToString() != "true") throw new AuthenticationException("Email is not verified.");
-        if (!jwtPayload.TryGetValue(JwtRegisteredClaimNames.Aud, out var aud) || aud.ToString() != _authenticationOptions.GoogleClientId)
-            throw new AuthenticationException("Invalid audience. The token is not issued for this service.");
-
-        var ret = await CreateIdToken(claimsIdentity);
-        return ret;
-    }
-
-    public async Task<TokenInfo> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
-    {
+        // get registered user id
         var userId = await _authorizationProvider.GetUserId(claimsPrincipal) ?? throw new UnregisteredUser();
 
         // find expiration
@@ -229,5 +144,19 @@ public class GrayMintAuthentication
         });
 
         return tokenInfo;
+    }
+
+    public async Task<AccessTokenInfo> CreateIdTokenFromGoogle(string idToken)
+    {
+        var claimsIdentity = await _grayMintExternalAuthentication.GetClaimsIdentityFromGoogle(idToken);
+        var idTokenInfo = await CreateIdToken(claimsIdentity);
+        return idTokenInfo;
+    }
+
+    public async Task<AccessTokenInfo> CreateIdTokenFromCognito(string idToken)
+    {
+        var claimsIdentity = await _grayMintExternalAuthentication.GetClaimsIdentityFromCognito(idToken);
+        var idTokenInfo = await CreateIdToken(claimsIdentity);
+        return idTokenInfo;
     }
 }

@@ -45,6 +45,7 @@ public static class GrayMintAuthenticationExtension
             });
 
         authenticationBuilder.Services.AddSingleton(Options.Create(authenticationOptions));
+        authenticationBuilder.Services.AddScoped<GrayMintExternalAuthentication>();
         authenticationBuilder.Services.AddScoped<GrayMintTokenValidator>();
         authenticationBuilder.Services.AddScoped<GrayMintAuthentication>();
         return authenticationBuilder;

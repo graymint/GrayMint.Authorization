@@ -11,15 +11,17 @@ public class GrayMintAuthenticationOptions
     [Obsolete ("Use Secret")]
     public byte[] BotKey { get => Secret; init { Secret = value; Console.WriteLine("You are using an obsoleted property."); } } 
 
-    public required byte[] Secret { get; set; }
-    public required string Issuer { get; set; }
-    public string? Audience { get; set; }
-    public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(10);
-    public TimeSpan OpenIdConfigTimeout { get; set; } = TimeSpan.FromMinutes(30);
-    public TimeSpan IdTokenExpiration { get; set; } = TimeSpan.FromMinutes(15);
-    public TimeSpan AccessTokenShortExpiration { get; set; } = TimeSpan.FromDays(3);
-    public TimeSpan AccessTokenLongExpiration { get; set; } = TimeSpan.FromDays(30);
-    public string? GoogleClientId { get; set; }
+    public required byte[] Secret { get; init; }
+    public required string Issuer { get; init; }
+    public string? Audience { get; init; }
+    public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
+    public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
+    public TimeSpan IdTokenExpiration { get; init; } = TimeSpan.FromMinutes(15);
+    public TimeSpan AccessTokenShortExpiration { get; init; } = TimeSpan.FromDays(3);
+    public TimeSpan AccessTokenLongExpiration { get; init; } = TimeSpan.FromDays(30);
+    public string? GoogleClientId { get; init; }
+    public string? CognitoClientId { get; init; }
+    public string? CognitoArn { get; init; }
 
     public void Validate(bool isProduction)
     {

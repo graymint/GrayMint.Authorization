@@ -14,13 +14,13 @@ namespace GrayMint.Authorization.Test.Tests;
 [TestClass]
 public class AwsCognitoTest
 {
-    public async Task<string> GetCredentialsAsync(TestInit testInit, string email, string password)
+    public static async Task<string> GetCredentialsAsync(TestInit testInit, string email, string password)
     {
-        var cognitoArn = Arn.Parse(testInit.CognitoAuthenticationOptions.CognitoArn);
+        var cognitoArn = Arn.Parse(testInit.AuthenticationOptions.CognitoArn);
         var awsRegion = RegionEndpoint.GetBySystemName(cognitoArn.Region);
         var provider = new AmazonCognitoIdentityProviderClient(new Amazon.Runtime.AnonymousAWSCredentials(), awsRegion);
-        var userPool = new CognitoUserPool(cognitoArn.Resource, testInit.CognitoAuthenticationOptions.CognitoClientId, provider);
-        var user = new CognitoUser(email, testInit.CognitoAuthenticationOptions.CognitoClientId, userPool, provider);
+        var userPool = new CognitoUserPool(cognitoArn.Resource, testInit.AuthenticationOptions.CognitoClientId, provider);
+        var user = new CognitoUser(email, testInit.AuthenticationOptions.CognitoClientId, userPool, provider);
         var authRequest = new InitiateSrpAuthRequest()
         {
             Password = password
@@ -34,7 +34,7 @@ public class AwsCognitoTest
     [TestMethod]
     public async Task CognitoTest()
     {
-        using var testInit = await TestInit.Create(useCognito: true);
+        using var testInit = await TestInit.Create();
 
         // add user to appCreator role
         try
