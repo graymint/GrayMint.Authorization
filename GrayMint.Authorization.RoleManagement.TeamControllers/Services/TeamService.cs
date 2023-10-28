@@ -49,7 +49,7 @@ public class TeamService
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
-    public async Task<IUser> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
+    public async Task<User> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
     {
         var user = await _userProvider.Update(userId, new UserUpdateRequest
         {
@@ -92,7 +92,7 @@ public class TeamService
         return ret;
     }
 
-    public async Task<IUser> ResetAuthorizationCode(Guid userId)
+    public async Task<User> ResetAuthorizationCode(Guid userId)
     {
         var user = await _userProvider.Get(userId);
         await _userProvider.ResetAuthorizationCode(user.UserId);
@@ -181,7 +181,7 @@ public class TeamService
         return userRoleList.Items.Single(x => x.UserId == userId);
     }
 
-    public async Task<IUser?> FindUserByEmail(string email)
+    public async Task<User?> FindUserByEmail(string email)
     {
         return await _userProvider.FindByEmail(email);
     }
@@ -192,10 +192,10 @@ public class TeamService
         return Guid.Parse(userId);
     }
 
-    public async Task<TeamUser> GetUser(Guid userId)
+    public async Task<User> GetUser(Guid userId)
     {
         var user = await _userProvider.Get(userId);
-        return new TeamUser(user);
+        return user;
     }
 
     public Task<string[]> GetUserPermissions(string resourceId, Guid userId)
@@ -276,13 +276,13 @@ public class TeamService
         throw new NotExistsException($"Could not find {nameof(RolePermissions.RoleWrite)} in any system roles.");
     }
 
-    public async Task<TeamUser> Register(ClaimsPrincipal caller)
+    public async Task<User> Register(ClaimsPrincipal caller)
     {
         var email =
             caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
             ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
 
-        var ret = await _userProvider.Create(new UserCreateRequest
+        var user = await _userProvider.Create(new UserCreateRequest
         {
             Email = email,
             FirstName = caller.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.GivenName)?.Value,
@@ -290,7 +290,7 @@ public class TeamService
             Description = null
         });
 
-        return new TeamUser(ret);
+        return user;
     }
 
     public async Task<bool> CheckUserPermission(ClaimsPrincipal caller, string resourceId, string permission)

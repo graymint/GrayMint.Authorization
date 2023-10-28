@@ -23,7 +23,7 @@ public class SimpleUserProvider : IUserProvider
         _memoryCache = memoryCache;
     }
 
-    public async Task<IUser> Create(UserCreateRequest request)
+    public async Task<User> Create(UserCreateRequest request)
     {
         var res = await _simpleUserDbContext.Users.AddAsync(new UserModel
         {
@@ -49,7 +49,7 @@ public class SimpleUserProvider : IUserProvider
         return res.Entity.ToDto();
     }
 
-    public async Task<IUser> Update(Guid userId, UserUpdateRequest request)
+    public async Task<User> Update(Guid userId, UserUpdateRequest request)
     {
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
         if (request.Name != null) user.Name = request.Name;
@@ -73,7 +73,7 @@ public class SimpleUserProvider : IUserProvider
         return user.ToDto();
     }
 
-    public async Task<IUser?> FindById(Guid userId)
+    public async Task<User?> FindById(Guid userId)
     {
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
@@ -85,7 +85,7 @@ public class SimpleUserProvider : IUserProvider
         return user?.ToDto();
     }
 
-    public async Task<IUser> Get(Guid userId)
+    public async Task<User> Get(Guid userId)
     {
         var user = await FindById(userId) ?? throw new NotExistsException("There is no user with the given id.");
         return user;
@@ -119,7 +119,7 @@ public class SimpleUserProvider : IUserProvider
         AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
     }
 
-    public async Task<IUser?> FindByEmail(string email)
+    public async Task<User?> FindByEmail(string email)
     {
         //get from cache
         var cacheKey = GetCacheKeyForEmail(email);
@@ -137,13 +137,13 @@ public class SimpleUserProvider : IUserProvider
         return user?.ToDto();
     }
 
-    public async Task<IUser> GetByEmail(string email)
+    public async Task<User> GetByEmail(string email)
     {
         var user = await FindByEmail(email) ?? throw new NotExistsException("There is no user with the given email.");
         return user;
     }
 
-    public async Task<ListResult<IUser>> GetUsers(
+    public async Task<ListResult<User>> GetUsers(
         string? search = null, string? firstName = null, string? lastName = null,
         IEnumerable<Guid>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
@@ -171,7 +171,7 @@ public class SimpleUserProvider : IUserProvider
             .Take(recordCount ?? int.MaxValue)
             .ToArrayAsync();
 
-        var ret = new ListResult<IUser>
+        var ret = new ListResult<User>
         {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
             Items = results.Select(x => x.ToDto()).ToArray()

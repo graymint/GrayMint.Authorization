@@ -1,13 +1,13 @@
-﻿using GrayMint.Authorization.UserManagement.SimpleUserProviders.Dto;
+﻿using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
 
 namespace GrayMint.Authorization.UserManagement.SimpleUserProviders.DtoConverters;
 
 internal static class UserConverter
 {
-    public static SimpleUser ToDto(this UserModel model)
+    public static User ToDto(this UserModel model)
     {
-        var user = new SimpleUser
+        var user = new User
         {
             UserId = model.UserId,
             Email = model.Email,

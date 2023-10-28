@@ -1,5 +1,6 @@
 ﻿using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Services;
+using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +16,7 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase
 {
     private readonly TeamService _teamService;
-    protected abstract TUser ToDto(TeamUser user);
+    protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(TeamRole role);
     protected abstract TUserRole ToDto(TeamUserRole user);
 
@@ -105,7 +106,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     {
         await VerifyWritePermissionOnBot(userId);
         var user = await _teamService.UpdateBot(userId, updateParam);
-        return ToDto(new TeamUser(user));
+        return ToDto(user);
 
     }
 
@@ -292,13 +293,13 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 }
 
 public abstract class TeamControllerBase
-    : TeamControllerBase<TeamUser, TeamUserRole, TeamRole>
+    : TeamControllerBase<User, TeamUserRole, TeamRole>
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {
     }
 
-    protected override TeamUser ToDto(TeamUser user) => new(user);
+    protected override User ToDto(User user) => user;
     protected override TeamRole ToDto(TeamRole role) => new(role);
     protected override TeamUserRole ToDto(TeamUserRole userRole) => userRole;
 }
