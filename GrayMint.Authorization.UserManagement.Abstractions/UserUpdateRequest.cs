@@ -10,8 +10,9 @@ public class UserUpdateRequest
     public Patch<string?>? LastName { get; set; }
     public Patch<string?>? Phone { get; set; }
     public Patch<bool>? IsDisabled { get; set; }
-    public Patch<bool>? IsEmailVerified { get; init; }
-    public Patch<bool>? IsPhoneVerified { get; init; }
+    public Patch<bool>? IsEmailVerified { get; set; }
+    public Patch<bool>? IsPhoneVerified { get; set; }
+    public Patch<string?>? PictureUrl { get; set; }
     public Patch<string?>? Description { get; set; }
     public Patch<string?>? ExData { get; set; }
 }

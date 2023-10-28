@@ -128,6 +128,36 @@ public class TeamService
         return ret;
     }
 
+    private async Task UpdateUserByClaims(User user, ClaimsPrincipal claimsPrincipal)
+    {
+        var updateRequest = new UserUpdateRequest();
+        var isUpdated = false;
+
+        var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email);
+        if (email != null && user.Email != email) { updateRequest.Email = email; isUpdated = true; }
+
+        var name = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
+        if (name != null && user.Name != name) { updateRequest.Name = name; isUpdated = true; }
+
+        var firstName = claimsPrincipal.FindFirstValue(ClaimTypes.GivenName);
+        if (firstName != null && user.FirstName != firstName) { updateRequest.FirstName = firstName; isUpdated = true; }
+
+        var lastName = claimsPrincipal.FindFirstValue(ClaimTypes.Surname);
+        if (lastName != null && user.LastName != lastName) { updateRequest.LastName = lastName; isUpdated = true; }
+
+        var phone = claimsPrincipal.FindFirstValue(ClaimTypes.MobilePhone);
+        if (phone != null && user.Name != phone) { updateRequest.Phone = phone; isUpdated = true; }
+
+        var pictureUrl = claimsPrincipal.FindFirstValue("picture");
+        if (pictureUrl != null && user.PictureUrl != pictureUrl) { updateRequest.PictureUrl = pictureUrl; isUpdated = true; }
+
+        var isEmailVerified = claimsPrincipal.FindFirstValue("email_verified");
+        if (isEmailVerified != null && user.IsEmailVerified != bool.Parse(isEmailVerified)) { updateRequest.IsEmailVerified = bool.Parse(isEmailVerified); isUpdated = true; }
+
+        if (isUpdated)
+            await _userProvider.Update(user.UserId, updateRequest);
+    }
+
     public async Task<UserApiKey> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
     {
         var userId = await GetUserId(claimsPrincipal);
@@ -138,6 +168,9 @@ public class TeamService
 
         var tokenInfo = await _authenticationTokenBuilder
             .SignIn(claimsPrincipal, longExpiration);
+
+        if (claimsPrincipal.FindFirstValue("token_use") == "id")
+            await UpdateUserByClaims(user, claimsPrincipal);
 
         var ret = new UserApiKey
         {

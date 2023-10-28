@@ -23,7 +23,7 @@ public class SimpleUserProviderTest
             IsDisabled = true,
             IsEmailVerified = true,
             IsPhoneVerified = true,
-            ProfileUrl = $"https://local/{Guid.NewGuid()}",
+            PictureUrl = $"https://local/{Guid.NewGuid()}",
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
@@ -42,7 +42,7 @@ public class SimpleUserProviderTest
         Assert.AreEqual(request.IsPhoneVerified, user.IsPhoneVerified);
         Assert.AreEqual(request.IsDisabled, user.IsDisabled);
         Assert.AreEqual(request.IsEmailVerified, user.IsEmailVerified);
-        Assert.AreEqual(request.ProfileUrl, user.ProfileUrl);
+        Assert.AreEqual(request.PictureUrl, user.PictureUrl);
         Assert.IsNotNull(user.AuthorizationCode);
         Assert.AreNotEqual(string.Empty, user.AuthorizationCode.Trim());
 
@@ -66,6 +66,7 @@ public class SimpleUserProviderTest
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
+            PictureUrl = $"https://local/{Guid.NewGuid()}",
             Description = Guid.NewGuid().ToString(),
             Email = $"{Guid.NewGuid()}@local",
             Phone = "+1" + Random.Shared.Next(1_000_000_000, 2_000_000_000),
@@ -84,6 +85,7 @@ public class SimpleUserProviderTest
         Assert.AreEqual(user4.FirstName, updateRequest.FirstName.Value);
         Assert.AreEqual(user4.LastName, updateRequest.LastName.Value);
         Assert.AreEqual(user4.Phone, updateRequest.Phone.Value);
+        Assert.AreEqual(user4.PictureUrl, updateRequest.PictureUrl.Value);
         Assert.AreEqual(user4.Description, updateRequest.Description.Value);
         Assert.AreEqual(user4.AuthorizationCode, user.AuthorizationCode);
 

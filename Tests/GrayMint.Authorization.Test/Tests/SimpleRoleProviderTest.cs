@@ -80,7 +80,7 @@ public class SimpleRoleProviderTest
             Email = $"{Guid.NewGuid()}@local",
             IsEmailVerified = true,
             IsPhoneVerified = true,
-            ProfileUrl = $"https://local/{Guid.NewGuid()}",
+            PictureUrl = $"https://local/{Guid.NewGuid()}",
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),

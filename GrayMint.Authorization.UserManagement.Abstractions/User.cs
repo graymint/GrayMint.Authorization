@@ -9,7 +9,7 @@ public class User
     public required string? Name { get; set; }
     public required string? FirstName { get; set; }
     public required string? LastName { get; set; }
-    public required string? ProfileUrl { get; set; }
+    public required string? PictureUrl { get; set; }
     public required string? Phone { get; set; }
     public required DateTime CreatedTime { get; set; }
     public required DateTime? AccessedTime { get; set; }

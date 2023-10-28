@@ -22,7 +22,7 @@ internal static class UserConverter
             IsPhoneVerified = model.IsPhoneVerified,
             Phone = model.Phone,
             Name = model.Name,
-            ProfileUrl = model.ProfileUrl,
+            PictureUrl = model.PictureUrl,
             IsBot = model.IsBot,
             ExData = model.ExData
         };

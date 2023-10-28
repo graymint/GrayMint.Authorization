@@ -8,7 +8,7 @@ internal class UserModel
     public string? Name { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
-    public string? ProfileUrl { get; set; }
+    public string? PictureUrl { get; set; }
     public string? Phone { get; set; }
     public DateTime CreatedTime { get; set; }
     public DateTime? AccessedTime { get; set; }

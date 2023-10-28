@@ -38,7 +38,7 @@ public class SimpleUserProvider : IUserProvider
             IsDisabled = request.IsDisabled,
             IsEmailVerified = request.IsEmailVerified,
             IsPhoneVerified = request.IsPhoneVerified,
-            ProfileUrl = request.ProfileUrl,
+            PictureUrl = request.PictureUrl,
             Phone = request.Phone,
             IsBot = request.IsBot,
             ExData = request.ExData
@@ -59,6 +59,7 @@ public class SimpleUserProvider : IUserProvider
         if (request.IsPhoneVerified != null) user.IsPhoneVerified = request.IsPhoneVerified;
         if (request.IsEmailVerified != null) user.IsEmailVerified = request.IsEmailVerified;
         if (request.Phone != null) user.Phone = request.Phone;
+        if (request.PictureUrl != null) user.PictureUrl = request.PictureUrl;
         if (request.Description != null) user.Description = request.Description;
         if (request.ExData != null) user.ExData = request.ExData;
         if (request.Email != null)

@@ -11,7 +11,7 @@ public class UserCreateRequest
     public bool IsDisabled { get; init; }
     public bool IsEmailVerified { get; init; }
     public bool IsPhoneVerified { get; init; }
-    public string? ProfileUrl { get; set; }
+    public string? PictureUrl { get; set; }
     public string? Description { get; init; }
     public string? ExData { get; init; }
 

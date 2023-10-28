@@ -50,19 +50,6 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
         var user = await _userProvider.Get(userId);
 
-        //update profile by claim
-        var givenName = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.GivenName)?.Value;
-        var surnameName = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Surname)?.Value;
-
-        var updateRequest = new UserUpdateRequest
-        {
-            FirstName = givenName,
-            LastName = surnameName
-        };
-        if ((givenName != null && user.FirstName != givenName) ||
-            (surnameName != null && user.LastName != surnameName))
-            await _userProvider.Update(user.UserId, updateRequest);
-
         // update access time
         if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60))
         {
