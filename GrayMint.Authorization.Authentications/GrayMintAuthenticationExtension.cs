@@ -17,6 +17,8 @@ public static class GrayMintAuthenticationExtension
         authenticationOptions.Validate(isProduction);
 
         var securityKey = new SymmetricSecurityKey(authenticationOptions.Secret);
+        var securityKeys = authenticationOptions.Secrets.Select(x=> new SymmetricSecurityKey(x));
+
         authenticationBuilder
             .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options =>
             {
@@ -25,6 +27,7 @@ public static class GrayMintAuthenticationExtension
                     NameClaimType = JwtRegisteredClaimNames.Email,
                     RequireSignedTokens = true,
                     IssuerSigningKey = securityKey,
+                    IssuerSigningKeys = securityKeys,
                     ValidIssuer = authenticationOptions.Issuer,
                     ValidAudience = authenticationOptions.Audience ?? authenticationOptions.Issuer,
                     ValidateAudience = true,
