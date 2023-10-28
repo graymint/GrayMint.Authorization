@@ -28,12 +28,18 @@ public class SimpleUserProvider : IUserProvider
         var res = await _simpleUserDbContext.Users.AddAsync(new UserModel
         {
             Email = request.Email,
+            Name = request.Name,
             FirstName = request.FirstName,
             LastName = request.LastName,
             CreatedTime = DateTime.UtcNow,
             AccessedTime = null,
             Description = request.Description,
             AuthCode = Guid.NewGuid().ToString(),
+            IsDisabled = request.IsDisabled,
+            IsEmailVerified = request.IsEmailVerified,
+            IsPhoneVerified = request.IsPhoneVerified,
+            ProfileUrl = request.ProfileUrl,
+            Phone = request.Phone,
             IsBot = request.IsBot,
             ExData = request.ExData
         });
@@ -46,8 +52,13 @@ public class SimpleUserProvider : IUserProvider
     public async Task<IUser> Update(Guid userId, UserUpdateRequest request)
     {
         var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
+        if (request.Name != null) user.Name = request.Name;
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
+        if (request.IsDisabled != null) user.IsDisabled = request.IsDisabled;
+        if (request.IsPhoneVerified != null) user.IsPhoneVerified = request.IsPhoneVerified;
+        if (request.IsEmailVerified != null) user.IsEmailVerified = request.IsEmailVerified;
+        if (request.Phone != null) user.Phone = request.Phone;
         if (request.Description != null) user.Description = request.Description;
         if (request.ExData != null) user.ExData = request.ExData;
         if (request.Email != null)

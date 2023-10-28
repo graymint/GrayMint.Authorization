@@ -78,6 +78,10 @@ public class SimpleRoleProviderTest
         var user = await userProvider.Create(new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
+            IsEmailVerified = true,
+            IsPhoneVerified = true,
+            ProfileUrl = $"https://local/{Guid.NewGuid()}",
+            Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()

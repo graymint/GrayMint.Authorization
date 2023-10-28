@@ -19,6 +19,12 @@ public class SimpleUserProviderTest
         var request = new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
+            Phone = "+1" + Random.Shared.Next(1_000_000_000, 2_000_000_000),
+            IsDisabled = true,
+            IsEmailVerified = true,
+            IsPhoneVerified = true,
+            ProfileUrl = $"https://local/{Guid.NewGuid()}",
+            Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString(),
@@ -27,14 +33,18 @@ public class SimpleUserProviderTest
 
         var user = await simpleUserProvider.Create(request);
         Assert.AreEqual(request.Email, user.Email);
+        Assert.AreEqual(request.Name, user.Name);
         Assert.AreEqual(request.FirstName, user.FirstName);
         Assert.AreEqual(request.LastName, user.LastName);
+        Assert.AreEqual(request.Phone, user.Phone);
         Assert.AreEqual(request.Description, user.Description);
         Assert.AreEqual(request.ExData, user.ExData);
+        Assert.AreEqual(request.IsPhoneVerified, user.IsPhoneVerified);
+        Assert.AreEqual(request.IsDisabled, user.IsDisabled);
+        Assert.AreEqual(request.IsEmailVerified, user.IsEmailVerified);
+        Assert.AreEqual(request.ProfileUrl, user.ProfileUrl);
         Assert.IsNotNull(user.AuthorizationCode);
         Assert.AreNotEqual(string.Empty, user.AuthorizationCode.Trim());
-
-
 
         // Get
         var user2 = await simpleUserProvider.Get(user.UserId);
@@ -53,18 +63,27 @@ public class SimpleUserProviderTest
         // Update
         var updateRequest = new UserUpdateRequest()
         {
+            Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString(),
-            Email = $"{Guid.NewGuid()}@local"
+            Email = $"{Guid.NewGuid()}@local",
+            Phone = "+1" + Random.Shared.Next(1_000_000_000, 2_000_000_000),
+            IsEmailVerified = false,
+            IsPhoneVerified = false,
+            IsDisabled = false,
+            ExData = Guid.NewGuid().ToString(),
+            
         };
         await simpleUserProvider.Update(user.UserId, updateRequest);
 
         // Get
         var user4 = await simpleUserProvider.Get(user.UserId);
         Assert.AreEqual(user4.Email, updateRequest.Email.Value);
+        Assert.AreEqual(user4.Name, updateRequest.Name.Value);
         Assert.AreEqual(user4.FirstName, updateRequest.FirstName.Value);
         Assert.AreEqual(user4.LastName, updateRequest.LastName.Value);
+        Assert.AreEqual(user4.Phone, updateRequest.Phone.Value);
         Assert.AreEqual(user4.Description, updateRequest.Description.Value);
         Assert.AreEqual(user4.AuthorizationCode, user.AuthorizationCode);
 
