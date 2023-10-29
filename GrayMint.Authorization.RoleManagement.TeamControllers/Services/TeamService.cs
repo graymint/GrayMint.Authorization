@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Net;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications;
@@ -10,6 +12,7 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
@@ -21,7 +24,7 @@ public class TeamService
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly IAuthorizationService _authorizationService;
     private readonly GrayMintAuthentication _authenticationTokenBuilder;
-
+    private readonly GrayMintAuthenticationOptions _authenticationOptions;
     public TeamControllerOptions TeamControllersOptions { get; }
 
     public TeamService(
@@ -29,6 +32,7 @@ public class TeamService
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider,
         IOptions<TeamControllerOptions> teamControllersOptions,
+        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
         GrayMintAuthentication authenticationTokenBuilder,
         IAuthorizationService authorizationService)
     {
@@ -37,6 +41,7 @@ public class TeamService
         _authorizationProvider = authorizationProvider;
         _authenticationTokenBuilder = authenticationTokenBuilder;
         _authorizationService = authorizationService;
+        _authenticationOptions = authenticationOptions.Value;
         TeamControllersOptions = teamControllersOptions.Value;
     }
 
@@ -421,4 +426,26 @@ public class TeamService
         return _authenticationTokenBuilder.CreateIdTokenFromCognito(idToken);
     }
 
+    public Uri GetGoogleSignInUrl(string csrfToken, string? nonce, string redirectUrl)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.GoogleClientId);
+
+        const string baseUrl = "https://accounts.google.com/gsi/select";
+        var query = new Dictionary<string, string?>
+        {
+            { "client_id", _authenticationOptions.GoogleClientId },
+            { "ux_mode", "redirect" },
+            { "login_uri", redirectUrl },
+            { "ui_mode", "card" },
+            { "g_csrf_token", csrfToken }
+        };
+
+        if (nonce != null)
+            query.Add("nonce", nonce);
+
+        var uriBuilder = new UriBuilder(baseUrl);
+        var queryToAppend = QueryHelpers.AddQueryString(uriBuilder.Query, query);
+        uriBuilder.Query = queryToAppend;
+        return uriBuilder.Uri;
+    }
 }

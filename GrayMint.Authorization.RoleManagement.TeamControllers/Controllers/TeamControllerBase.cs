@@ -251,7 +251,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return res;
     }
 
-    [HttpPost("system/google/signin-handler")]
+    [HttpGet("system/external/cognito/id-token")]
+    [AllowAnonymous]
+    public async Task<string> GetIdTokenFromCognito(string idToken)
+    {
+        var tokenInfo = await _teamService.GetIdTokenFromCognito(idToken);
+        return tokenInfo.Token;
+    }
+
+    [HttpPost("system/external/google/signin-handler")]
     [AllowAnonymous]
     public async Task<IActionResult> GoogleSignInHandler()
     {
@@ -265,25 +273,37 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
 
         // Adding a parameter
-        if (_teamService.TeamControllersOptions.SignInRedirectUrl == null) 
+        if (_teamService.TeamControllersOptions.SignInRedirectUrl == null)
             throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
 
         var uriBuilder = new UriBuilder(_teamService.TeamControllersOptions.SignInRedirectUrl);
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);
         query["id_token"] = tokenInfo.Token;
+        query["csrf_token"] = queryDictionary["g_csrf_token"];
         uriBuilder.Query = query.ToString();
 
         return Redirect(uriBuilder.ToString());
     }
 
-    [HttpGet("system/external/cognito/id-token")]
+    [HttpGet("system/external/google/signin")]
     [AllowAnonymous]
-    public async Task<string> GetIdTokenFromCognito(string idToken)
+    public Task<IActionResult> GetGoogleSignInUrl([FromQuery(Name = "csrf_token")] string csrfToken, string? nonce = null)
     {
-        var tokenInfo = await _teamService.GetIdTokenFromCognito(idToken);
-        return tokenInfo.Token;
-    }
+        var uriBuilder = new UriBuilder
+        {
+            Scheme = Request.Scheme,
+            Host = Request.Host.Host,
+            Path = Request.Path.ToString()
+        };
+        
+        if (Request.Host.Port != null)
+            uriBuilder.Port = Request.Host.Port.Value;
 
+        var redirectUrl = uriBuilder.ToString().Replace("/signin", "/signin-handler");
+        var url = _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl);
+        var res = Redirect(url.ToString());
+        return Task.FromResult<IActionResult>(res);
+    }
 
     [HttpGet("system/external/google/id-token")]
     [AllowAnonymous]
