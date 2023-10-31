@@ -1,6 +1,7 @@
 ﻿using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 using GrayMint.Authorization.UserManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,6 @@ using System.Net.Mime;
 using System.Security.Authentication;
 using System.Text;
 using System.Web;
-using GrayMint.Authorization.RoleManagement.Abstractions;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
