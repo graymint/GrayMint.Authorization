@@ -1,6 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications;
@@ -259,7 +257,13 @@ public class TeamService
 
         // attach user to UserRoles
         var userRoles = userRoleList.Items
-            .Select(x => new TeamUserRole(x, userList.Items.SingleOrDefault(y => y.UserId == x.UserId)))
+            .Select(x => new TeamUserRole
+            {
+                ResourceId = x.ResourceId,
+                Role = x.Role,
+                UserId = x.UserId,
+                User = userList.Items.SingleOrDefault(y => y.UserId == x.UserId)
+            })
             .OrderBy(x => x.User?.FirstName)
             .ToArray();
 
@@ -291,10 +295,10 @@ public class TeamService
         return _userProvider.Remove(userId);
     }
 
-    public async Task<IEnumerable<TeamRole>> GetRoles(string resourceId)
+    public async Task<IEnumerable<Role>> GetRoles(string resourceId)
     {
         var roles = await _roleProvider.GetRoles(resourceId);
-        return roles.Select(x => new TeamRole(x));
+        return roles;
     }
 
     public async Task<UserApiKey> CreateSystemApiKey()

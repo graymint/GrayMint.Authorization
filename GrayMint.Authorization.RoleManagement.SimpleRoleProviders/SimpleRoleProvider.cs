@@ -35,7 +35,7 @@ public class SimpleRoleProvider : IRoleProvider
         _roles = simpleRoleProviderOptions.Value.Roles;
     }
 
-    public async Task<IUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
+    public async Task<UserRole> AddUser(string resourceId, Guid roleId, Guid userId)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
 
@@ -66,41 +66,41 @@ public class SimpleRoleProvider : IRoleProvider
         AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
     }
 
-    public Task<IRole[]> GetRoles(string resourceId)
+    public Task<Role[]> GetRoles(string resourceId)
     {
         var isRoot = IsRootResource(resourceId);
         var roles = _roles.Where(x => x.IsRoot == isRoot)
-            .Select(x => (IRole)x)
+            .Select(x => (Role)x)
             .ToArray();
 
         return Task.FromResult(roles);
     }
 
-    public Task<IRole> Get(string resourceId, Guid roleId)
+    public Task<Role> Get(string resourceId, Guid roleId)
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.Single(x => x.RoleId == roleId && x.IsRoot == isRoot);
-        return Task.FromResult((IRole)role);
+        return Task.FromResult((Role)role);
     }
 
-    public Task<IRole?> FindByName(string resourceId, string roleName)
+    public Task<Role?> FindByName(string resourceId, string roleName)
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.SingleOrDefault(x => x.RoleName == roleName && x.IsRoot == isRoot);
-        return Task.FromResult((IRole?)role);
+        return Task.FromResult((Role?)role);
     }
 
-    public Task<ListResult<IUserRole>> GetUserRoles( Guid userId)
+    public Task<ListResult<UserRole>> GetUserRoles( Guid userId)
     {
         return GetUserRoles(resourceId: null, userId: userId, roleId: null);
     }
 
-    public Task<ListResult<IUserRole>> GetUserRoles(string resourceId, Guid userId)
+    public Task<ListResult<UserRole>> GetUserRoles(string resourceId, Guid userId)
     {
         return GetUserRoles(resourceId: resourceId, userId: userId, roleId: null);
     }
 
-    public async Task<ListResult<IUserRole>> GetUserRoles(
+    public async Task<ListResult<UserRole>> GetUserRoles(
         string? resourceId = null, Guid? roleId = null, Guid? userId = null,
         int recordIndex = 0, int? recordCount = null)
     {
@@ -121,7 +121,7 @@ public class SimpleRoleProvider : IRoleProvider
             .Take(recordCount.Value)
             .ToArrayAsync();
 
-        var ret = new ListResult<IUserRole>
+        var ret = new ListResult<UserRole>
         {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
@@ -130,7 +130,7 @@ public class SimpleRoleProvider : IRoleProvider
         return ret;
     }
 
-    private async Task<ListResult<IUserRole>> GetUserRolesWithUserFilter(string? resourceId, Guid userId,
+    private async Task<ListResult<UserRole>> GetUserRolesWithUserFilter(string? resourceId, Guid userId,
         Guid? roleId, int recordIndex, int recordCount)
     {
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "user-roles");
@@ -157,7 +157,7 @@ public class SimpleRoleProvider : IRoleProvider
             .Take(recordCount)
             .ToArray();
 
-        var ret = new ListResult<IUserRole>
+        var ret = new ListResult<UserRole>
         {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : userRoles.LongCount(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()

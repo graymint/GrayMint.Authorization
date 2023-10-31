@@ -8,6 +8,7 @@ using System.Net.Mime;
 using System.Security.Authentication;
 using System.Text;
 using System.Web;
+using GrayMint.Authorization.RoleManagement.Abstractions;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
@@ -18,7 +19,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 {
     private readonly TeamService _teamService;
     protected abstract TUser ToDto(User user);
-    protected abstract TRole ToDto(TeamRole role);
+    protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(TeamUserRole user);
 
     protected TeamControllerBase(
@@ -316,13 +317,13 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 }
 
 public abstract class TeamControllerBase
-    : TeamControllerBase<User, TeamUserRole, TeamRole>
+    : TeamControllerBase<User, TeamUserRole, Role>
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {
     }
 
     protected override User ToDto(User user) => user;
-    protected override TeamRole ToDto(TeamRole role) => new(role);
+    protected override Role ToDto(Role role) => role;
     protected override TeamUserRole ToDto(TeamUserRole userRole) => userRole;
 }
