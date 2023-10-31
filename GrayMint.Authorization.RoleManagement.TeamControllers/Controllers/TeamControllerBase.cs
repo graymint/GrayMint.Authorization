@@ -302,7 +302,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         if (Request.Host.Port != null)
             uriBuilder.Port = Request.Host.Port.Value;
 
-        var redirectUrl = uriBuilder.ToString().Replace("/signin", "/signin-handler");
+        var redirectUrl = uriBuilder.ToString().Replace("/signin-url", "/signin-handler");
         var url =  _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl).ToString();
         return Task.FromResult(url);
     }

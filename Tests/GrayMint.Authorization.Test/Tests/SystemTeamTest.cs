@@ -408,6 +408,7 @@ public class TeamControllerTest
         // Create
         // ---------
         using var testInit = await TestInit.Create();
+
         var systemAdmin = await testInit.AddNewUser(Roles.SystemAdmin);
         await testInit.AddNewBot(Roles.AppAdmin);
         await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, systemAdmin.UserId);
