@@ -289,7 +289,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
     [HttpGet("system/external/google/signin-url")]
     [AllowAnonymous]
-    [Produces(MediaTypeNames.Text.Plain)]
+    [Produces(MediaTypeNames.Application.Json)]
     public Task<string> GetGoogleSignInUrl(string csrfToken, string? nonce = null)
     {
         var uriBuilder = new UriBuilder
@@ -303,8 +303,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
             uriBuilder.Port = Request.Host.Port.Value;
 
         var redirectUrl = uriBuilder.ToString().Replace("/signin", "/signin-handler");
-        var url =  _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl);
-        return Task.FromResult(url.ToString());
+        var url =  _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl).ToString();
+        return Task.FromResult(url);
     }
 
     [HttpGet("system/external/google/id-token")]
