@@ -4,6 +4,7 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mime;
 using System.Security.Authentication;
 using System.Text;
 using System.Web;
@@ -285,9 +286,10 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return Redirect(uriBuilder.ToString());
     }
 
-    [HttpGet("system/external/google/signin")]
+    [HttpGet("system/external/google/signin-url")]
     [AllowAnonymous]
-    public Task<IActionResult> GetGoogleSignInUrl([FromQuery(Name = "csrf_token")] string csrfToken, string? nonce = null)
+    [Produces(MediaTypeNames.Text.Plain)]
+    public Task<string> GetGoogleSignInUrl(string csrfToken, string? nonce = null)
     {
         var uriBuilder = new UriBuilder
         {
@@ -300,9 +302,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
             uriBuilder.Port = Request.Host.Port.Value;
 
         var redirectUrl = uriBuilder.ToString().Replace("/signin", "/signin-handler");
-        var url = _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl);
-        var res = Redirect(url.ToString());
-        return Task.FromResult<IActionResult>(res);
+        var url =  _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl);
+        return Task.FromResult(url.ToString());
     }
 
     [HttpGet("system/external/google/id-token")]
