@@ -205,8 +205,8 @@ public class UserTest
         var apiKey3 = await testInit.TeamClient.SignInAsync();
         testInit.SetApiKey(apiKey3);
 
-        Assert.IsTrue(apiKey1.Expiration < apiKey2.Expiration);
-        Assert.IsTrue(apiKey2.Expiration < apiKey3.Expiration);
+        Assert.IsTrue(apiKey1.ExpirationTime < apiKey2.ExpirationTime);
+        Assert.IsTrue(apiKey2.ExpirationTime < apiKey3.ExpirationTime);
 
     }
 
@@ -251,14 +251,14 @@ public class UserTest
         await testInit.CreateUnregisteredUser();
         var apiKey = await testInit.TeamClient.SignUpAsync();
         testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.Expiration <= DateTime.UtcNow.AddMinutes(1));
+        Assert.IsTrue(apiKey.ExpirationTime <= DateTime.UtcNow.AddMinutes(1));
 
         apiKey = await testInit.TeamClient.SignInAsync();
         testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.Expiration <= DateTime.UtcNow.AddMinutes(1));
+        Assert.IsTrue(apiKey.ExpirationTime <= DateTime.UtcNow.AddMinutes(1));
 
         apiKey = await testInit.TeamClient.SignInAsync(true);
         testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.Expiration > DateTime.UtcNow.AddMinutes(1) && apiKey.Expiration < DateTime.UtcNow.AddMinutes(10));
+        Assert.IsTrue(apiKey.ExpirationTime > DateTime.UtcNow.AddMinutes(1) && apiKey.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
     }
 }

@@ -90,7 +90,8 @@ public class TeamService
         {
             ExpirationTime = expirationTime,
             UserId = user.UserId,
-            Authorization = tokenInfo.ToAuthorization().ToString(),
+            AccessToken = tokenInfo.Value,
+            Scheme = tokenInfo.Scheme
         };
         return ret;
     }
@@ -125,7 +126,8 @@ public class TeamService
         {
             ExpirationTime = expirationTime,
             UserId = userId,
-            Authorization = authenticationHeader.ToString(),
+            AccessToken = authenticationHeader.Parameter!,
+            Scheme = authenticationHeader.Scheme
         };
 
         return ret;
@@ -177,9 +179,10 @@ public class TeamService
 
         var ret = new UserApiKey
         {
-            ExpirationTime = tokenInfo.ExpirationTime,
+            ExpirationTime = tokenInfo.Expires,
             UserId = userId,
-            Authorization = tokenInfo.ToAuthorization().ToString(),
+            AccessToken = tokenInfo.Value,
+            Scheme = tokenInfo.Scheme
         };
 
         return ret;
@@ -421,11 +424,11 @@ public class TeamService
         return AuthorizationConstants.RootResourceId;
     }
 
-    public Task<AccessTokenInfo> GetIdTokenFromGoogle(string idToken)
+    public Task<AccessToken> GetIdTokenFromGoogle(string idToken)
     {
         return _authenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
     }
-    public Task<AccessTokenInfo> GetIdTokenFromCognito(string idToken)
+    public Task<AccessToken> GetIdTokenFromCognito(string idToken)
     {
         return _authenticationTokenBuilder.CreateIdTokenFromCognito(idToken);
     }

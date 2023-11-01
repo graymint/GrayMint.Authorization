@@ -29,10 +29,10 @@ public class GrayMintAuthentication
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(CreateTokenParams createParams)
     {
         var tokenInfo = await CreateToken(createParams);
-        return new AuthenticationHeaderValue(tokenInfo.AuthenticationScheme, tokenInfo.Token);
+        return new AuthenticationHeaderValue(tokenInfo.Scheme, tokenInfo.Value);
     }
 
-    public async Task<AccessTokenInfo> CreateToken(CreateTokenParams createParams)
+    public async Task<AccessToken> CreateToken(CreateTokenParams createParams)
     {
         var claimsIdentity = createParams.ClaimsIdentity?.Clone() ?? new ClaimsIdentity();
 
@@ -88,17 +88,17 @@ public class GrayMintAuthentication
                 claims: claimsIdentity.Claims.ToArray(),
                 expirationTime: createParams.ExpirationTime);
 
-        var tokenInfo = new AccessTokenInfo
+        var tokenInfo = new AccessToken
         {
-            Token = jwt,
-            AuthenticationScheme = JwtBearerDefaults.AuthenticationScheme,
-            ExpirationTime = createParams.ExpirationTime
+            Value = jwt,
+            Scheme = JwtBearerDefaults.AuthenticationScheme,
+            Expires = createParams.ExpirationTime
         };
 
         return tokenInfo;
     }
 
-    private async Task<AccessTokenInfo> CreateIdToken(ClaimsIdentity claimsIdentity)
+    private async Task<AccessToken> CreateIdToken(ClaimsIdentity claimsIdentity)
     {
         var expirationTime = DateTime.UtcNow + _authenticationOptions.IdTokenExpiration;
         var token = await CreateToken(new CreateTokenParams
@@ -112,7 +112,7 @@ public class GrayMintAuthentication
         return token;
     }
 
-    public async Task<AccessTokenInfo> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
+    public async Task<AccessToken> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
     {
         // make sure email is verified for id token
         if (claimsPrincipal.FindFirstValue("token_use") == "id" && claimsPrincipal.FindFirstValue("email_verified") != "true")
@@ -146,14 +146,14 @@ public class GrayMintAuthentication
         return tokenInfo;
     }
 
-    public async Task<AccessTokenInfo> CreateIdTokenFromGoogle(string idToken)
+    public async Task<AccessToken> CreateIdTokenFromGoogle(string idToken)
     {
         var claimsIdentity = await _grayMintExternalAuthentication.GetClaimsIdentityFromGoogle(idToken);
         var idTokenInfo = await CreateIdToken(claimsIdentity);
         return idTokenInfo;
     }
 
-    public async Task<AccessTokenInfo> CreateIdTokenFromCognito(string idToken)
+    public async Task<AccessToken> CreateIdTokenFromCognito(string idToken)
     {
         var claimsIdentity = await _grayMintExternalAuthentication.GetClaimsIdentityFromCognito(idToken);
         var idTokenInfo = await CreateIdToken(claimsIdentity);

@@ -258,7 +258,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<string> GetIdTokenFromCognito(string idToken)
     {
         var tokenInfo = await _teamService.GetIdTokenFromCognito(idToken);
-        return tokenInfo.Token;
+        return tokenInfo.Value;
     }
 
     [HttpPost("system/external/google/signin-handler")]
@@ -280,7 +280,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
         var uriBuilder = new UriBuilder(_teamService.TeamControllersOptions.SignInRedirectUrl);
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-        query["id_token"] = tokenInfo.Token;
+        query["id_token"] = tokenInfo.Value;
         query["csrf_token"] = queryDictionary["g_csrf_token"];
         uriBuilder.Query = query.ToString();
 
@@ -312,7 +312,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public virtual async Task<string> GetIdTokenFromGoogle(string idToken)
     {
         var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
-        return tokenInfo.Token;
+        return tokenInfo.Value;
     }
 }
 
