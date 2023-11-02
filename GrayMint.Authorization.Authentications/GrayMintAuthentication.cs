@@ -88,14 +88,15 @@ public class GrayMintAuthentication
                 claims: claimsIdentity.Claims.ToArray(),
                 expirationTime: createParams.ExpirationTime);
 
-        var tokenInfo = new AccessToken
+        var accessToken = new AccessToken
         {
             Value = jwt,
             Scheme = JwtBearerDefaults.AuthenticationScheme,
-            Expires = createParams.ExpirationTime
+            ExpirationTime = createParams.ExpirationTime,
+            IssuedTime = DateTime.UtcNow
         };
 
-        return tokenInfo;
+        return accessToken;
     }
 
     private async Task<AccessToken> CreateIdToken(ClaimsIdentity claimsIdentity)
@@ -136,14 +137,14 @@ public class GrayMintAuthentication
         if (authTime < DateTime.UtcNow - _authenticationOptions.AccessTokenLongExpiration)
             throw new AuthenticationException();
 
-        var tokenInfo = await CreateToken(new CreateTokenParams
+        var accessToken = await CreateToken(new CreateTokenParams
         {
             Subject = userId,
             ExpirationTime = expirationTime,
             AuthTime = authTime
         });
 
-        return tokenInfo;
+        return accessToken;
     }
 
     public async Task<AccessToken> CreateIdTokenFromGoogle(string idToken)

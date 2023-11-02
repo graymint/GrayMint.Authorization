@@ -79,7 +79,7 @@ public class TeamService
 
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
-        var tokenInfo = await _authenticationTokenBuilder
+        var accessToken = await _authenticationTokenBuilder
             .CreateToken(new CreateTokenParams
             {
                 Subject = user.UserId.ToString(),
@@ -88,10 +88,11 @@ public class TeamService
 
         var ret = new UserApiKey
         {
-            ExpirationTime = expirationTime,
+            ExpirationTime = accessToken.ExpirationTime,
+            IssuedTime = accessToken.ExpirationTime,
+            AccessToken = accessToken.Value,
+            Scheme = accessToken.Scheme,
             UserId = user.UserId,
-            AccessToken = tokenInfo.Value,
-            Scheme = tokenInfo.Scheme
         };
         return ret;
     }
@@ -114,8 +115,8 @@ public class TeamService
         // reset the api key
         var expirationTime = DateTime.UtcNow.AddYears(14);
         await _userProvider.ResetAuthorizationCode(user.UserId);
-        var authenticationHeader = await _authenticationTokenBuilder
-            .CreateAuthenticationHeader(new CreateTokenParams
+        var token = await _authenticationTokenBuilder
+            .CreateToken(new CreateTokenParams
             {
                 Subject = user.UserId.ToString(),
                 Email = user.Email,
@@ -124,10 +125,11 @@ public class TeamService
 
         var ret = new UserApiKey
         {
-            ExpirationTime = expirationTime,
+            ExpirationTime = token.ExpirationTime,
+            IssuedTime = token.IssuedTime,
+            AccessToken = token.Value,
+            Scheme = token.Scheme,
             UserId = userId,
-            AccessToken = authenticationHeader.Parameter!,
-            Scheme = authenticationHeader.Scheme
         };
 
         return ret;
@@ -171,7 +173,7 @@ public class TeamService
         if (user.IsBot)
             throw new InvalidOperationException("Can not use this method for bots.");
 
-        var tokenInfo = await _authenticationTokenBuilder
+        var accessToken = await _authenticationTokenBuilder
             .SignIn(claimsPrincipal, longExpiration);
 
         if (claimsPrincipal.FindFirstValue("token_use") == "id")
@@ -179,10 +181,11 @@ public class TeamService
 
         var ret = new UserApiKey
         {
-            ExpirationTime = tokenInfo.Expires,
+            ExpirationTime = accessToken.ExpirationTime,
+            IssuedTime = accessToken.IssuedTime,
             UserId = userId,
-            AccessToken = tokenInfo.Value,
-            Scheme = tokenInfo.Scheme
+            AccessToken = accessToken.Value,
+            Scheme = accessToken.Scheme
         };
 
         return ret;
