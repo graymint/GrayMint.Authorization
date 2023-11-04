@@ -5,10 +5,7 @@ using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Mime;
-using System.Security.Authentication;
-using System.Text;
-using System.Web;
+using GrayMint.Authorization.Authentications;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
@@ -26,51 +23,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         TeamService teamService)
     {
         _teamService = teamService;
-    }
-
-    [HttpPost("users/current/signin")]
-    [Authorize]
-    public virtual async Task<UserApiKey> SignIn(bool longExpiration = false)
-    {
-        var apiKey = await _teamService.SignIn(User, longExpiration);
-        return apiKey;
-    }
-
-    [HttpPost("users/current/signup")]
-    [Authorize]
-    public virtual async Task<UserApiKey> SignUp()
-    {
-        if (!_teamService.TeamControllersOptions.AllowUserSelfRegister)
-            throw new UnauthorizedAccessException("Self-Register is not enabled.");
-
-        await _teamService.SignUp(User);
-        return await _teamService.SignIn(User, false);
-    }
-
-    [HttpPost("users/current/signout-all")]
-    [Authorize]
-    public virtual async Task SignOutAll()
-    {
-        var userId = await _teamService.GetUserId(User);
-        await _teamService.ResetAuthorizationCode(userId);
-    }
-
-    [HttpGet("users/current")]
-    [Authorize]
-    public async Task<TUser> GetCurrentUser()
-    {
-        var userId = await _teamService.GetUserId(User);
-        var ret = await _teamService.GetUser(userId);
-        return ToDto(ret);
-    }
-
-    [HttpPost("users/current/reset-api-key")]
-    [Authorize]
-    public async Task<UserApiKey> ResetCurrentUserApiKey()
-    {
-        var userId = await _teamService.GetUserId(User);
-        var res = await _teamService.ResetApiKey(userId);
-        return res;
     }
 
     [Authorize]
@@ -95,16 +47,16 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return permissions;
     }
 
-    [HttpPost("users/{userId:guid}/bot/reset-api-key")]
-    public async Task<UserApiKey> ResetBotApiKey(Guid userId)
+    [HttpPost("users/{userId}/bot/reset-api-key")]
+    public async Task<ApiKey> ResetBotApiKey(string userId)
     {
         await VerifyWritePermissionOnBot(userId);
-        var res = await _teamService.ResetApiKey(userId);
+        var res = await _teamService.ResetBotApiKey(userId);
         return res;
     }
 
-    [HttpPatch("users/{userId:guid}/bot")]
-    public async Task<TUser> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
+    [HttpPatch("users/{userId}/bot")]
+    public async Task<TUser> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
         await VerifyWritePermissionOnBot(userId);
         var user = await _teamService.UpdateBot(userId, updateParam);
@@ -123,7 +75,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
     [HttpGet("resources/{resourceId}/user-roles")]
     public async Task<ListResult<TUserRole>> ListUserRoles(string resourceId,
-        Guid? roleId = null, Guid? userId = null,
+        string? roleId = null, string? userId = null,
         string? search = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
@@ -141,16 +93,16 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return ret;
     }
 
-    [HttpPost("resources/{resourceId}/roles/{roleId:guid}/bots")]
-    public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
+    [HttpPost("resources/{resourceId}/roles/{roleId}/bots")]
+    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         var res = await _teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam);
         return res;
     }
 
-    [HttpPost("resources/{resourceId}/roles/{roleId:guid}/users/email:{email}")]
-    public async Task<TUserRole> AddUserByEmail(string resourceId, Guid roleId, string email, TeamAddEmailParam? addParam = null)
+    [HttpPost("resources/{resourceId}/roles/{roleId}/users/email:{email}")]
+    public async Task<TUserRole> AddUserByEmail(string resourceId, string roleId, string email, TeamAddEmailParam? addParam = null)
     {
         _ = addParam; //reserved
 
@@ -163,8 +115,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return ToDto(res);
     }
 
-    [HttpPost("resources/{resourceId}/roles/{roleId:guid}/users/{userId:guid}")]
-    public async Task<TUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
+    [HttpPost("resources/{resourceId}/roles/{roleId}/users/{userId}")]
+    public async Task<TUserRole> AddUser(string resourceId, string roleId, string userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         //await VerifyWritePermissionOnUser(resourceId, userId); any user can be added to a resource except bots
@@ -181,8 +133,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     }
 
 
-    [HttpDelete("resources/{resourceId}/roles/{roleId:guid}/users/{userId:guid}")]
-    public async Task RemoveUser(string resourceId, Guid roleId, Guid userId)
+    [HttpDelete("resources/{resourceId}/roles/{roleId}/users/{userId}")]
+    public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
@@ -190,8 +142,16 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         await _teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
+    [HttpPost("system/api-key")]
+    [AllowAnonymous]
+    public async Task<ApiKey> CreateSystemApiKey()
+    {
+        var res = await _teamService.CreateSystemApiKey();
+        return res;
+    }
+
     // ReSharper disable once UnusedMethodReturnValue.Local
-    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(Guid userId)
+    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
     {
         var userRoles = await _teamService.GetUserRoles(userId: userId);
 
@@ -222,17 +182,17 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return _teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, Guid userId)
+    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
     {
         return _teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
 
-    protected Task VerifyWritePermissionOnRole(string resourceId, Guid roleId)
+    protected Task VerifyWritePermissionOnRole(string resourceId, string roleId)
     {
         return _teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
     }
 
-    protected Task VerifyAppOwnerPolicy(string resourceId, Guid userId, Guid targetRoleId, bool isAdding)
+    protected Task VerifyAppOwnerPolicy(string resourceId, string userId, string targetRoleId, bool isAdding)
     {
         return _teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
     }
@@ -240,79 +200,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     protected string GetRootResourceId()
     {
         return _teamService.GetRootResourceId();
-    }
-
-    [HttpPost("system/api-key")]
-    [AllowAnonymous]
-    public async Task<UserApiKey> CreateSystemApiKey()
-    {
-        if (!_teamService.TeamControllersOptions.IsTestEnvironment)
-            throw new UnauthorizedAccessException();
-
-        var res = await _teamService.CreateSystemApiKey();
-        return res;
-    }
-
-    [HttpGet("system/external/cognito/id-token")]
-    [AllowAnonymous]
-    public async Task<string> GetIdTokenFromCognito(string idToken)
-    {
-        var tokenInfo = await _teamService.GetIdTokenFromCognito(idToken);
-        return tokenInfo.Value;
-    }
-
-    [HttpPost("system/external/google/signin-handler")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GoogleSignInHandler()
-    {
-        // read all request to string
-        using var reader = new StreamReader(Request.Body, Encoding.UTF8);
-        var queryString = await reader.ReadToEndAsync();
-
-        // read queryString to dictionary
-        var queryDictionary = HttpUtility.ParseQueryString(queryString);
-        var idToken = queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
-        var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
-
-        // Adding a parameter
-        if (_teamService.TeamControllersOptions.SignInRedirectUrl == null)
-            throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
-
-        var uriBuilder = new UriBuilder(_teamService.TeamControllersOptions.SignInRedirectUrl);
-        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-        query["id_token"] = tokenInfo.Value;
-        query["csrf_token"] = queryDictionary["g_csrf_token"];
-        uriBuilder.Query = query.ToString();
-
-        return Redirect(uriBuilder.ToString());
-    }
-
-    [HttpGet("system/external/google/signin-url")]
-    [AllowAnonymous]
-    [Produces(MediaTypeNames.Application.Json)]
-    public Task<string> GetGoogleSignInUrl(string csrfToken, string? nonce = null)
-    {
-        var uriBuilder = new UriBuilder
-        {
-            Scheme = Request.Scheme,
-            Host = Request.Host.Host,
-            Path = Request.Path.ToString()
-        };
-        
-        if (Request.Host.Port != null)
-            uriBuilder.Port = Request.Host.Port.Value;
-
-        var redirectUrl = uriBuilder.ToString().Replace("/signin-url", "/signin-handler");
-        var url =  _teamService.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl).ToString();
-        return Task.FromResult(url);
-    }
-
-    [HttpGet("system/external/google/id-token")]
-    [AllowAnonymous]
-    public virtual async Task<string> GetIdTokenFromGoogle(string idToken)
-    {
-        var tokenInfo = await _teamService.GetIdTokenFromGoogle(idToken);
-        return tokenInfo.Value;
     }
 }
 

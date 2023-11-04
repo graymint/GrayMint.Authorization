@@ -24,8 +24,8 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
             return;
 
         // get userId
-        var userIdString = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out var userId))
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
             return;
 
         // Add UserPermissions to claims

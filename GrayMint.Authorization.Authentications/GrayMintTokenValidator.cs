@@ -1,4 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,7 +15,7 @@ public class GrayMintTokenValidator
     private readonly IAuthorizationProvider _authenticationProvider;
     private readonly IMemoryCache _memoryCache;
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly MD5 _md5 = MD5.Create(); 
+    private readonly MD5 _md5 = MD5.Create();
     public GrayMintTokenValidator(
         IAuthorizationProvider authenticationProvider,
         IMemoryCache memoryCache,
@@ -40,6 +41,14 @@ public class GrayMintTokenValidator
 
             var tokenId = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
             if (string.IsNullOrEmpty(tokenId)) tokenId = ComputeHash(((JwtSecurityToken)context.SecurityToken).RawData); // todo: for compatibility
+
+            // get token version
+            var tokenVersionStr = context.Principal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.Version)?.Value;
+            var tokenVersion = tokenVersionStr != null ? int.Parse(tokenVersionStr) : 1;
+            
+            // check token usage
+            if (tokenVersion > 1 && !context.Principal.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Access))
+                throw new AuthenticationException("Can not authenticated by this token usage. Need ad access token.");
 
             // check authCode
             var tokenAuthCode = context.Principal.Claims.SingleOrDefault(x => x.Type == GrayMintAuthenticationDefaults.AuthorizationCodeTypeName)?.Value;

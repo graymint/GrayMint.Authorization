@@ -35,7 +35,7 @@ public class JwtUtil
         var token = new JwtSecurityToken(issuer,
             claims: claimsList.ToArray(),
             audience: audience,
-            expires: expirationTime ?? DateTime.Now.AddYears(14),
+            expires: expirationTime ?? DateTime.UtcNow.AddYears(13),
             signingCredentials: signingCredentials);
 
         var handler = new JwtSecurityTokenHandler();

@@ -9,7 +9,7 @@ internal static class UserConverter
     {
         var user = new User
         {
-            UserId = model.UserId,
+            UserId = model.UserId.ToString().ToLower(),
             Email = model.Email,
             IsDisabled = model.IsDisabled,
             CreatedTime = model.CreatedTime,

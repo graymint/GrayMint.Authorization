@@ -10,7 +10,6 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
@@ -21,29 +20,26 @@ public class TeamService
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly IAuthorizationService _authorizationService;
-    private readonly GrayMintAuthentication _authenticationTokenBuilder;
-    private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    public TeamControllerOptions TeamControllersOptions { get; }
+    private readonly GrayMintAuthentication _grayMintAuthentication;
+    private readonly TeamControllerOptions _teamControllersOptions;
 
     public TeamService(
         IRoleProvider roleProvider,
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider,
         IOptions<TeamControllerOptions> teamControllersOptions,
-        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        GrayMintAuthentication authenticationTokenBuilder,
+        GrayMintAuthentication grayMintAuthentication,
         IAuthorizationService authorizationService)
     {
         _roleProvider = roleProvider;
         _userProvider = userProvider;
         _authorizationProvider = authorizationProvider;
-        _authenticationTokenBuilder = authenticationTokenBuilder;
+        _grayMintAuthentication = grayMintAuthentication;
         _authorizationService = authorizationService;
-        _authenticationOptions = authenticationOptions.Value;
-        TeamControllersOptions = teamControllersOptions.Value;
+        _teamControllersOptions = teamControllersOptions.Value;
     }
 
-    public async Task<bool> IsResourceOwnerRole(string resourceId, Guid roleId)
+    public async Task<bool> IsResourceOwnerRole(string resourceId, string roleId)
     {
         //SystemResource can not be owned
         if (resourceId == GetRootResourceId())
@@ -52,7 +48,7 @@ public class TeamService
         var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
-    public async Task<User> UpdateBot(Guid userId, TeamUpdateBotParam updateParam)
+    public async Task<User> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
         var user = await _userProvider.Update(userId, new UserUpdateRequest
         {
@@ -62,10 +58,10 @@ public class TeamService
         return user;
     }
 
-    public async Task<UserApiKey> AddNewBot(string resourceId, Guid roleId, TeamAddBotParam addParam)
+    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
     {
         // check bot policy
-        if (!TeamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
+        if (!_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // create
@@ -77,121 +73,39 @@ public class TeamService
             IsBot = true
         });
 
-        var expirationTime = DateTime.UtcNow.AddYears(14);
+        var expirationTime = DateTime.UtcNow.AddYears(13);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
-        var accessToken = await _authenticationTokenBuilder
-            .CreateToken(new CreateTokenParams
+        var apiKey = await _grayMintAuthentication
+            .CreateApiKey(new CreateTokenParams
             {
-                Subject = user.UserId.ToString(),
-                ExpirationTime = expirationTime
-            });
+                Subject = user.UserId,
+            }, expirationTime);
 
-        var ret = new UserApiKey
-        {
-            ExpirationTime = accessToken.ExpirationTime,
-            IssuedTime = accessToken.ExpirationTime,
-            AccessToken = accessToken.Value,
-            Scheme = accessToken.Scheme,
-            UserId = user.UserId,
-        };
-        return ret;
+        return apiKey;
     }
 
-    public async Task<User> ResetAuthorizationCode(Guid userId)
-    {
-        var user = await _userProvider.Get(userId);
-        await _userProvider.ResetAuthorizationCode(user.UserId);
-        return user;
-    }
-
-    public async Task<UserApiKey> ResetApiKey(Guid userId)
+    public async Task<ApiKey> ResetBotApiKey(string userId)
     {
         var user = await _userProvider.Get(userId);
 
         // check AllowUserApiKey for user
-        if (!user.IsBot && !TeamControllersOptions.AllowUserApiKey)
+        if (!user.IsBot)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
-        var expirationTime = DateTime.UtcNow.AddYears(14);
+        var expirationTime = DateTime.UtcNow.AddYears(13);
         await _userProvider.ResetAuthorizationCode(user.UserId);
-        var token = await _authenticationTokenBuilder
-            .CreateToken(new CreateTokenParams
+        var apiKey = await _grayMintAuthentication
+            .CreateApiKey(new CreateTokenParams
             {
-                Subject = user.UserId.ToString(),
+                Subject = user.UserId,
                 Email = user.Email,
-                ExpirationTime = expirationTime
-            });
+            }, expirationTime);
 
-        var ret = new UserApiKey
-        {
-            ExpirationTime = token.ExpirationTime,
-            IssuedTime = token.IssuedTime,
-            AccessToken = token.Value,
-            Scheme = token.Scheme,
-            UserId = userId,
-        };
-
-        return ret;
+        return apiKey;
     }
 
-    private async Task UpdateUserByClaims(User user, ClaimsPrincipal claimsPrincipal)
-    {
-        var updateRequest = new UserUpdateRequest();
-        var isUpdated = false;
-
-        var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email);
-        if (email != null && user.Email != email) { updateRequest.Email = email; isUpdated = true; }
-
-        var name = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
-        if (name != null && user.Name != name) { updateRequest.Name = name; isUpdated = true; }
-
-        var firstName = claimsPrincipal.FindFirstValue(ClaimTypes.GivenName);
-        if (firstName != null && user.FirstName != firstName) { updateRequest.FirstName = firstName; isUpdated = true; }
-
-        var lastName = claimsPrincipal.FindFirstValue(ClaimTypes.Surname);
-        if (lastName != null && user.LastName != lastName) { updateRequest.LastName = lastName; isUpdated = true; }
-
-        var phone = claimsPrincipal.FindFirstValue(ClaimTypes.MobilePhone);
-        if (phone != null && user.Name != phone) { updateRequest.Phone = phone; isUpdated = true; }
-
-        var pictureUrl = claimsPrincipal.FindFirstValue("picture");
-        if (pictureUrl != null && user.PictureUrl != pictureUrl) { updateRequest.PictureUrl = pictureUrl; isUpdated = true; }
-
-        var isEmailVerified = claimsPrincipal.FindFirstValue("email_verified");
-        if (isEmailVerified != null && user.IsEmailVerified != bool.Parse(isEmailVerified)) { updateRequest.IsEmailVerified = bool.Parse(isEmailVerified); isUpdated = true; }
-
-        if (isUpdated)
-            await _userProvider.Update(user.UserId, updateRequest);
-    }
-
-    public async Task<UserApiKey> SignIn(ClaimsPrincipal claimsPrincipal, bool longExpiration)
-    {
-        var userId = await GetUserId(claimsPrincipal);
-        var user = await GetUser(userId);
-
-        if (user.IsBot)
-            throw new InvalidOperationException("Can not use this method for bots.");
-
-        var accessToken = await _authenticationTokenBuilder
-            .SignIn(claimsPrincipal, longExpiration);
-
-        if (claimsPrincipal.FindFirstValue("token_use") == "id")
-            await UpdateUserByClaims(user, claimsPrincipal);
-
-        var ret = new UserApiKey
-        {
-            ExpirationTime = accessToken.ExpirationTime,
-            IssuedTime = accessToken.IssuedTime,
-            UserId = userId,
-            AccessToken = accessToken.Value,
-            Scheme = accessToken.Scheme
-        };
-
-        return ret;
-    }
-
-    public async Task<TeamUserRole> AddUserByEmail(string resourceId, Guid roleId, string email)
+    public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email)
     {
         // create user if not found
         var user = await _userProvider.FindByEmail(email);
@@ -199,11 +113,11 @@ public class TeamService
         return await AddUser(resourceId, roleId, user.UserId);
     }
 
-    public async Task<TeamUserRole> AddUser(string resourceId, Guid roleId, Guid userId)
+    public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId)
     {
         // check bot policy
         var user = await _userProvider.Get(userId);
-        if (user.IsBot && !TeamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
+        if (user.IsBot && !_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // check is already exists
@@ -215,7 +129,7 @@ public class TeamService
         await _roleProvider.AddUser(resourceId: resourceId, roleId: roleId, userId: userId);
 
         // remove from other roles if MultipleRoles is not allowed
-        if (!TeamControllersOptions.AllowUserMultiRole)
+        if (!_teamControllersOptions.AllowUserMultiRole)
             foreach (var userRole in userRoles.Items.Where(x => x.Role.RoleId != roleId))
                 await RemoveUser(resourceId, userRole.Role.RoleId, userId);
 
@@ -228,13 +142,13 @@ public class TeamService
         return await _userProvider.FindByEmail(email);
     }
 
-    public async Task<Guid> GetUserId(ClaimsPrincipal user)
+    public async Task<string> GetUserId(ClaimsPrincipal user)
     {
         var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUser();
-        return Guid.Parse(userId);
+        return userId;
     }
 
-    public async Task<User> GetUser(Guid userId)
+    public async Task<User> GetUser(string userId)
     {
         var user = await _userProvider.Get(userId);
 
@@ -243,13 +157,13 @@ public class TeamService
         return user;
     }
 
-    public Task<string[]> GetUserPermissions(string resourceId, Guid userId)
+    public Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
         return _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
     }
 
     public async Task<ListResult<TeamUserRole>> GetUserRoles(
-        string? resourceId = null, Guid? roleId = null, Guid? userId = null,
+        string? resourceId = null, string? roleId = null, string? userId = null,
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
@@ -286,7 +200,7 @@ public class TeamService
         return ret;
     }
 
-    public async Task RemoveUser(string resourceId, Guid roleId, Guid userId)
+    public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
         await _roleProvider.RemoveUser(resourceId: resourceId, roleId, userId);
 
@@ -296,7 +210,7 @@ public class TeamService
             await DeleteUser(userId);
     }
 
-    public Task DeleteUser(Guid userId)
+    public Task DeleteUser(string userId)
     {
         return _userProvider.Remove(userId);
     }
@@ -307,8 +221,11 @@ public class TeamService
         return roles;
     }
 
-    public async Task<UserApiKey> CreateSystemApiKey()
+    public async Task<ApiKey> CreateSystemApiKey()
     {
+        if (!_teamControllersOptions.IsTestEnvironment)
+            throw new UnauthorizedAccessException();
+
         var rootResourceId = GetRootResourceId();
         var systemRoles = await _roleProvider.GetRoles(rootResourceId);
         if (!systemRoles.Any())
@@ -325,20 +242,6 @@ public class TeamService
         }
 
         throw new NotExistsException($"Could not find {nameof(RolePermissions.RoleWrite)} in any system roles.");
-    }
-
-    public async Task<User> SignUp(ClaimsPrincipal claimsPrincipal)
-    {
-        var email =
-            claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
-            ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
-
-        var user = await _userProvider.Create(new UserCreateRequest { Email = email });
-
-        if (claimsPrincipal.FindFirstValue("token_use") == "id")
-            await UpdateUserByClaims(user, claimsPrincipal);
-
-        return user;
     }
 
     public async Task<bool> CheckUserPermission(ClaimsPrincipal caller, string resourceId, string permission)
@@ -358,7 +261,7 @@ public class TeamService
             throw new UnauthorizedAccessException();
     }
 
-    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, Guid userId)
+    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, string userId)
     {
         // check user permission over all of the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
@@ -371,7 +274,7 @@ public class TeamService
         return userRoles.Items.ToArray();
     }
 
-    public async Task VerifyWritePermissionOnRole(ClaimsPrincipal caller, string resourceId, Guid roleId)
+    public async Task VerifyWritePermissionOnRole(ClaimsPrincipal caller, string resourceId, string roleId)
     {
         if (!await CheckUserPermission(caller, resourceId, RolePermissions.RoleWrite))
             throw new UnauthorizedAccessException();
@@ -384,16 +287,16 @@ public class TeamService
 
 
     // can not change its own owner role unless it has global TeamWrite permission
-    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, Guid userId, Guid targetRoleId, bool isAdding)
+    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, string userId, string targetRoleId, bool isAdding)
     {
 
         // check is AllowOwnerSelfRemove allowed
-        if (TeamControllersOptions.AllowOwnerSelfRemove)
+        if (_teamControllersOptions.AllowOwnerSelfRemove)
             return;
 
         // check is caller changing himself
-        var callerUserIdStr = await _authorizationProvider.GetUserId(caller);
-        if (!Guid.TryParse(callerUserIdStr, out var callerUserId) || callerUserId != userId)
+        var callerUserId = await _authorizationProvider.GetUserId(caller);
+        if (callerUserId != userId)
             return;
 
         // check is caller the owner of the resource
@@ -409,7 +312,7 @@ public class TeamService
 
         // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
         // the old roles won't be changed
-        if (TeamControllersOptions.AllowUserMultiRole)
+        if (_teamControllersOptions.AllowUserMultiRole)
         {
             if (!isAdding && targetRoleIsOwner)
                 throw exception;
@@ -425,37 +328,5 @@ public class TeamService
     public string GetRootResourceId()
     {
         return AuthorizationConstants.RootResourceId;
-    }
-
-    public Task<AccessToken> GetIdTokenFromGoogle(string idToken)
-    {
-        return _authenticationTokenBuilder.CreateIdTokenFromGoogle(idToken);
-    }
-    public Task<AccessToken> GetIdTokenFromCognito(string idToken)
-    {
-        return _authenticationTokenBuilder.CreateIdTokenFromCognito(idToken);
-    }
-
-    public Uri GetGoogleSignInUrl(string csrfToken, string? nonce, string redirectUrl)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.GoogleClientId);
-
-        const string baseUrl = "https://accounts.google.com/gsi/select";
-        var query = new Dictionary<string, string?>
-        {
-            { "client_id", _authenticationOptions.GoogleClientId },
-            { "ux_mode", "redirect" },
-            { "login_uri", redirectUrl },
-            { "ui_mode", "card" },
-            { "g_csrf_token", csrfToken }
-        };
-
-        if (nonce != null)
-            query.Add("nonce", nonce);
-
-        var uriBuilder = new UriBuilder(baseUrl);
-        var queryToAppend = QueryHelpers.AddQueryString(uriBuilder.Query, query);
-        uriBuilder.Query = queryToAppend;
-        return uriBuilder.Uri;
     }
 }

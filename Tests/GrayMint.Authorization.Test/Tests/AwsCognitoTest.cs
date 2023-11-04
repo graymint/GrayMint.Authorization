@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
@@ -6,7 +5,6 @@ using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -46,12 +44,10 @@ public class AwsCognitoTest
             Assert.AreEqual(nameof(AlreadyExistsException), ex.ExceptionTypeName);
         }
 
-        var cognitoIdToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
-        var idToken = await testInit.TeamClient.GetIdTokenFromCognitoAsync(cognitoIdToken);
-        
-        testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, idToken);
-        await testInit.TeamClient.SignInAsync();
-        
+        var idToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
+        var apiKey = await testInit.AuthenticationClient.SignInAsync(idToken);
+
+        testInit.SetApiKey(apiKey);
         await testInit.AppsClient.ListAsync();
     }
 }

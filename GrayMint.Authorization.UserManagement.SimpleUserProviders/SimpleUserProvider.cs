@@ -49,9 +49,9 @@ public class SimpleUserProvider : IUserProvider
         return res.Entity.ToDto();
     }
 
-    public async Task<User> Update(Guid userId, UserUpdateRequest request)
+    public async Task<User> Update(string userId, UserUpdateRequest request)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
+        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         if (request.Name != null) user.Name = request.Name;
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
@@ -70,54 +70,57 @@ public class SimpleUserProvider : IUserProvider
         }
 
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
+        AuthorizationCache.ResetUser(_memoryCache, userId);
         return user.ToDto();
     }
 
-    public async Task<User?> FindById(Guid userId)
+    public async Task<User?> FindById(string userId)
     {
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
+        if (!Guid.TryParse(userId, out var uid))
+            return null;
+
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
             entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
-            return _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.UserId == userId);
+            return _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
         });
 
         return user?.ToDto();
     }
 
-    public async Task<User> Get(Guid userId)
+    public async Task<User> Get(string userId)
     {
         var user = await FindById(userId) ?? throw new NotExistsException("There is no user with the given id.");
         return user;
     }
 
-    public async Task UpdateAccessedTime(Guid userId)
+    public async Task UpdateAccessedTime(string userId)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
+        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AccessedTime = DateTime.UtcNow;
         await _simpleUserDbContext.SaveChangesAsync();
 
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId.ToString(), "provider:user-model");
+        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
         _memoryCache.Set(cacheKey, user, TimeSpan.FromMinutes(60));
     }
 
-    public async Task Remove(Guid userId)
+    public async Task Remove(string userId)
     {
         _simpleUserDbContext.ChangeTracker.Clear();
 
-        var user = new UserModel { UserId = userId };
+        var user = new UserModel { UserId = Guid.Parse(userId) };
         _simpleUserDbContext.Users.Remove(user);
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
+        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
-    public async Task ResetAuthorizationCode(Guid userId)
+    public async Task ResetAuthorizationCode(string userId)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == userId);
+        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AuthCode = Guid.NewGuid().ToString();
         await _simpleUserDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId.ToString());
+        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
     public async Task<User?> FindByEmail(string email)
@@ -146,7 +149,7 @@ public class SimpleUserProvider : IUserProvider
 
     public async Task<ListResult<User>> GetUsers(
         string? search = null, string? firstName = null, string? lastName = null,
-        IEnumerable<Guid>? userIds = null, bool? isBot = null,
+        IEnumerable<string>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
         recordCount ??= int.MaxValue;
@@ -156,7 +159,7 @@ public class SimpleUserProvider : IUserProvider
         var query = _simpleUserDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
-                (userIds == null || userIds.Contains(x.UserId)) &&
+                (userIds == null || userIds.Contains(x.UserId.ToString())) &&
                 (firstName == null || (x.FirstName != null && x.FirstName.StartsWith(firstName))) &&
                 (lastName == null || (x.LastName != null && x.LastName.StartsWith(lastName))))
             .Where(x =>

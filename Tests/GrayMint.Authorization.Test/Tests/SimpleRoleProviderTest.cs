@@ -102,7 +102,7 @@ public class SimpleRoleProviderTest
         var authorizationProvider = testInit.Scope.ServiceProvider.GetRequiredService<IAuthorizationProvider>();
         var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity));
         Assert.IsNotNull(userId);
-        user = await userProvider.Get(Guid.Parse(userId));
+        user = await userProvider.Get(userId);
         var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(identity));
         Assert.AreEqual(user.AuthorizationCode, authorizationCode);
         

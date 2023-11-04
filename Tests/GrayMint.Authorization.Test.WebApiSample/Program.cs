@@ -1,4 +1,5 @@
 using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Controllers;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
@@ -28,6 +29,7 @@ public class Program
         builder.Services.AddGrayMintRoleAuthorization();
         builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintSimpleUserProvider(authConfiguration.Get<SimpleUserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        builder.Services.AddGrayMintAuthenticationController();
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddGrayMintSwagger("Test", true);
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
@@ -55,24 +57,5 @@ public class Program
 
         await GrayMintApp.RunAsync(webApp, args);
 
-    }
-
-    public static void Google(object builder)
-    {
-        /*
-        builder.Services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.Authority = "https://accounts.google.com";
-                options.Audience = "x.apps.googleusercontent.com";
-            })
-            .AddGoogle(options =>
-            {
-                options.ClientId = "xxx.apps.googleusercontent.com";
-                options.ClientSecret = "xx";
-            });
-        */
-        throw new NotImplementedException();
     }
 }

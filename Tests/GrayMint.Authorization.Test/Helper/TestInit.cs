@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
@@ -10,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
+using ApiKey = GrayMint.Common.Test.Api.ApiKey;
 
 namespace GrayMint.Authorization.Test.Helper;
 
@@ -26,7 +26,8 @@ public class TestInit : IDisposable
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public TeamClient TeamClient => new(HttpClient);
-    public UserApiKey SystemAdminApiKey { get; private set; } = default!;
+    public AuthenticationClient AuthenticationClient => new(HttpClient);
+    public ApiKey SystemAdminApiKey { get; private set; } = default!;
 
 
     private TestInit(Dictionary<string, string?> appSettings, string environment)
@@ -39,10 +40,6 @@ public class TestInit : IDisposable
                     builder.UseSetting(appSetting.Key, appSetting.Value);
 
                 builder.UseEnvironment(environment);
-                builder.ConfigureServices(services =>
-                {
-                    services.AddScoped<IAuthorizationProvider, TestAuthenticationProvider>();
-                });
             });
 
         // Client
@@ -58,20 +55,20 @@ public class TestInit : IDisposable
     private async Task Init()
     {
         SystemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync();
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.Scheme, SystemAdminApiKey.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }
 
-    public async Task<UserApiKey> AddNewBot(SimpleRole simpleRole, bool setAsCurrent = true)
+    public async Task<ApiKey> AddNewBot(SimpleRole simpleRole, bool setAsCurrent = true)
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.Scheme, SystemAdminApiKey.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
 
         var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
         var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
-            ? new AuthenticationHeaderValue(apiKey.Scheme, apiKey.AccessToken) : oldAuthorization;
+            ? new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value) : oldAuthorization;
 
         return apiKey;
     }
@@ -83,32 +80,24 @@ public class TestInit : IDisposable
         return teamUserRole;
     }
 
-    public async Task<AuthenticationHeaderValue> CreateUnregisteredUser(
+    public async Task<string> CreateUnregisteredUserTokenId(
         string? email = null, Claim[]? claims = null, bool setAsCurrent = true)
     {
         email ??= NewEmail();
 
         var claimsIdentity = new ClaimsIdentity();
-        claimsIdentity.AddClaim(new Claim("test_authenticated", "1"));
-        claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, email));
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
+        claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.EmailVerified, "true"));
         if (claims != null) claimsIdentity.AddClaims(claims);
 
-        var authenticationTokenBuilder = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
-        var authorization = await authenticationTokenBuilder.CreateAuthenticationHeader(new CreateTokenParams
-        {
-            ClaimsIdentity = claimsIdentity
-        });
-
-        if (setAsCurrent)
-            HttpClient.DefaultRequestHeaders.Authorization = authorization;
-
-        return authorization;
+        var grayMintAuthentication = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
+        var token = await grayMintAuthentication.CreateIdToken(claimsIdentity);
+        return token.Value;
     }
 
-    public void SetApiKey(UserApiKey apiKey)
+    public void SetApiKey(ApiKey apiKey)
     {
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(apiKey.Scheme, apiKey.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
     }
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,

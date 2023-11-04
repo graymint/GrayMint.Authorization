@@ -4,7 +4,7 @@ namespace GrayMint.Authorization.UserManagement.Abstractions;
 
 public class User
 {
-    public required Guid UserId { get; set; }
+    public required string UserId { get; set; }
     public required string Email { get; set; }
     public required string? Name { get; set; }
     public required string? FirstName { get; set; }

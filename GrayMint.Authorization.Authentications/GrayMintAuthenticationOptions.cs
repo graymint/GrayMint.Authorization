@@ -18,11 +18,15 @@ public class GrayMintAuthenticationOptions
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenExpiration { get; init; } = TimeSpan.FromMinutes(15);
-    public TimeSpan AccessTokenShortExpiration { get; init; } = TimeSpan.FromDays(3);
-    public TimeSpan AccessTokenLongExpiration { get; init; } = TimeSpan.FromDays(30);
+    public TimeSpan AccessTokenTimeout { get; init; } = TimeSpan.FromHours(30);
+    public TimeSpan RefreshTokenShortTimeout { get; init; } = TimeSpan.FromDays(2);
+    public TimeSpan RefreshTokenLongTimeout { get; init; } = TimeSpan.FromDays(30);
     public string? GoogleClientId { get; init; }
     public string? CognitoClientId { get; init; }
     public string? CognitoArn { get; init; }
+    public bool AllowUserSelfRegister { get; set; }
+    public bool AllowUserApiKey { get; set; }
+    public Uri? SignInRedirectUrl { get; set; }
 
     public void Validate(bool isProduction)
     {

@@ -4,11 +4,9 @@ namespace GrayMint.Authorization.Authentications;
 
 public class CreateTokenParams
 {
-    public string? Subject { get; init; }
-    public string? Email { get; init; }
-    public string? AuthCode { get; init; }
+    public string? Subject { get; set; }
+    public string? Email { get; set; }
+    public string? AuthCode { get; set; }
     public DateTime? AuthTime { get; init; }
-    public DateTime ExpirationTime { get; init; } = DateTime.Now.AddYears(14);
-    public ClaimsIdentity? ClaimsIdentity { get; init; }
-    public string TokenUse { get; set; } = "access";
+    public ClaimsIdentity? ClaimsIdentity { get; set; }
 }

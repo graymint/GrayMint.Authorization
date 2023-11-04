@@ -15,7 +15,8 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
     public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal)
     {
-        if (!Guid.TryParse(await GetUserId(principal), out var userId))
+        var userId = await GetUserId(principal);
+        if (userId is null)
             return null;
 
         var user = await _userProvider.Get(userId);
@@ -24,12 +25,12 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
     public async Task<string?> GetUserId(ClaimsPrincipal principal)
     {
-        var userIdClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        var userId = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+        if (userId != null)
         {
             var user = await _userProvider.FindById(userId);
             if (user != null)
-                return !user.IsDisabled ? user.UserId.ToString(): throw new UnauthorizedAccessException("User is locked.");
+                return !user.IsDisabled ? user.UserId.ToString() : throw new UnauthorizedAccessException("User is locked.");
         }
 
         var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
@@ -37,7 +38,7 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
         {
             var user = await _userProvider.FindByEmail(emailClaim.Value);
             if (user != null)
-                return !user.IsDisabled ? user.UserId.ToString(): throw new UnauthorizedAccessException("User is locked.");
+                return !user.IsDisabled ? user.UserId.ToString() : throw new UnauthorizedAccessException("User is locked.");
         }
 
         return null;
@@ -45,7 +46,8 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
 
     public async Task OnAuthenticated(ClaimsPrincipal principal)
     {
-        if (!Guid.TryParse(await GetUserId(principal), out var userId))
+        var userId = await GetUserId(principal);
+        if (userId is null)
             return;
 
         var user = await _userProvider.Get(userId);
