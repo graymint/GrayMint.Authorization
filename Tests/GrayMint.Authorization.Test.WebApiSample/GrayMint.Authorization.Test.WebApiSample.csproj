@@ -15,8 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.150" />
-    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.148" />
+    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.151" />
+    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.149" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="7.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.13" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.13" />

@@ -21,7 +21,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         var authConfiguration = builder.Configuration.GetSection("Auth");
 
-        builder.AddGrayMintCommonServices(new GrayMintCommonOptions { AppName = "Web App Sample" }, new RegisterServicesOptions());
+        builder.AddGrayMintCommonServices(new GrayMintCommonOptions (), new RegisterServicesOptions());
         builder.Services
             .AddAuthentication()
             .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction());
