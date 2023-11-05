@@ -214,7 +214,7 @@ public class AuthenticationTest
     }
 
     [TestMethod]
-    public async Task RefreshToken_should_not_extend_more_than_long_expiration()
+    public async Task Fail_refresh_a_token_more_than_long_expiration()
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
@@ -282,8 +282,76 @@ public class AuthenticationTest
 
 
     [TestMethod]
-    public async Task Should_not_be_able_to_sign_in_with_refresh_token()
+    public async Task Fail_sign_in_by_refresh_token()
     {
+        var testInit = await TestInit.Create();
+        var apiKey = await testInit.SignUpNewUser();
+
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.RefreshToken?.Value);
+        try
+        {
+            await testInit.AuthenticationClient.GetCurrentUserAsync();
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException e)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+        }
+    }
+
+    [TestMethod]
+    public async Task Fail_refresh_by_access_key()
+    {
+        var testInit = await TestInit.Create();
+        var apiKey = await testInit.SignUpNewUser();
+        try
+        {
+            await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.AccessToken.Value);
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException e)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+        }
+
+    }
+
+    [TestMethod]
+    public async Task Fail_refresh_by_id_token()
+    {
+        var testInit = await TestInit.Create();
+        var idToken = await testInit.CreateUnregisteredUserIdToken();
+        try
+        {
+            await testInit.AuthenticationClient.RefreshTokenAsync(idToken);
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException e)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+        }
+
+    }
+
+
+    [TestMethod]
+    public async Task Fail_refresh_a_revoked_token()
+    {
+        var testInit = await TestInit.Create();
+        var apiKey = await testInit.SignUpNewUser();
+        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+        await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
+
+        try
+        {
+            await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+            Assert.Fail("Unauthorized Exception was expected.");
+        }
+        catch (ApiException e)
+        {
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+        }
 
     }
 

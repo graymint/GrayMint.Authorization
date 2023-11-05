@@ -80,7 +80,7 @@ public class GrayMintAuthentication
         refreshTokenExpirationTime ??= DateTime.UtcNow + _authenticationOptions.RefreshTokenShortTimeout;
         var accessToken = await CreateToken(createParams, TokenUse.Access, DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout);
         var userId = accessToken.ClaimsPrincipal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-            throw new Exception("RefreshToken can only refresh claim does have subject.");
+            throw new AuthenticationException("RefreshToken can only refresh claim does have subject.");
 
         var ret = new ApiKey
         {
@@ -124,7 +124,7 @@ public class GrayMintAuthentication
         {
             authCode = await _authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
             if (string.IsNullOrEmpty(authCode))
-                throw new Exception("Could not get the AuthorizationCode.");
+                throw new AuthenticationException("Could not get the AuthorizationCode.");
         }
 
         // add authorization code to claim

@@ -1,4 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,7 @@ public static class GrayMintAuthenticationExtension
                         AddTokenIdIfNotExists(context);
                         try
                         {
-                            var principal = context.Principal ?? throw new Exception("Principal has not been validated.");
+                            var principal = context.Principal ?? throw new AuthenticationException("Principal has not been validated.");
                             await tokenValidator.PostValidate(principal, TokenUse.Access);
                         }
                         catch (Exception ex)

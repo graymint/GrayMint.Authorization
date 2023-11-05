@@ -48,7 +48,7 @@ public class GrayMintTokenValidator
         if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode)
         {
             if (string.IsNullOrEmpty(tokenAuthCode))
-                throw new Exception($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in the token.");
+                throw new AuthenticationException($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in the token.");
 
             // get authCode and manage cache
             var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
@@ -58,10 +58,10 @@ public class GrayMintTokenValidator
             });
 
             if (string.IsNullOrEmpty(authCode))
-                throw new Exception($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in token.");
+                throw new AuthenticationException($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in token.");
 
             if (authCode != tokenAuthCode)
-                throw new Exception($"Invalid {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName}.");
+                throw new AuthenticationException($"Invalid {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName}.");
         }
 
         // update name-identifier
@@ -88,7 +88,7 @@ public class GrayMintTokenValidator
             var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
             entry.SetAbsoluteExpiration(_authenticationOptions.OpenIdConfigTimeout);
             return await configurationManager.GetConfigurationAsync();
-        }) ?? throw new Exception($"Could not retrieve OpenId config. EndPoint: {url}");
+        }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
 
         return openIdConfig;
     }
