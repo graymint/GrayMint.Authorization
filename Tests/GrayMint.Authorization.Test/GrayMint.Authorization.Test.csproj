@@ -4,7 +4,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>3.0.52</Version>
+    <Version>3.0.53</Version>
     <IsPackable>false</IsPackable>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
