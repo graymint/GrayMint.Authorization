@@ -8,7 +8,7 @@
     <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
     <RepositoryUrl>https://github.com/graymint/GrayMint.Common</RepositoryUrl>
     <LangVersion>latest</LangVersion>
-    <Version>3.0.55</Version>
+    <Version>3.0.56</Version>
     <IsPackable>true</IsPackable>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
