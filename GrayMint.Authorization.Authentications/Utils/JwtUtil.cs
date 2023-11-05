@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace GrayMint.Authorization.Authentications.Utils;
 
-public class JwtUtil
+public static class JwtUtil
 {
     public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string subject,
         string email, string[]? roles)

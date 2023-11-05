@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -11,7 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class UserTest
+public class AuthenticationTest
 {
     [TestMethod]
     public async Task LockUser()
@@ -163,7 +162,7 @@ public class UserTest
         // ------------
         // Check: New user should not exist if not he hasn't registered yet
         // ------------
-        var tokenId = await testInit.CreateUnregisteredUserTokenId(userEmail);
+        var tokenId = await testInit.CreateUnregisteredUserIdToken(userEmail);
 
         try
         {
@@ -194,16 +193,18 @@ public class UserTest
     public async Task RefreshToken_should_extend_expiration()
     {
         var testInit = await TestInit.Create();
+        var apiKey1 = await testInit.SignUpNewUser();
+        Assert.IsNotNull(apiKey1.RefreshToken);
 
-        var apiKey1 = await testInit.AddNewBot(Roles.AppWriter);
         testInit.SetApiKey(apiKey1);
         await Task.Delay(1000);
 
-        var apiKey2 = await testInit.AuthenticationClient.RefreshTokenAsync();
+        var apiKey2 = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey1.RefreshToken.Value);
+        Assert.IsNotNull(apiKey2.RefreshToken);
         testInit.SetApiKey(apiKey2);
         await Task.Delay(1000);
 
-        var apiKey3 = await testInit.AuthenticationClient.RefreshTokenAsync();
+        var apiKey3 = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey2.RefreshToken.Value);
         testInit.SetApiKey(apiKey3);
 
         Assert.IsTrue(apiKey1.AccessToken.ExpirationTime < apiKey2.AccessToken.ExpirationTime);
@@ -220,28 +221,31 @@ public class UserTest
             {"Auth:RefreshTokenLongTimeout", "00:00:02" }
         });
 
-        var apiKey = await testInit.AddNewBot(Roles.AppWriter);
-        testInit.SetApiKey(apiKey);
+        var apiKey = await testInit.SignUpNewUser();
+        Assert.IsNotNull(apiKey.RefreshToken);
 
         // should not extend more than long expiration
+        var isAnySuccess = false;
         try
         {
             for (var i = 0; i < 5; i++)
             {
                 await Task.Delay(1000);
-                apiKey = await testInit.AuthenticationClient.RefreshTokenAsync();
+                apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
                 testInit.SetApiKey(apiKey);
+                isAnySuccess = true;
             }
             Assert.Fail("Unauthorized Exception was expected.");
         }
         catch (ApiException ex)
         {
+            Assert.IsTrue(isAnySuccess);
             Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
         }
     }
 
     [TestMethod]
-    public async Task RefreshToken_using_short_and_long_expiration()
+    public async Task RefreshToken_with_short_expiration()
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
@@ -249,19 +253,33 @@ public class UserTest
             {"Auth:RefreshTokenLongTimeout", "00:10:00" }
         });
 
-        await testInit.CreateUnregisteredUserTokenId();
-        var apiKey = await testInit.AuthenticationClient.SignUpAsync();
-        testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.AccessToken.ExpirationTime <= DateTime.UtcNow.AddMinutes(1));
+        var apiKey = await testInit.SignUpNewUser(longExpiration: false);
+        Assert.IsNotNull(apiKey.RefreshToken);
+        Assert.IsTrue(apiKey.RefreshToken.ExpirationTime <= DateTime.UtcNow.AddMinutes(2));
 
-        apiKey = await testInit.AuthenticationClient.SignInAsync();
-        testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.AccessToken.ExpirationTime <= DateTime.UtcNow.AddMinutes(1));
-
-        apiKey = await testInit.AuthenticationClient.SignInAsync();
-        testInit.SetApiKey(apiKey);
-        Assert.IsTrue(apiKey.AccessToken.ExpirationTime > DateTime.UtcNow.AddMinutes(1) && apiKey.AccessToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
+        apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
+        Assert.IsNotNull(apiKey.RefreshToken);
+        Assert.IsTrue(apiKey.RefreshToken.ExpirationTime <= DateTime.UtcNow.AddMinutes(2));
     }
+
+    [TestMethod]
+    public async Task RefreshToken_with_long_expiration()
+    {
+        var testInit = await TestInit.Create(new Dictionary<string, string?>
+        {
+            {"Auth:RefreshTokenShortTimeout", "00:01:00" },
+            {"Auth:RefreshTokenLongTimeout", "00:10:00" }
+        });
+
+        var apiKey = await testInit.SignUpNewUser(longExpiration: true);
+        Assert.IsNotNull(apiKey.RefreshToken);
+        Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) && apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
+
+        apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+        Assert.IsNotNull(apiKey.RefreshToken);
+        Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) && apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
+    }
+
 
     [TestMethod]
     public async Task Should_not_be_able_to_sign_in_with_refresh_token()

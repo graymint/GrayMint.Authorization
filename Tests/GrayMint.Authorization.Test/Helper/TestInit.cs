@@ -80,8 +80,8 @@ public class TestInit : IDisposable
         return teamUserRole;
     }
 
-    public async Task<string> CreateUnregisteredUserTokenId(
-        string? email = null, Claim[]? claims = null, bool setAsCurrent = true)
+    public async Task<string> CreateUnregisteredUserIdToken(
+        string? email = null, Claim[]? claims = null)
     {
         email ??= NewEmail();
 
@@ -93,6 +93,15 @@ public class TestInit : IDisposable
         var grayMintAuthentication = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         var token = await grayMintAuthentication.CreateIdToken(claimsIdentity);
         return token.Value;
+    }
+
+    public async Task<ApiKey> SignUpNewUser(string? email = null, Claim[]? claims = null, 
+        bool longExpiration = false, bool setAsCurrent = true)
+    { 
+        var idToken = await CreateUnregisteredUserIdToken(email, claims);
+        var apiKey = await AuthenticationClient.SignUpAsync(idToken, longExpiration);
+        if (setAsCurrent) SetApiKey(apiKey);
+        return apiKey;
     }
 
     public void SetApiKey(ApiKey apiKey)

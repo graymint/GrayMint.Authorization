@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
+using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -12,13 +13,13 @@ public class AuthenticationService
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
     private readonly IAuthorizationProvider _authorizationProvider;
     private readonly IUserProvider _userProvider;
-    private readonly GrayMintIdTokenValidator _grayMintIdTokenValidator;
+    private readonly GrayMintTokenValidator _grayMintIdTokenValidator;
     public AuthenticationService(
         IOptions<GrayMintAuthenticationOptions> authenticationOptions,
         GrayMintAuthentication grayMintAuthentication,
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider, 
-        GrayMintIdTokenValidator grayMintIdTokenValidator)
+        GrayMintTokenValidator grayMintIdTokenValidator)
     {
         _authenticationOptions = authenticationOptions.Value;
         _grayMintAuthentication = grayMintAuthentication;
@@ -123,7 +124,7 @@ public class AuthenticationService
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
         var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
-        var claimsPrincipal = GrayMintAuthentication.CreateClaimsPrincipal(claimsIdentity);
+        var claimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity);
         
         var email =
             claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
@@ -134,11 +135,6 @@ public class AuthenticationService
 
         var apiKey = await _grayMintAuthentication.SignIn(idToken, longExpiration);
         return apiKey;
-    }
-
-    public Task<ApiKey> RefreshToken(ClaimsPrincipal user, object longExpiration)
-    {
-        throw new NotImplementedException();
     }
 }
 
