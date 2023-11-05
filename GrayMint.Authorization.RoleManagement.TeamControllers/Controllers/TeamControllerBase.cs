@@ -6,6 +6,7 @@ using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GrayMint.Authorization.Authentications;
+using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.UserRole;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
@@ -17,7 +18,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     private readonly TeamService _teamService;
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
-    protected abstract TUserRole ToDto(TeamUserRole user);
+    protected abstract TUserRole ToDto(UserRole user);
 
     protected TeamControllerBase(
         TeamService teamService)
@@ -151,7 +152,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     }
 
     // ReSharper disable once UnusedMethodReturnValue.Local
-    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
+    private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(string userId)
     {
         var userRoles = await _teamService.GetUserRoles(userId: userId);
 
@@ -182,7 +183,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return _teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
+    protected Task<UserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
     {
         return _teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
@@ -204,7 +205,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 }
 
 public abstract class TeamControllerBase
-    : TeamControllerBase<User, TeamUserRole, Role>
+    : TeamControllerBase<User, UserRole, Role>
 {
     protected TeamControllerBase(TeamService teamService) : base(teamService)
     {
@@ -212,5 +213,5 @@ public abstract class TeamControllerBase
 
     protected override User ToDto(User user) => user;
     protected override Role ToDto(Role role) => role;
-    protected override TeamUserRole ToDto(TeamUserRole userRole) => userRole;
+    protected override UserRole ToDto(UserRole userRole) => userRole;
 }

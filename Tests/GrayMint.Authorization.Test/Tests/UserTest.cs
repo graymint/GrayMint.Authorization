@@ -231,7 +231,8 @@ public class AuthenticationTest
             for (var i = 0; i < 5; i++)
             {
                 await Task.Delay(1000);
-                apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+                apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
+                Assert.IsNotNull(apiKey.RefreshToken);
                 testInit.SetApiKey(apiKey);
                 isAnySuccess = true;
             }
@@ -275,7 +276,7 @@ public class AuthenticationTest
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) && apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
 
-        apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+        apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) && apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
     }
@@ -339,13 +340,15 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create();
         var apiKey = await testInit.SignUpNewUser();
-        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
-        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+        Assert.IsNotNull(apiKey.RefreshToken);
+
+        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
+        await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
         await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
 
         try
         {
-            await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken?.Value);
+            await testInit.AuthenticationClient.RefreshTokenAsync(apiKey.RefreshToken.Value);
             Assert.Fail("Unauthorized Exception was expected.");
         }
         catch (ApiException e)

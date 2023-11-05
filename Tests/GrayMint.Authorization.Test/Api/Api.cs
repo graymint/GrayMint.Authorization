@@ -50,14 +50,14 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(string? appName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(string appName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (appName == null)
+                throw new System.ArgumentNullException("appName");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps?");
-            if (appName != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("appName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(appName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("appName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(appName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -315,18 +315,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> CreateByRoleAsync(int appId, string? itemName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> CreateByRoleAsync(int appId, string itemName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
+
+            if (itemName == null)
+                throw new System.ArgumentNullException("itemName");
 
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps/{appId}/items/by-role?");
             urlBuilder_.Replace("{appId}", System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
-            if (itemName != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -391,18 +391,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> GetByRoleAsync(int appId, int? itemId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> GetByRoleAsync(int appId, int itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
+
+            if (itemId == null)
+                throw new System.ArgumentNullException("itemId");
 
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps/{appId}/items/itemId/by-role?");
             urlBuilder_.Replace("{appId}", System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
-            if (itemId != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("itemId") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemId, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("itemId") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemId, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -466,18 +466,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> CreateByPermissionAsync(int appId, string? itemName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> CreateByPermissionAsync(int appId, string itemName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
 
+            if (itemName == null)
+                throw new System.ArgumentNullException("itemName");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps/{appId}/items/by-permission?");
             urlBuilder_.Replace("{appId}", System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
-            if (itemName != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -542,18 +542,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> GetByPermissionAsync(int appId, int? itemId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> GetByPermissionAsync(int appId, int itemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
 
+            if (itemId == null)
+                throw new System.ArgumentNullException("itemId");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps/{appId}/items/itemId/by-permission?");
             urlBuilder_.Replace("{appId}", System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
-            if (itemId != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("itemId") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemId, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("itemId") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemId, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -617,18 +617,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task DeleteByPermissionAsync(int appId, string? itemName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task DeleteByPermissionAsync(int appId, string itemName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
 
+            if (itemName == null)
+                throw new System.ArgumentNullException("itemName");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/apps/{appId}/items?");
             urlBuilder_.Replace("{appId}", System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
-            if (itemName != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -1233,7 +1233,7 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ListResultOfTeamUserRole> ListUserRolesAsync(string resourceId, string? roleId = null, string? userId = null, string? search = null, bool? isBot = null, int? recordIndex = null, int? recordCount = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ListResultOfUserRole> ListUserRolesAsync(string resourceId, string? roleId = null, string? userId = null, string? search = null, bool? isBot = null, int? recordIndex = null, int? recordCount = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (resourceId == null)
                 throw new System.ArgumentNullException("resourceId");
@@ -1299,7 +1299,7 @@ namespace GrayMint.Common.Test.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ListResultOfTeamUserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ListResultOfUserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new GrayMint.Common.Client.ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -1409,7 +1409,7 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamUserRole> AddUserByEmailAsync(string resourceId, string roleId, string email, TeamAddEmailParam? addParam = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<UserRole> AddUserByEmailAsync(string resourceId, string roleId, string email, TeamAddEmailParam? addParam = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (resourceId == null)
                 throw new System.ArgumentNullException("resourceId");
@@ -1462,7 +1462,7 @@ namespace GrayMint.Common.Test.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TeamUserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<UserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new GrayMint.Common.Client.ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -1491,7 +1491,7 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamUserRole> AddUserAsync(string resourceId, string roleId, string userId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<UserRole> AddUserAsync(string resourceId, string roleId, string userId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (resourceId == null)
                 throw new System.ArgumentNullException("resourceId");
@@ -1541,7 +1541,7 @@ namespace GrayMint.Common.Test.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TeamUserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<UserRole>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new GrayMint.Common.Client.ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -2030,14 +2030,14 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ApiKey> SignInAsync(string? idToken = null, bool? longExpiration = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ApiKey> SignInAsync(string idToken, bool? longExpiration = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (idToken == null)
+                throw new System.ArgumentNullException("idToken");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/authentication/signin?");
-            if (idToken != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("idToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(idToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("idToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(idToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             if (longExpiration != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("longExpiration") + "=").Append(System.Uri.EscapeDataString(ConvertToString(longExpiration, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
@@ -2106,14 +2106,14 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ApiKey> SignUpAsync(string? idToken = null, bool? longExpiration = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ApiKey> SignUpAsync(string idToken, bool? longExpiration = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (idToken == null)
+                throw new System.ArgumentNullException("idToken");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/authentication/signup?");
-            if (idToken != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("idToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(idToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("idToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(idToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             if (longExpiration != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("longExpiration") + "=").Append(System.Uri.EscapeDataString(ConvertToString(longExpiration, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
@@ -2182,14 +2182,14 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ApiKey> RefreshTokenAsync(string? refreshToken = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ApiKey> RefreshTokenAsync(string refreshToken, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (refreshToken == null)
+                throw new System.ArgumentNullException("refreshToken");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/authentication/refresh-token?");
-            if (refreshToken != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("refreshToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(refreshToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("refreshToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(refreshToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
@@ -2319,14 +2319,14 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> GetGoogleSignInUrlAsync(string? csrfToken = null, string? nonce = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<string> GetGoogleSignInUrlAsync(string csrfToken, string? nonce = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (csrfToken == null)
+                throw new System.ArgumentNullException("csrfToken");
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append("api/v1/authentication/external/google/signin-url?");
-            if (csrfToken != null)
-            {
-                urlBuilder_.Append(System.Uri.EscapeDataString("csrfToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(csrfToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            }
+            urlBuilder_.Append(System.Uri.EscapeDataString("csrfToken") + "=").Append(System.Uri.EscapeDataString(ConvertToString(csrfToken, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             if (nonce != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("nonce") + "=").Append(System.Uri.EscapeDataString(ConvertToString(nonce, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
@@ -2720,7 +2720,7 @@ namespace GrayMint.Common.Test.Api
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "13.20.0.0 (NJsonSchema v10.9.0.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ListResultOfTeamUserRole
+    public partial class ListResultOfUserRole
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
@@ -2732,12 +2732,12 @@ namespace GrayMint.Common.Test.Api
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]   
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<TeamUserRole> Items { get; set; } = new System.Collections.ObjectModel.Collection<TeamUserRole>();
+        public System.Collections.Generic.ICollection<UserRole> Items { get; set; } = new System.Collections.ObjectModel.Collection<UserRole>();
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "13.20.0.0 (NJsonSchema v10.9.0.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class TeamUserRole : UserRole
+    public partial class UserRole : UserRole2
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("user")]
@@ -2748,7 +2748,7 @@ namespace GrayMint.Common.Test.Api
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "13.20.0.0 (NJsonSchema v10.9.0.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class UserRole
+    public partial class UserRole2
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("resourceId")]

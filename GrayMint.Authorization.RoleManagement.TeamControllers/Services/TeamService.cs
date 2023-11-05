@@ -11,6 +11,7 @@ using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.UserRole;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 
@@ -105,7 +106,7 @@ public class TeamService
         return apiKey;
     }
 
-    public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email)
+    public async Task<UserRole> AddUserByEmail(string resourceId, string roleId, string email)
     {
         // create user if not found
         var user = await _userProvider.FindByEmail(email);
@@ -113,7 +114,7 @@ public class TeamService
         return await AddUser(resourceId, roleId, user.UserId);
     }
 
-    public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId)
+    public async Task<UserRole> AddUser(string resourceId, string roleId, string userId)
     {
         // check bot policy
         var user = await _userProvider.Get(userId);
@@ -162,7 +163,7 @@ public class TeamService
         return _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
     }
 
-    public async Task<ListResult<TeamUserRole>> GetUserRoles(
+    public async Task<ListResult<UserRole>> GetUserRoles(
         string? resourceId = null, string? roleId = null, string? userId = null,
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
@@ -177,7 +178,7 @@ public class TeamService
 
         // attach user to UserRoles
         var userRoles = userRoleList.Items
-            .Select(x => new TeamUserRole
+            .Select(x => new UserRole
             {
                 ResourceId = x.ResourceId,
                 Role = x.Role,
@@ -192,7 +193,7 @@ public class TeamService
             userRoles = userRoles.Where(x => x.User != null).ToArray();
 
         // create the result
-        var ret = new ListResult<TeamUserRole>
+        var ret = new ListResult<UserRole>
         {
             Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue),
             TotalCount = userRoles.Length
@@ -261,7 +262,7 @@ public class TeamService
             throw new UnauthorizedAccessException();
     }
 
-    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, string userId)
+    public async Task<UserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, string userId)
     {
         // check user permission over all of the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
