@@ -4,47 +4,45 @@ function main() {
     google.accounts.id.initialize({
         client_id: '637321499771-gioemfem1ngm8i027cf9nj03l9nj2n0l.apps.googleusercontent.com',
         callback: handleCredentialResponse,
-        login_uri: "https://localhost:7118/api/v1/authentication/external/google/signin-handler",
         ux_mode: "popup",
         auto_select: true,
         nonce: "11111111111111111"
     });
+    tryLogin();
 
-    google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // continue with another identity provider.
-        }
-    });
-
-    const parent = document.getElementById('google_btn');
+    const parent = document.getElementById('gsi-google-btn');
     google.accounts.id.renderButton(parent, { theme: "filled_blue" });
-}
-
-function tryLogin() {
-    google.accounts.id.prompt((notification) => {
-        console.log(notification);
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // continue with another identity provider.
-            console.log("continue with another identity provider");
-        }
-    }, 10000);
 }
 
 async function handleCredentialResponse(googleUser) {
     if (!googleUser || !googleUser.credential)
         return;
 
+    console.log(googleUser);
+
     let apiKey = null;
     try {
         apiKey = await signIn(googleUser.credential);
     }
-    catch(e)
-    {
+    catch (e) {
         if (e.TypeName == "UnregisteredUser")
             apiKey = await signUp(googleUser.credential);
     }
 
     console.log(apiKey);
+}
+
+function tryLogin() {
+    google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // continue with another identity provider.
+            console.log("continue with another identity provider", notification);
+        }
+        else
+            console.log("success", notification);
+
+        console.log("xxx", notification.getDismissedReason());
+    });
 }
 
 async function signIn(idToken) {

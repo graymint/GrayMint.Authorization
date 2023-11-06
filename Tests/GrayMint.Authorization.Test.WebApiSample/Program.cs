@@ -21,7 +21,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         var authConfiguration = builder.Configuration.GetSection("Auth");
 
-        builder.Services.AddGrayMintCommonServices(new GrayMintCommonOptions (), new RegisterServicesOptions());
+        builder.Services.AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions());
         builder.Services
             .AddAuthentication()
             .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction());
@@ -41,7 +41,7 @@ public class Program
             var policyBuilder = new AuthorizationPolicyBuilder();
             policyBuilder.RequireAuthenticatedUser();
             policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
-            
+
             var defaultPolicy = policyBuilder.Build();
             options.AddPolicy("DefaultPolicy", defaultPolicy);
             options.DefaultPolicy = defaultPolicy;
@@ -54,9 +54,7 @@ public class Program
         await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
         await webApp.Services.UseGrayMintSimpleUserProvider();
         await webApp.Services.UseGrayMintSimpleRoleProvider();
-        webApp.UseStaticFiles(new StaticFileOptions() {
-            
-        });
+        webApp.UseStaticFiles(new StaticFileOptions());
 
         await GrayMintApp.RunAsync(webApp, args);
 

@@ -202,27 +202,34 @@ public class GrayMintTokenValidator
 
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var securityToken = tokenHandler.ReadToken(idToken);
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var securityToken = tokenHandler.ReadToken(idToken);
 
-        ClaimsIdentity claimsIdentity;
+            ClaimsIdentity claimsIdentity;
 
-        if (securityToken.Issuer.Contains(".amazonaws.com"))
-            claimsIdentity = await ValidateCognitoToken(idToken);
+            if (securityToken.Issuer.Contains(".amazonaws.com"))
+                claimsIdentity = await ValidateCognitoToken(idToken);
 
-        else if (securityToken.Issuer.Contains(".google.com"))
-            claimsIdentity = await ValidateGoogleIdToken(idToken);
+            else if (securityToken.Issuer.Contains(".google.com"))
+                claimsIdentity = await ValidateGoogleIdToken(idToken);
 
-        else if (securityToken.Issuer == _authenticationOptions.Issuer)
-            claimsIdentity = await ValidateGrayMintToken(idToken);
+            else if (securityToken.Issuer == _authenticationOptions.Issuer)
+                claimsIdentity = await ValidateGrayMintToken(idToken);
 
-        else
-            throw new AuthenticationException("Could not find any provider for this token.");
+            else
+                throw new AuthenticationException("Could not find any provider for this token.");
 
-        // check if this token is an id token
-        if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
-            throw new AuthenticationException("This is not an id token.");
+            // check if this token is an id token
+            if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
+                throw new AuthenticationException("This is not an id token.");
 
-        return claimsIdentity;
+            return claimsIdentity;
+        }
+        catch (Exception ex)
+        {
+            throw new AuthenticationException(ex.Message);
+        }
     }
 }
