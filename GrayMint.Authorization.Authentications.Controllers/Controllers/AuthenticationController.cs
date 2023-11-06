@@ -2,6 +2,7 @@
 using System.Security.Authentication;
 using System.Text;
 using System.Web;
+using GrayMint.Authorization.Authentications.Controllers.Dtos;
 using GrayMint.Authorization.Authentications.Controllers.Services;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
@@ -54,17 +55,17 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("signin")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignIn(string idToken, bool longExpiration = false)
+    public virtual async Task<ApiKey> SignIn(SignInRequest signInRequest)
     {
-        var apiKey = await _authenticationService.SignIn(idToken, longExpiration);
+        var apiKey = await _authenticationService.SignIn(signInRequest);
         return apiKey;
     }
 
     [HttpPost("signup")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignUp(string idToken, bool longExpiration = false)
+    public virtual async Task<ApiKey> SignUp(SignUpRequest signUpRequest)
     {
-        var apiKey = await _authenticationService.SignUp(idToken, longExpiration);
+        var apiKey = await _authenticationService.SignUp(signUpRequest);
         return apiKey;
     }
 

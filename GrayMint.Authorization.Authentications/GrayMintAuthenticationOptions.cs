@@ -27,6 +27,7 @@ public class GrayMintAuthenticationOptions
     public bool AllowUserSelfRegister { get; set; }
     public bool AllowUserApiKey { get; set; }
     public Uri? SignInRedirectUrl { get; set; }
+    public bool AllowRefreshToken { get; set; }
 
     public void Validate(bool isProduction)
     {

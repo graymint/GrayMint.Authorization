@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
+using GrayMint.Authorization.Authentications.Controllers.Dtos;
 using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.Options;
@@ -18,7 +19,7 @@ public class AuthenticationService
         IOptions<GrayMintAuthenticationOptions> authenticationOptions,
         GrayMintAuthentication grayMintAuthentication,
         IUserProvider userProvider,
-        IAuthorizationProvider authorizationProvider, 
+        IAuthorizationProvider authorizationProvider,
         GrayMintTokenValidator grayMintIdTokenValidator)
     {
         _authenticationOptions = authenticationOptions.Value;
@@ -64,11 +65,14 @@ public class AuthenticationService
         var expirationTime = DateTime.UtcNow.AddYears(13);
         await _userProvider.ResetAuthorizationCode(user.UserId);
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new CreateTokenParams
-            {
-                Subject = user.UserId,
-                Email = user.Email
-            }, expirationTime);
+            .CreateApiKey(
+                new CreateTokenParams
+                {
+                    Subject = user.UserId,
+                    Email = user.Email
+                },
+                withRefreshToken: false,
+                accessTokenExpirationTime: expirationTime);
 
         return apiKey;
     }
@@ -103,10 +107,10 @@ public class AuthenticationService
             await _userProvider.Update(user.UserId, updateRequest);
     }
 
-    public async Task<ApiKey> SignIn(string idToken, bool longExpiration)
+    public async Task<ApiKey> SignIn(SignInRequest signInRequest)
     {
         var apiKey = await _grayMintAuthentication
-            .SignIn(idToken, longExpiration);
+            .SignIn(signInRequest.IdToken, signInRequest.LongExpiration, signInRequest.WithRefreshToken);
 
         // update user profile by claims
         if (apiKey.AccessToken.ClaimsPrincipal != null)
@@ -118,14 +122,14 @@ public class AuthenticationService
         return apiKey;
     }
 
-    public async Task<ApiKey> SignUp(string idToken, bool longExpiration)
+    public async Task<ApiKey> SignUp(SignUpRequest signUpRequest)
     {
         if (!_authenticationOptions.AllowUserSelfRegister)
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
-        var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
+        var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(signUpRequest.IdToken);
         var claimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity);
-        
+
         var email =
             claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
             ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
@@ -133,7 +137,9 @@ public class AuthenticationService
         var user = await _userProvider.Create(new UserCreateRequest { Email = email });
         await UpdateUserByClaims(user, claimsPrincipal);
 
-        var apiKey = await _grayMintAuthentication.SignIn(idToken, longExpiration);
+        var apiKey = await _grayMintAuthentication.SignIn(
+            signUpRequest.IdToken, signUpRequest.LongExpiration, signUpRequest.WithRefreshToken);
+
         return apiKey;
     }
 }

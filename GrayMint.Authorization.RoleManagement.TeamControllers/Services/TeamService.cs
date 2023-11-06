@@ -77,10 +77,13 @@ public class TeamService
         var expirationTime = DateTime.UtcNow.AddYears(13);
         await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new CreateTokenParams
-            {
-                Subject = user.UserId,
-            }, expirationTime);
+            .CreateApiKey(
+                new CreateTokenParams
+                {
+                    Subject = user.UserId,
+                },
+                withRefreshToken: false,
+                accessTokenExpirationTime: expirationTime);
 
         return apiKey;
     }
@@ -97,11 +100,14 @@ public class TeamService
         var expirationTime = DateTime.UtcNow.AddYears(13);
         await _userProvider.ResetAuthorizationCode(user.UserId);
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new CreateTokenParams
-            {
-                Subject = user.UserId,
-                Email = user.Email,
-            }, expirationTime);
+            .CreateApiKey(
+                new CreateTokenParams
+                {
+                    Subject = user.UserId,
+                    Email = user.Email,
+                }, 
+                withRefreshToken: false, 
+                accessTokenExpirationTime: expirationTime);
 
         return apiKey;
     }

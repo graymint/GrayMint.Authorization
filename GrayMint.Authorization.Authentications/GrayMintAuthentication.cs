@@ -58,38 +58,35 @@ public class GrayMintAuthentication
         return new AuthenticationHeaderValue(accessToken.Scheme, accessToken.Value);
     }
 
-    public async Task<ApiKey> CreateApiKey(CreateTokenParams createParams, DateTime? expirationTime = null)
-    {
-        ArgumentNullException.ThrowIfNull(createParams.Subject, nameof(createParams.Subject));
-
-        expirationTime ??= DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout;
-        var accessToken = await CreateToken(createParams, TokenUse.Access, expirationTime.Value);
-
-        var ret = new ApiKey
-        {
-            AccessToken = accessToken,
-            RefreshToken = null,
-            UserId = createParams.Subject
-        };
-        return ret;
-    }
-
-    public async Task<ApiKey> CreateApiKeyWithRefreshToken(CreateTokenParams createParams,
+    public async Task<ApiKey> CreateApiKey(CreateTokenParams createParams,
+        bool withRefreshToken,
+        DateTime? accessTokenExpirationTime = null,
         DateTime? refreshTokenExpirationTime = null)
     {
+        // create access token
+        accessTokenExpirationTime ??= DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout;
+        var accessToken = await CreateToken(createParams, TokenUse.Access, accessTokenExpirationTime.Value);
+
+        // create refresh token
+        withRefreshToken &= _authenticationOptions.AllowRefreshToken;
         refreshTokenExpirationTime ??= DateTime.UtcNow + _authenticationOptions.RefreshTokenShortTimeout;
-        var accessToken = await CreateToken(createParams, TokenUse.Access, DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout);
+        var refreshToken = withRefreshToken
+            ? await CreateToken(createParams, TokenUse.Refresh, refreshTokenExpirationTime.Value)
+            : null;
+
+        // create apiKey
         var userId = accessToken.ClaimsPrincipal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-            throw new AuthenticationException("RefreshToken can only refresh claim does have subject.");
+                     throw new AuthenticationException("Could not extract user id for claims.");
 
         var ret = new ApiKey
         {
             AccessToken = accessToken,
-            RefreshToken = await CreateToken(createParams, TokenUse.Refresh, refreshTokenExpirationTime.Value),
+            RefreshToken = refreshToken,
             UserId = userId
         };
         return ret;
     }
+
 
     public async Task<Token> CreateToken(CreateTokenParams createParams, string tokenUse, DateTime expirationTime)
     {
@@ -176,16 +173,19 @@ public class GrayMintAuthentication
         if (authTime < DateTime.UtcNow - _authenticationOptions.RefreshTokenLongTimeout)
             throw new AuthenticationException("Can not use this refresh token anymore.");
 
-        var apiKey = await CreateApiKeyWithRefreshToken(new CreateTokenParams
-        {
-            AuthTime = authTime,
-            ClaimsIdentity = claimsPrincipal,
-        }, expirationTime);
+        var apiKey = await CreateApiKey(
+            new CreateTokenParams
+            {
+                AuthTime = authTime,
+                ClaimsIdentity = claimsPrincipal,
+            },
+            true,
+            refreshTokenExpirationTime: expirationTime);
 
         return apiKey;
     }
 
-    public async Task<ApiKey> SignIn(string idToken, bool longExpiration)
+    public async Task<ApiKey> SignIn(string idToken, bool longExpiration, bool withRefreshToken)
     {
         var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
 
@@ -199,6 +199,9 @@ public class GrayMintAuthentication
         var userId = await _authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
             ?? throw new UnregisteredUser();
 
+        // update userId in claims
+        ClaimUtil.ReplaceClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
+
         // manage refresh token expiration
         var refreshTokenExpirationTime = longExpiration
             ? DateTime.UtcNow + _authenticationOptions.RefreshTokenLongTimeout
@@ -207,12 +210,15 @@ public class GrayMintAuthentication
         if (longExpiration)
             claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.LongExpiration, "true", ClaimValueTypes.Boolean));
 
-        var apiKey = await CreateApiKeyWithRefreshToken(new CreateTokenParams
-        {
-            AuthTime = DateTime.UtcNow,
-            Subject = userId,
-            ClaimsIdentity = claimsIdentity,
-        }, refreshTokenExpirationTime);
+        var apiKey = await CreateApiKey(
+            new CreateTokenParams
+            {
+                AuthTime = DateTime.UtcNow,
+                Subject = userId,
+                ClaimsIdentity = claimsIdentity,
+            },
+            withRefreshToken: withRefreshToken,
+            refreshTokenExpirationTime: refreshTokenExpirationTime);
 
         return apiKey;
     }

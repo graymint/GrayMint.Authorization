@@ -5,6 +5,7 @@ using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
+using GrayMint.Common.Test.Api;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -45,7 +46,7 @@ public class AwsCognitoTest
         }
 
         var idToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
-        var apiKey = await testInit.AuthenticationClient.SignInAsync(idToken);
+        var apiKey = await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken });
 
         testInit.SetApiKey(apiKey);
         await testInit.AppsClient.ListAsync();

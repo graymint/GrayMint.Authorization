@@ -54,6 +54,9 @@ public class Program
         await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
         await webApp.Services.UseGrayMintSimpleUserProvider();
         await webApp.Services.UseGrayMintSimpleRoleProvider();
+        webApp.UseStaticFiles(new StaticFileOptions() {
+            
+        });
 
         await GrayMintApp.RunAsync(webApp, args);
 
