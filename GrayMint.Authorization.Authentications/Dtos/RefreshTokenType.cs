@@ -3,6 +3,6 @@
 public enum RefreshTokenType
 {
     None,
-    Short,
-    Long
+    Web,
+    App
 }

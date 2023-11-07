@@ -19,8 +19,8 @@ public class GrayMintAuthenticationOptions
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenExpiration { get; init; } = TimeSpan.FromMinutes(15);
     public TimeSpan AccessTokenTimeout { get; init; } = TimeSpan.FromHours(30);
-    public TimeSpan RefreshTokenShortTimeout { get; init; } = TimeSpan.FromDays(2);
-    public TimeSpan RefreshTokenLongTimeout { get; init; } = TimeSpan.FromDays(30);
+    public TimeSpan RefreshTokenWebTimeout { get; init; } = TimeSpan.FromDays(2);
+    public TimeSpan RefreshTokenAppTimeout { get; init; } = TimeSpan.FromDays(30);
     public string? GoogleClientId { get; init; }
     public string? CognitoClientId { get; init; }
     public string? CognitoArn { get; init; }

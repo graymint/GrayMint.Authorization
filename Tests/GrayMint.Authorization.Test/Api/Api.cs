@@ -2807,9 +2807,9 @@ namespace GrayMint.Common.Test.Api
 
         None = 0,
 
-        Short = 1,
+        Web = 1,
 
-        Long = 2,
+        App = 2,
 
     }
 

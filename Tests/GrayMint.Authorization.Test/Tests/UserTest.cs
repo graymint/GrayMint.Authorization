@@ -194,7 +194,7 @@ public class AuthenticationTest
     public async Task RefreshToken_should_extend_expiration()
     {
         var testInit = await TestInit.Create();
-        var apiKey1 = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Short);
+        var apiKey1 = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey1.RefreshToken);
 
         testInit.SetApiKey(apiKey1);
@@ -223,10 +223,10 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"Auth:RefreshTokenLongTimeout", "00:00:02" }
+            {"Auth:RefreshTokenAppTimeout", "00:00:02" }
         });
 
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Short);
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
 
         // should not extend more than long expiration
@@ -257,11 +257,11 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"Auth:RefreshTokenShortTimeout", "00:01:00" },
-            {"Auth:RefreshTokenLongTimeout", "00:10:00" }
+            {"Auth:RefreshTokenWebTimeout", "00:01:00" },
+            {"Auth:RefreshTokenAppTimeout", "00:10:00" }
         });
 
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Short);
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsTrue(apiKey.RefreshToken.ExpirationTime <= DateTime.UtcNow.AddMinutes(2));
 
@@ -275,11 +275,11 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"Auth:RefreshTokenShortTimeout", "00:01:00" },
-            {"Auth:RefreshTokenLongTimeout", "00:10:00" }
+            {"Auth:RefreshTokenWebTimeout", "00:01:00" },
+            {"Auth:RefreshTokenAppTimeout", "00:10:00" }
         });
 
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Long);
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App);
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) && apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
 
@@ -294,10 +294,10 @@ public class AuthenticationTest
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
             {"Auth:AllowRefreshToken", "false" },
-            {"Auth:RefreshTokenLongTimeout", "00:10:00" }
+            {"Auth:RefreshTokenAppTimeout", "00:10:00" }
         });
 
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Long);
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App);
         Assert.IsNull(apiKey.RefreshToken);
     }
 
@@ -362,7 +362,7 @@ public class AuthenticationTest
     public async Task Fail_refresh_a_revoked_token()
     {
         var testInit = await TestInit.Create();
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Short);
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
 
         await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value });

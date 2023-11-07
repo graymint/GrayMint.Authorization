@@ -155,11 +155,23 @@ public class GrayMintAuthentication
         if (!claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Refresh))
             throw new AuthenticationException("This is not a refresh token.");
 
-        // find expiration
-        var longExpiration = claimsPrincipal.HasClaim(GrayMintClaimTypes.LongExpiration, "true");
-        var maxExpiration = DateTime.UtcNow + _authenticationOptions.RefreshTokenLongTimeout;
-        var expirationTime = DateTime.UtcNow + _authenticationOptions.RefreshTokenShortTimeout;
-        if (expirationTime > maxExpiration || longExpiration)
+        // find refresh token type
+        var refreshTokenTypeStr = (claimsPrincipal.FindFirst(GrayMintClaimTypes.RefreshTokenType)?.Value) 
+            ?? throw new AuthenticationException("Could not find refresh_token_type.");
+
+        var refreshTokenType = Enum.Parse<RefreshTokenType>(refreshTokenTypeStr, true);
+        var expirationTime = refreshTokenType switch
+        {
+            RefreshTokenType.Web => DateTime.UtcNow + _authenticationOptions.RefreshTokenWebTimeout,
+            RefreshTokenType.App => DateTime.UtcNow + _authenticationOptions.RefreshTokenAppTimeout,
+            _ => throw new AuthenticationException("Invalid refresh_token_type.")
+        };
+
+        // set maximum expiration time
+        var maxExpiration = _authenticationOptions.RefreshTokenAppTimeout > _authenticationOptions.RefreshTokenWebTimeout
+            ? DateTime.UtcNow + _authenticationOptions.RefreshTokenAppTimeout
+            : DateTime.UtcNow + _authenticationOptions.RefreshTokenWebTimeout;
+        if (expirationTime > maxExpiration)
             expirationTime = maxExpiration;
 
         // find auth_time. it can not be older than UserTokenLongExpiration
@@ -168,7 +180,7 @@ public class GrayMintAuthentication
             ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(authTimeClaim.Value)).UtcDateTime
             : throw new AuthenticationException($"Token does not have {JwtRegisteredClaimNames.AuthTime}");
 
-        if (authTime < DateTime.UtcNow - _authenticationOptions.RefreshTokenLongTimeout)
+        if (authTime < DateTime.UtcNow - _authenticationOptions.RefreshTokenAppTimeout)
             throw new AuthenticationException("Can not use this refresh token anymore.");
 
         var apiKey = await CreateApiKey(
@@ -203,13 +215,14 @@ public class GrayMintAuthentication
         DateTime? refreshTokenExpirationTime = null;
         switch (refreshTokenType)
         {
-            case RefreshTokenType.Short:
-                refreshTokenExpirationTime = DateTime.UtcNow + _authenticationOptions.RefreshTokenShortTimeout;
+            case RefreshTokenType.Web:
+                refreshTokenExpirationTime = DateTime.UtcNow + _authenticationOptions.RefreshTokenWebTimeout;
+                claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.RefreshTokenType, refreshTokenType.ToString(), ClaimValueTypes.Boolean));
                 break;
 
-            case RefreshTokenType.Long:
-                refreshTokenExpirationTime = DateTime.UtcNow + _authenticationOptions.RefreshTokenLongTimeout;
-                claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.LongExpiration, "true", ClaimValueTypes.Boolean));
+            case RefreshTokenType.App:
+                refreshTokenExpirationTime = DateTime.UtcNow + _authenticationOptions.RefreshTokenAppTimeout;
+                claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.RefreshTokenType, refreshTokenType.ToString(), ClaimValueTypes.Boolean));
                 break;
         }
 

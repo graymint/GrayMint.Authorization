@@ -114,7 +114,7 @@ public class GrayMintTokenValidator
         AddClaim(source, destination, GrayMintClaimTypes.Picture);
         AddClaim(source, destination, GrayMintClaimTypes.CognitoGroup);
         AddClaim(source, destination, GrayMintClaimTypes.TokenUse);
-        AddClaim(source, destination, GrayMintClaimTypes.LongExpiration);
+        AddClaim(source, destination, GrayMintClaimTypes.RefreshTokenType);
     }
 
     public async Task<ClaimsIdentity> ValidateCognitoToken(string idToken)
