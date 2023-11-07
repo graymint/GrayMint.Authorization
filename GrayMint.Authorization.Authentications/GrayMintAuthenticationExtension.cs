@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using GrayMint.Authorization.Authentications.Dtos;
 
 namespace GrayMint.Authorization.Authentications;
 

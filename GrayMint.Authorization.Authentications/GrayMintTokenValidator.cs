@@ -2,6 +2,7 @@
 using System.Security.Authentication;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.Authentications.Utils;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;

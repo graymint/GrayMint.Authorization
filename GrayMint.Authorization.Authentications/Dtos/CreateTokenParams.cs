@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace GrayMint.Authorization.Authentications;
+namespace GrayMint.Authorization.Authentications.Dtos;
 
 public class CreateTokenParams
 {

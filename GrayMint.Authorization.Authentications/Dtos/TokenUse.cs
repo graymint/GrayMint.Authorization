@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.Authentications;
+﻿namespace GrayMint.Authorization.Authentications.Dtos;
 
 public static class TokenUse
 {

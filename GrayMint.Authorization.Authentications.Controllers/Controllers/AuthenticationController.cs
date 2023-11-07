@@ -4,6 +4,7 @@ using System.Text;
 using System.Web;
 using GrayMint.Authorization.Authentications.Controllers.Dtos;
 using GrayMint.Authorization.Authentications.Controllers.Services;
+using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -55,25 +56,25 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("signin")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignIn(SignInRequest signInRequest)
+    public virtual async Task<ApiKey> SignIn(SignInRequest request)
     {
-        var apiKey = await _authenticationService.SignIn(signInRequest);
+        var apiKey = await _authenticationService.SignIn(request);
         return apiKey;
     }
 
     [HttpPost("signup")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignUp(SignUpRequest signUpRequest)
+    public virtual async Task<ApiKey> SignUp(SignUpRequest request)
     {
-        var apiKey = await _authenticationService.SignUp(signUpRequest);
+        var apiKey = await _authenticationService.SignUp(request);
         return apiKey;
     }
 
     [HttpPost("refresh-token")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> RefreshToken(string refreshToken)
+    public virtual async Task<ApiKey> RefreshToken(RefreshTokenRequest request)
     {
-        var apiKey = await _grayMintAuthentication.RefreshToken(refreshToken);
+        var apiKey = await _grayMintAuthentication.RefreshToken(request.RefreshToken);
         return apiKey;
     }
 

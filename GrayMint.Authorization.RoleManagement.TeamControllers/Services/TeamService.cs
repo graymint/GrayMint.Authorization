@@ -2,6 +2,7 @@
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
@@ -82,7 +83,6 @@ public class TeamService
                 {
                     Subject = user.UserId,
                 },
-                withRefreshToken: false,
                 accessTokenExpirationTime: expirationTime);
 
         return apiKey;
@@ -106,7 +106,6 @@ public class TeamService
                     Subject = user.UserId,
                     Email = user.Email,
                 }, 
-                withRefreshToken: false, 
                 accessTokenExpirationTime: expirationTime);
 
         return apiKey;

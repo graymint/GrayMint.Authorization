@@ -5,8 +5,8 @@ using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using GrayMint.Authorization.Authentications;
 using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.UserRole;
+using GrayMint.Authorization.Authentications.Dtos;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 

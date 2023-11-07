@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Text.Json.Serialization;
 
-namespace GrayMint.Authorization.Authentications;
+namespace GrayMint.Authorization.Authentications.Dtos;
 
 public class Token
 {

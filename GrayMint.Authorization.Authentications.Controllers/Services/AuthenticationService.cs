@@ -2,6 +2,7 @@
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications.Controllers.Dtos;
+using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.Options;
@@ -71,7 +72,6 @@ public class AuthenticationService
                     Subject = user.UserId,
                     Email = user.Email
                 },
-                withRefreshToken: false,
                 accessTokenExpirationTime: expirationTime);
 
         return apiKey;
@@ -110,7 +110,7 @@ public class AuthenticationService
     public async Task<ApiKey> SignIn(SignInRequest signInRequest)
     {
         var apiKey = await _grayMintAuthentication
-            .SignIn(signInRequest.IdToken, signInRequest.LongExpiration, signInRequest.WithRefreshToken);
+            .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType);
 
         // update user profile by claims
         if (apiKey.AccessToken.ClaimsPrincipal != null)
@@ -138,7 +138,7 @@ public class AuthenticationService
         await UpdateUserByClaims(user, claimsPrincipal);
 
         var apiKey = await _grayMintAuthentication.SignIn(
-            signUpRequest.IdToken, signUpRequest.LongExpiration, signUpRequest.WithRefreshToken);
+            signUpRequest.IdToken, signUpRequest.RefreshTokenType);
 
         return apiKey;
     }

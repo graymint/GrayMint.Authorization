@@ -96,11 +96,11 @@ public class TestInit : IDisposable
     }
 
     public async Task<ApiKey> SignUpNewUser(string? email = null, Claim[]? claims = null, 
-        bool longExpiration = false, bool setAsCurrent = true, bool withRefreshToken = false)
+        bool setAsCurrent = true, RefreshTokenType refreshTokenType = RefreshTokenType.None)
     { 
         var idToken = await CreateUnregisteredUserIdToken(email, claims);
         var apiKey = await AuthenticationClient.SignUpAsync(
-            new SignUpRequest { IdToken = idToken, LongExpiration = longExpiration, WithRefreshToken = withRefreshToken });
+            new SignUpRequest { IdToken = idToken, RefreshTokenType = refreshTokenType });
 
         if (setAsCurrent) SetApiKey(apiKey);
         return apiKey;
