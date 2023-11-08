@@ -7,19 +7,23 @@ using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.UserManagement.SimpleUserProviders;
 
 public class SimpleUserProvider : IUserProvider
 {
     private readonly SimpleUserDbContext _simpleUserDbContext;
+    private readonly SimpleUserProviderOptions _simpleUserProviderOptions;
     private readonly IMemoryCache _memoryCache;
 
     public SimpleUserProvider(
         SimpleUserDbContext simpleUserDbContext,
+        IOptions<SimpleUserProviderOptions> simpleUserProviderOptions,
         IMemoryCache memoryCache)
     {
         _simpleUserDbContext = simpleUserDbContext;
+        _simpleUserProviderOptions = simpleUserProviderOptions.Value;
         _memoryCache = memoryCache;
     }
 
@@ -82,7 +86,7 @@ public class SimpleUserProvider : IUserProvider
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
-            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(60));
+            entry.SetAbsoluteExpiration(_simpleUserProviderOptions.CacheTimeout);
             return _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
         });
 
