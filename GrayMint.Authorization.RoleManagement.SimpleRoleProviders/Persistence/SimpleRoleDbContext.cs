@@ -53,7 +53,7 @@ public partial class SimpleRoleDbContext : DbContext
                 .HasMaxLength(100);
 
             entity.HasOne(d => d.Resource)
-                .WithMany(p => p!.UserRoles)
+                .WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.ResourceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

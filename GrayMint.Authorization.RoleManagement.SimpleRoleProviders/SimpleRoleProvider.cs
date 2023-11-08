@@ -42,7 +42,7 @@ public class SimpleRoleProvider : IRoleProvider
         _simpleRoleDbContext.ChangeTracker.Clear();
 
         // create resource if not exists
-        if (!await _simpleRoleDbContext.Resources.AnyAsync(x=>x.ResourceId== resourceId))
+        if (!await _simpleRoleDbContext.Resources.AnyAsync(x => x.ResourceId == resourceId))
             await _simpleRoleDbContext.Resources.AddAsync(new ResourceModel
             {
                 ResourceId = resourceId,
@@ -117,7 +117,7 @@ public class SimpleRoleProvider : IRoleProvider
     {
         recordCount ??= int.MaxValue;
         if (userId != null)
-            return await GetUserRolesWithUserFilter(resourceId : resourceId, userId: userId, roleId: roleId, 
+            return await GetUserRolesWithUserFilter(resourceId: resourceId, userId: userId, roleId: roleId,
                 recordIndex: recordIndex, recordCount: recordCount.Value);
 
         await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();

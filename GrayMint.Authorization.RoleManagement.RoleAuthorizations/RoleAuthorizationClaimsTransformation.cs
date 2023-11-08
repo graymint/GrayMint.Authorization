@@ -44,7 +44,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
         }
 
         // update nameIdentifier to userId
-        AuthorizationUtil.UpdateNameIdentifier(principal, userId.ToString());
+        AuthorizationUtil.UpdateNameIdentifier(principal, userId);
 
         principal.AddIdentity(claimsIdentity);
         return principal;

@@ -30,7 +30,7 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
         {
             var user = await _userProvider.FindById(userId);
             if (user != null)
-                return !user.IsDisabled ? user.UserId.ToString() : throw new UnauthorizedAccessException("User is locked.");
+                return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
         }
 
         var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
@@ -38,7 +38,7 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
         {
             var user = await _userProvider.FindByEmail(emailClaim.Value);
             if (user != null)
-                return !user.IsDisabled ? user.UserId.ToString() : throw new UnauthorizedAccessException("User is locked.");
+                return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
         }
 
         return null;

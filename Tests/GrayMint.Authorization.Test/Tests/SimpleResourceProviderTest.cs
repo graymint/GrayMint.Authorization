@@ -1,5 +1,8 @@
+using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.Test.Helper;
+using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -56,7 +59,7 @@ public class SimpleResourceProviderTest
         // ---------
         // Check: Delete
         // ---------
-        await resourceProvider.Delete(resource2.ResourceId);
+        await resourceProvider.Remove(resource2.ResourceId);
         try
         {
             await resourceProvider.Get(resource2.ResourceId);
@@ -142,8 +145,6 @@ public class SimpleResourceProviderTest
         }
     }
 
-
-
     [TestMethod]
     public async Task Delete_Recursive()
     {
@@ -176,7 +177,7 @@ public class SimpleResourceProviderTest
         // ---------
         // Check: Delete
         // ---------
-        await resourceProvider.Delete(resource1.ResourceId);
+        await resourceProvider.Remove(resource1.ResourceId);
         try
         {
             await resourceProvider.Get(resource2.ResourceId);
@@ -209,6 +210,48 @@ public class SimpleResourceProviderTest
     }
 
     [TestMethod]
+    public async Task Delete_resource_must_delete_all_its_roles()
+    {
+        var testInit = await TestInit.Create();
+        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
+
+        // ---------
+        // Check: Create
+        // ---------
+        var resource1 = await resourceProvider.Create(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource2 = await resourceProvider.Create(new Resource
+        {
+            ResourceId = Guid.NewGuid().ToString(),
+            ParentResourceId = resource1.ResourceId
+        });
+
+
+        // create a user
+        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        var userCreateRequest = new UserCreateRequest
+        {
+            Email = $"{Guid.NewGuid()}@local",
+            FirstName = Guid.NewGuid().ToString(),
+            LastName = Guid.NewGuid().ToString(),
+            Description = Guid.NewGuid().ToString()
+        };
+        var user = await simpleUserProvider.Create(userCreateRequest);
+
+        // assign role
+        var userRoleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
+        await userRoleProvider.AddUser(resource2.ResourceId, Roles.AppAdmin.RoleId, user.UserId);
+
+        // get user roles
+        var userRoles = await userRoleProvider.GetUserRoles(userId: user.UserId);
+        Assert.IsTrue(userRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
+
+        // delete and get user roles again
+        await testInit.ResourceProvider.Remove(resource2.ResourceId);
+        userRoles = await userRoleProvider.GetUserRoles(userId: user.UserId);
+        Assert.IsFalse(userRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
+    }
+
+    [TestMethod]
     public async Task Fail_removing_the_root()
     {
         var testInit = await TestInit.Create();
@@ -216,7 +259,7 @@ public class SimpleResourceProviderTest
 
         try
         {
-            await resourceProvider.Delete(resourceProvider.RootResourceId);
+            await resourceProvider.Remove(resourceProvider.RootResourceId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception e)
@@ -241,5 +284,4 @@ public class SimpleResourceProviderTest
             Assert.IsInstanceOfType<InvalidOperationException>(e);
         }
     }
-
 }
