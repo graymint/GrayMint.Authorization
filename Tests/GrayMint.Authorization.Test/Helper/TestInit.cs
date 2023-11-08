@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Common.Test.Api;
@@ -22,6 +23,7 @@ public class TestInit : IDisposable
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
+    public SimpleResourceProvider ResourceProvider => Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
     public GrayMintAuthenticationOptions AuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<GrayMintAuthenticationOptions>>().Value;
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);

@@ -26,5 +26,3 @@ internal static class UserRoleConverter
         return userRole;
     }
 }
-
-

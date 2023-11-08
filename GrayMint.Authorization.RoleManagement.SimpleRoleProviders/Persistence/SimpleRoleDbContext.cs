@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Threading.Tasks;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,6 +14,7 @@ public partial class SimpleRoleDbContext : DbContext
     public const string Schema = "smrole";
 
     internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = default!;
+    internal virtual DbSet<ResourceModel> Resources { get; set; } = default!;
 
     public SimpleRoleDbContext()
     {
@@ -47,8 +49,30 @@ public partial class SimpleRoleDbContext : DbContext
         {
             entity.HasKey(e => new { AppId = e.ResourceId, e.UserId, e.RoleId });
 
-            entity.Property(x=>x.ResourceId)
+            entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);
+
+            entity.HasOne(d => d.Resource)
+                .WithMany(p => p!.UserRoles)
+                .HasForeignKey(d => d.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ResourceModel>(entity =>
+        {
+            entity.HasKey(e => new { AppId = e.ResourceId });
+
+            entity.Property(x => x.ResourceId)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.ParentResourceId)
+                .HasMaxLength(100);
+
+            entity.HasData(new ResourceModel
+            {
+                ResourceId = AuthorizationConstants.RootResourceId,
+                ParentResourceId = null
+            });
         });
 
         // ReSharper disable once InvocationIsSkipped

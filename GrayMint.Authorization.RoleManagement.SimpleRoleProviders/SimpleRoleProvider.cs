@@ -7,6 +7,7 @@ using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.DtoConverters;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
 using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +19,9 @@ namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 public class SimpleRoleProvider : IRoleProvider
 {
     private readonly SimpleRoleDbContext _simpleRoleDbContext;
+    private readonly SimpleRoleProviderOptions _simpleRoleProviderOptions;
     private readonly IEnumerable<SimpleRole> _roles;
     private readonly IMemoryCache _memoryCache;
-    private readonly TimeSpan _cacheTimeout = TimeSpan.FromMinutes(60);
 
     public SimpleRoleProvider(
         SimpleRoleDbContext simpleRoleDbContext,
@@ -31,6 +32,7 @@ public class SimpleRoleProvider : IRoleProvider
             throw new DuplicateNameException("Duplicate RoleId has been found.");
 
         _simpleRoleDbContext = simpleRoleDbContext;
+        _simpleRoleProviderOptions = simpleRoleProviderOptions.Value;
         _memoryCache = memoryCache;
         _roles = simpleRoleProviderOptions.Value.Roles;
     }
@@ -39,13 +41,22 @@ public class SimpleRoleProvider : IRoleProvider
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
 
+        // create resource if not exists
+        if (!await _simpleRoleDbContext.Resources.AnyAsync(x=>x.ResourceId== resourceId))
+            await _simpleRoleDbContext.Resources.AddAsync(new ResourceModel
+            {
+                ResourceId = resourceId,
+                ParentResourceId = AuthorizationConstants.RootResourceId
+            });
+
         var entry = await _simpleRoleDbContext.UserRoles
-            .AddAsync(new Models.UserRoleModel
+            .AddAsync(new UserRoleModel
             {
                 RoleId = Guid.Parse(roleId),
                 UserId = Guid.Parse(userId),
-                ResourceId = resourceId,
+                ResourceId = resourceId
             });
+
         await _simpleRoleDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
         return entry.Entity.ToDto(_roles);
@@ -55,7 +66,7 @@ public class SimpleRoleProvider : IRoleProvider
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
         _simpleRoleDbContext.UserRoles.Remove(
-            new Models.UserRoleModel
+            new UserRoleModel
             {
                 UserId = Guid.Parse(userId),
                 RoleId = Guid.Parse(roleId),
@@ -142,7 +153,7 @@ public class SimpleRoleProvider : IRoleProvider
                 .Where(x => x.UserId == Guid.Parse(userId))
                 .ToArrayAsync();
 
-            entry.SetAbsoluteExpiration(_cacheTimeout);
+            entry.SetAbsoluteExpiration(_simpleRoleProviderOptions.CacheTimeout);
             return res;
         });
 
@@ -191,7 +202,7 @@ public class SimpleRoleProvider : IRoleProvider
         return Task.FromResult(permissions);
     }
 
-    private bool IsRootResource(string resourceId)
+    private static bool IsRootResource(string resourceId)
     {
         return resourceId == AuthorizationConstants.RootResourceId;
     }
