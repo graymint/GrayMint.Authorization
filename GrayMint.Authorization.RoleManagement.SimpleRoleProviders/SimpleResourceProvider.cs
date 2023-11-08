@@ -9,33 +9,23 @@ using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 
 public class SimpleResourceProvider
 {
-    private readonly SimpleRoleProviderOptions _simpleRoleProviderOptions;
     private readonly SimpleRoleDbContext _simpleRoleDbContext;
     private readonly IMemoryCache _memoryCache;
 
     public SimpleResourceProvider(
-        SimpleRoleDbContext simpleRoleDbContext,
-        IMemoryCache memoryCache,
-        IOptions<SimpleRoleProviderOptions> simpleRoleProviderOptions)
+        SimpleRoleDbContext simpleRoleDbContext, IMemoryCache memoryCache)
     {
         _simpleRoleDbContext = simpleRoleDbContext;
         _memoryCache = memoryCache;
-        _simpleRoleProviderOptions = simpleRoleProviderOptions.Value;
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
     public string RootResourceId { get; }
-
-    private static string GetCacheKeyForResource(string resourceId)
-    {
-        return $"graymint:auth:resource-provider:resources:{resourceId}";
-    }
 
     public async Task<Resource> Create(Resource resource)
     {
@@ -49,15 +39,11 @@ public class SimpleResourceProvider
 
     public async Task<Resource> Get(string resourceId)
     {
-        var resource = await _memoryCache.GetOrCreateAsync(GetCacheKeyForResource(resourceId), async entry =>
-        {
-            entry.SlidingExpiration = _simpleRoleProviderOptions.CacheTimeout;
-            return await _simpleRoleDbContext.Resources
-                .AsNoTracking()
-                .SingleAsync(x => x.ResourceId == resourceId);
-        });
+        var resource = await _simpleRoleDbContext.Resources
+            .AsNoTracking()
+            .SingleAsync(x => x.ResourceId == resourceId);
 
-        return resource?.ToDto() ?? throw new KeyNotFoundException();
+        return resource.ToDto() ?? throw new KeyNotFoundException();
     }
 
     public async Task<Resource> Update(Resource resource)
@@ -71,7 +57,6 @@ public class SimpleResourceProvider
         var entry = _simpleRoleDbContext.Resources.Update(resource.ToModel());
 
         await _simpleRoleDbContext.SaveChangesAsync();
-        _memoryCache.Remove(GetCacheKeyForResource(resource.ResourceId));
         return entry.Entity.ToDto();
     }
     public async Task Remove(string resourceId)
@@ -82,7 +67,7 @@ public class SimpleResourceProvider
 
         // delete from database
         var resource = await _simpleRoleDbContext.Resources
-            .Include(x=>x.UserRoles)
+            .Include(x => x.UserRoles)
             .SingleAsync(x => x.ResourceId == resourceId);
 
         var deletedItems = new List<ResourceModel>();
@@ -92,7 +77,6 @@ public class SimpleResourceProvider
         // remove all resource from cache
         foreach (var item in deletedItems)
         {
-            _memoryCache.Remove(GetCacheKeyForResource(item.ResourceId));
             foreach (var userRole in item.UserRoles!)
                 AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
         }
@@ -101,7 +85,7 @@ public class SimpleResourceProvider
     private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
     {
         var children = await _simpleRoleDbContext.Resources
-            .Include(x=>x.UserRoles)
+            .Include(x => x.UserRoles)
             .Where(x => x.ParentResourceId == resource.ResourceId)
             .ToArrayAsync();
 
