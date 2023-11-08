@@ -16,6 +16,7 @@ public class SimpleResourceProvider
 {
     private readonly SimpleRoleDbContext _simpleRoleDbContext;
     private readonly IMemoryCache _memoryCache;
+    public string RootResourceId { get; }
 
     public SimpleResourceProvider(
         SimpleRoleDbContext simpleRoleDbContext, IMemoryCache memoryCache)
@@ -25,7 +26,6 @@ public class SimpleResourceProvider
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
-    public string RootResourceId { get; }
 
     public async Task<Resource> Create(Resource resource)
     {

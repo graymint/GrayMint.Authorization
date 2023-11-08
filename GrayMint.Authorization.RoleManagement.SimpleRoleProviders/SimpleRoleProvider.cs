@@ -22,6 +22,7 @@ public class SimpleRoleProvider : IRoleProvider
     private readonly SimpleRoleProviderOptions _simpleRoleProviderOptions;
     private readonly IEnumerable<SimpleRole> _roles;
     private readonly IMemoryCache _memoryCache;
+    public string RootResourceId { get; }
 
     public SimpleRoleProvider(
         SimpleRoleDbContext simpleRoleDbContext,
@@ -35,6 +36,7 @@ public class SimpleRoleProvider : IRoleProvider
         _simpleRoleProviderOptions = simpleRoleProviderOptions.Value;
         _memoryCache = memoryCache;
         _roles = simpleRoleProviderOptions.Value.Roles;
+        RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
     public async Task<UserRole> AddUser(string resourceId, string roleId, string userId)
@@ -46,7 +48,7 @@ public class SimpleRoleProvider : IRoleProvider
             await _simpleRoleDbContext.Resources.AddAsync(new ResourceModel
             {
                 ResourceId = resourceId,
-                ParentResourceId = AuthorizationConstants.RootResourceId
+                ParentResourceId = RootResourceId
             });
 
         var entry = await _simpleRoleDbContext.UserRoles
@@ -183,7 +185,7 @@ public class SimpleRoleProvider : IRoleProvider
         // get roles for the resource and system resource
         var userRoles = (await GetUserRoles(resourceId: resourceId, userId: userId)).Items;
         if (!IsRootResource(resourceId))
-            userRoles = userRoles.Concat((await GetUserRoles(resourceId: AuthorizationConstants.RootResourceId, userId: userId)).Items);
+            userRoles = userRoles.Concat((await GetUserRoles(resourceId: RootResourceId, userId: userId)).Items);
 
         // find simple roles
         var roles = _roles.Where(x => userRoles.Any(y => y.Role.RoleId == x.RoleId))
@@ -202,8 +204,8 @@ public class SimpleRoleProvider : IRoleProvider
         return Task.FromResult(permissions);
     }
 
-    private static bool IsRootResource(string resourceId)
+    private bool IsRootResource(string resourceId)
     {
-        return resourceId == AuthorizationConstants.RootResourceId;
+        return resourceId == RootResourceId;
     }
 }
