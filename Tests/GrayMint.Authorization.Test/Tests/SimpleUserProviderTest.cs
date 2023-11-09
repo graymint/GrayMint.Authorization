@@ -1,6 +1,7 @@
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
+using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -91,15 +92,8 @@ public class SimpleUserProviderTest
 
         // Remove
         await simpleUserProvider.Remove(user.UserId);
-        try
-        {
-            await simpleUserProvider.Get(user.UserId);
-            Assert.Fail("NotExistsException was expected.");
-        }
-        catch (Exception ex)
-        {
-            Assert.IsTrue(NotExistsException.Is(ex));
-        }
+        await TestUtil.AssertNotExistsException(
+            simpleUserProvider.Get(user.UserId));
     }
 
     [TestMethod]
@@ -119,14 +113,7 @@ public class SimpleUserProviderTest
         await simpleUserProvider.Create(request);
 
         // AlreadyExists exception
-        try
-        {
-            await simpleUserProvider.Create(request);
-            Assert.Fail("NotExistsException was expected.");
-        }
-        catch (Exception ex)
-        {
-            Assert.IsTrue(AlreadyExistsException.Is(ex));
-        }
+        await TestUtil.AssertAlreadyExistsException(
+            simpleUserProvider.Create(request));
     }
 }

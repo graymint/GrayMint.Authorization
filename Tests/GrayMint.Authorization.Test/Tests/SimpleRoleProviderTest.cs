@@ -5,7 +5,7 @@ using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
-using GrayMint.Common.Exceptions;
+using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -60,15 +60,8 @@ public class SimpleRoleProviderTest
 
         // Remove
         await roleProvider.RemoveUser(resource1, role.RoleId, user.UserId);
-        try
-        {
-            await roleProvider.RemoveUser(resource1, role.RoleId, user.UserId);
-            Assert.Fail("NotExistsException was expected.");
-        }
-        catch (Exception ex)
-        {
-            Assert.IsTrue(NotExistsException.Is(ex));
-        }
+        await TestUtil.AssertNotExistsException(
+            roleProvider.RemoveUser(resource1, role.RoleId, user.UserId));
     }
 
     [TestMethod]
