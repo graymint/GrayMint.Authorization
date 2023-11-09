@@ -47,7 +47,7 @@ public partial class SimpleRoleDbContext : DbContext
 
         modelBuilder.Entity<UserRoleModel>(entity =>
         {
-            entity.HasKey(e => new { AppId = e.ResourceId, e.UserId, e.RoleId });
+            entity.HasKey(ex => new { AppId = ex.ResourceId, ex.UserId, ex.RoleId });
 
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);
@@ -60,7 +60,7 @@ public partial class SimpleRoleDbContext : DbContext
 
         modelBuilder.Entity<ResourceModel>(entity =>
         {
-            entity.HasKey(e => new { AppId = e.ResourceId });
+            entity.HasKey(ex => new { AppId = ex.ResourceId });
 
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);

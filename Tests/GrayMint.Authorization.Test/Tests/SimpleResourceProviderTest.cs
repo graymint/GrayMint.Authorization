@@ -1,5 +1,4 @@
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -65,9 +64,9 @@ public class ResourceProviderTest
             Assert.Fail("NotExistsException was expected.");
 
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsTrue(NotExistsException.Is(e));
+            Assert.IsTrue(NotExistsException.Is(ex));
         }
     }
 
@@ -83,9 +82,9 @@ public class ResourceProviderTest
             await testInit.ResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 });
             Assert.Fail("InvalidOperationException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsInstanceOfType<InvalidOperationException>(e);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex);
         }
     }
 
@@ -101,9 +100,9 @@ public class ResourceProviderTest
             await resourceProvider.Update(new Resource { ResourceId = resource.ResourceId, ParentResourceId = resource.ResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsInstanceOfType<InvalidOperationException>(e);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex);
         }
 
         // deep loop
@@ -137,9 +136,9 @@ public class ResourceProviderTest
             await resourceProvider.Update(new Resource { ResourceId = resource1.ResourceId, ParentResourceId = resource4.ResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsInstanceOfType<InvalidOperationException>(e);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex);
         }
     }
 
@@ -181,9 +180,9 @@ public class ResourceProviderTest
             await resourceProvider.Get(resource2.ResourceId);
             Assert.Fail("NotExistsException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsTrue(NotExistsException.Is(e));
+            Assert.IsTrue(NotExistsException.Is(ex));
         }
 
         try
@@ -191,9 +190,9 @@ public class ResourceProviderTest
             await resourceProvider.Get(resource21.ResourceId);
             Assert.Fail("NotExistsException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsTrue(NotExistsException.Is(e));
+            Assert.IsTrue(NotExistsException.Is(ex));
         }
 
         try
@@ -201,9 +200,9 @@ public class ResourceProviderTest
             await resourceProvider.Get(resource22.ResourceId);
             Assert.Fail("NotExistsException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsTrue(NotExistsException.Is(e));
+            Assert.IsTrue(NotExistsException.Is(ex));
         }
     }
 
@@ -258,9 +257,9 @@ public class ResourceProviderTest
             await testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId);
             Assert.Fail("InvalidOperationException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsInstanceOfType<InvalidOperationException>(e);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex);
         }
     }
 
@@ -274,9 +273,9 @@ public class ResourceProviderTest
             await testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Assert.IsInstanceOfType<InvalidOperationException>(e);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex);
         }
     }
 }

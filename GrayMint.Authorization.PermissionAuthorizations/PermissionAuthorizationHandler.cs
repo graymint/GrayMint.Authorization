@@ -62,9 +62,9 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
 
             return Task.CompletedTask;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            context.Fail(new AuthorizationFailureReason(this, e.Message));
+            context.Fail(new AuthorizationFailureReason(this, ex.Message));
             return Task.CompletedTask;
         }
     }

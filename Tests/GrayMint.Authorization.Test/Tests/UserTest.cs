@@ -313,9 +313,9 @@ public class AuthenticationTest
             await testInit.AuthenticationClient.GetCurrentUserAsync();
             Assert.Fail("Unauthorized Exception was expected.");
         }
-        catch (ApiException e)
+        catch (ApiException ex)
         {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
         }
     }
 
@@ -331,9 +331,9 @@ public class AuthenticationTest
 
             Assert.Fail("Unauthorized Exception was expected.");
         }
-        catch (ApiException e)
+        catch (ApiException ex)
         {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
         }
 
     }
@@ -350,9 +350,9 @@ public class AuthenticationTest
 
             Assert.Fail("Unauthorized Exception was expected.");
         }
-        catch (ApiException e)
+        catch (ApiException ex)
         {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
         }
 
     }
@@ -374,9 +374,9 @@ public class AuthenticationTest
             await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value });
             Assert.Fail("Unauthorized Exception was expected.");
         }
-        catch (ApiException e)
+        catch (ApiException ex)
         {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, e.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
         }
 
     }

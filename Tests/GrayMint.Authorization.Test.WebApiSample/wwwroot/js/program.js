@@ -24,8 +24,8 @@ async function handleCredentialResponse(googleUser) {
     try {
         apiKey = await signIn(googleUser.credential);
     }
-    catch (e) {
-        if (e.TypeName == "UnregisteredUser")
+    catch (ex) {
+        if (ex.TypeName == "UnregisteredUser")
             apiKey = await signUp(googleUser.credential);
     }
 
