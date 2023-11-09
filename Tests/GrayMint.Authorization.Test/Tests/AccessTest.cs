@@ -2,7 +2,7 @@ using System.Net;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
-using GrayMint.Common.Client;
+using GrayMint.Common.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -26,24 +26,14 @@ public class AccessTest
         // Create an AppCreator
         await testInit.AddNewBot(Roles.SystemAdmin);
 
-        // -------
         // Check: accept All apps permission
-        // -------
         await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
 
-        // -------
-        // Check: refuse if caller does not have all app permission
-        // -------
-        try
-        {
-            await testInit.AddNewBot(Roles.AppOwner);
-            await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
+        // Check: 
+        await testInit.AddNewBot(Roles.AppOwner);
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()),
+            "refuse if caller does not have all app permission");
     }
 
 
@@ -77,30 +67,17 @@ public class AccessTest
         await testInit1.AddNewBot(Roles.AppWriter);
         await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
 
-        // **** Check: refuse if caller belong to other app and does not have all the app permission
-        try
-        {
-            testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
-            await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
+        // Check:
+        testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller belong to other app and does not have all the app permission.");
 
-        // **** Check: refuse if caller does not have write permission
-        try
-        {
-            testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppReader));
-            await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
-
+        // **** Check:
+        testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppReader));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller does not have write permission.");
     }
 
     [TestMethod]
@@ -113,16 +90,9 @@ public class AccessTest
         // -------------
         // Check: Failed if there is no hierarchy 
         // -------------
-        try
-        {
-            testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
-            await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
+            testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString()));
 
         // Set hierarchy
         await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit1.AppId.ToString() });
@@ -136,34 +106,22 @@ public class AccessTest
         testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
         await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
 
-        // **** Check: accept create item by the App permission
+        // **** Check:
         testInit3.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
         await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
 
-        // **** Check: refuse if caller has lower level permission
-        try
-        {
-            testInit1.SetApiKey(await testInit3.AddNewBot(Roles.AppWriter));
-            await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
+        // **** Check: 
+        testInit1.SetApiKey(await testInit3.AddNewBot(Roles.AppWriter));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller has lower level permission.");
 
+        // **** Check:
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppReader));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller does not have write permission.");
 
-        // **** Check: refuse if caller does not have write permission
-        try
-        {
-            testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppReader));
-            await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Forbidden Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Forbidden, ex.StatusCode);
-        }
 
     }
 }

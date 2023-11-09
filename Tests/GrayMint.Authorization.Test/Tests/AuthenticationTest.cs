@@ -5,6 +5,7 @@ using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Client;
 using GrayMint.Common.Test.Api;
+using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -25,16 +26,9 @@ public class AuthenticationTest
         var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         await simpleUserProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
 
-        // make sure the current token is not working anymore
-        try
-        {
-            await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()),
+            "make sure the current token is not working anymore");
     }
 
     [TestMethod]
@@ -46,20 +40,13 @@ public class AuthenticationTest
 
         // call api buy retrieved token
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()); // make sure the current token is working
+        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
 
         //reset token
         await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
         await Task.Delay(200);
-        try
-        {
-            await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()));
     }
 
     [TestMethod]
@@ -71,20 +58,13 @@ public class AuthenticationTest
         // call api buy retrieved token
         var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()); // make sure the current token is working
+        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         await Task.Delay(200);
-        try
-        {
-            await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()));
     }
 
     [TestMethod]
@@ -100,58 +80,23 @@ public class AuthenticationTest
         // call api buy retrieved token
         apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         await Task.Delay(200);
-        try
-        {
-            await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()); // make sure the current token is working
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()));
     }
 
     [TestMethod]
-    public async Task ResetSystemBotAuthToken_should_not_work_for_user()
+    public async Task ResetBotAuthToken_should_not_work_for_user()
     {
         using var testInit = await TestInit.Create();
-
         var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
         Assert.IsNotNull(userRole.User);
-
-        try
-        {
-            await testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId);
-            Assert.Fail("InvalidOperationException was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual(nameof(InvalidOperationException), ex.ExceptionTypeName);
-        }
-    }
-
-    [TestMethod]
-    public async Task ResetAppBotAuthToken_should_not_work_for_user()
-    {
-        using var testInit = await TestInit.Create();
-
-        var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
-        Assert.IsNotNull(userRole.User);
-
-        try
-        {
-            await testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId);
-            Assert.Fail("InvalidOperationException was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual(nameof(InvalidOperationException), ex.ExceptionTypeName);
-        }
+        await TestUtil.AssertApiException<InvalidOperationException>(
+            testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId));
     }
 
     [TestMethod]
@@ -161,20 +106,13 @@ public class AuthenticationTest
         var userEmail = TestInit.NewEmail();
 
         // ------------
-        // Check: New user should not exist if not he hasn't registered yet
+        // Check: 
         // ------------
         var idToken = await testInit.CreateUnregisteredUserIdToken(userEmail);
-
-        try
-        {
-            testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
-            await testInit.AuthenticationClient.GetCurrentUserAsync();
-            Assert.Fail("User should not exist!");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.GetCurrentUserAsync(),
+            "New user should not exist if not he hasn't registered yet");
 
         // ------------
         // Check: Register current user
@@ -308,34 +246,19 @@ public class AuthenticationTest
         var apiKey = await testInit.SignUpNewUser();
 
         testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.RefreshToken?.Value);
-        try
-        {
-            await testInit.AuthenticationClient.GetCurrentUserAsync();
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.GetCurrentUserAsync(),
+            "Refresh token should not be used for sign in.");
     }
 
     [TestMethod]
-    public async Task Fail_refresh_by_access_key()
+    public async Task Fail_refresh_by_access_token()
     {
         var testInit = await TestInit.Create();
         var apiKey = await testInit.SignUpNewUser();
-        try
-        {
-            await testInit.AuthenticationClient.RefreshTokenAsync( 
-                new RefreshTokenRequest { RefreshToken = apiKey.AccessToken.Value });
-
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
-
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.AccessToken.Value }),
+            "Access token should not be used as refresh_token.");
     }
 
     [TestMethod]
@@ -343,18 +266,9 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create();
         var idToken = await testInit.CreateUnregisteredUserIdToken();
-        try
-        {
-            await testInit.AuthenticationClient.RefreshTokenAsync(
-                new RefreshTokenRequest { RefreshToken = idToken });
-
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
-
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = idToken }),
+            "Id token should not be used as refresh_token.");
     }
 
 
@@ -368,17 +282,9 @@ public class AuthenticationTest
         await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value });
         await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value });
         await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
-
-        try
-        {
-            await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value });
-            Assert.Fail("Unauthorized Exception was expected.");
-        }
-        catch (ApiException ex)
-        {
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, ex.StatusCode);
-        }
-
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = apiKey.RefreshToken.Value }),
+            "Revoked token should not be refreshed.");
     }
 
 }
