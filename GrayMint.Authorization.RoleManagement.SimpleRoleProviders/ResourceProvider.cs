@@ -85,6 +85,7 @@ public class ResourceProvider : IResourceProvider
     private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
     {
         var children = await _simpleRoleDbContext.Resources
+            .AsNoTracking()
             .Include(x => x.UserRoles)
             .Where(x => x.ParentResourceId == resource.ResourceId)
             .ToArrayAsync();
@@ -110,5 +111,11 @@ public class ResourceProvider : IResourceProvider
 
             resource = await Get(resource.ParentResourceId);
         }
+    }
+
+    public async Task<string?> GetParentResourceId(string resourceId)
+    {
+        var resource = await Get(resourceId);
+        return resource.ParentResourceId;
     }
 }

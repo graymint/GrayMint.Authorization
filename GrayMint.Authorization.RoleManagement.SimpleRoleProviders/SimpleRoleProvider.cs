@@ -20,14 +20,14 @@ public class SimpleRoleProvider : IRoleProvider
 {
     private readonly SimpleRoleDbContext _simpleRoleDbContext;
     private readonly SimpleRoleProviderOptions _simpleRoleProviderOptions;
-    private readonly IResourceProvider _resourceProvider;
+    private readonly IRoleResourceProvider _roleResourceProvider;
     private readonly IEnumerable<SimpleRole> _roles;
     private readonly IMemoryCache _memoryCache;
     public string RootResourceId { get; }
 
     public SimpleRoleProvider(
         SimpleRoleDbContext simpleRoleDbContext,
-        IResourceProvider resourceProvider,
+        IRoleResourceProvider roleResourceProvider,
         IOptions<SimpleRoleProviderOptions> simpleRoleProviderOptions,
         IMemoryCache memoryCache)
     {
@@ -37,7 +37,7 @@ public class SimpleRoleProvider : IRoleProvider
         _simpleRoleDbContext = simpleRoleDbContext;
         _simpleRoleProviderOptions = simpleRoleProviderOptions.Value;
         _memoryCache = memoryCache;
-        _resourceProvider = resourceProvider;
+        _roleResourceProvider = roleResourceProvider;
         _roles = simpleRoleProviderOptions.Value.Roles;
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
@@ -171,7 +171,6 @@ public class SimpleRoleProvider : IRoleProvider
 
     public async Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
-        var resource = await _resourceProvider.Get(resourceId);
 
         // get roles for the resource and system resource
         var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
@@ -184,8 +183,9 @@ public class SimpleRoleProvider : IRoleProvider
         var permissions = roles.SelectMany(x => x.Permissions).ToList();
 
         // add parent permissions
-        if (!IsRootResource(resource.ResourceId) && resource.ParentResourceId != null)
-            permissions.AddRange(await GetUserPermissions(resource.ParentResourceId, userId));
+        var parentResourceId = await _roleResourceProvider.GetParentResourceId(resourceId) ?? RootResourceId;
+        if (!IsRootResource(resourceId))
+            permissions.AddRange(await GetUserPermissions(parentResourceId, userId));
 
         return permissions.Distinct().ToArray();
     }

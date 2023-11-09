@@ -21,6 +21,7 @@ public static class SimpleRoleProviderExtension
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleProvider, SimpleRoleProvider>();
         services.AddScoped<IRoleAuthorizationProvider, SimpleRoleProvider>();
+        services.AddScoped<IRoleResourceProvider, ResourceProvider>();
         services.AddScoped<IResourceProvider, ResourceProvider>();
     }
 
