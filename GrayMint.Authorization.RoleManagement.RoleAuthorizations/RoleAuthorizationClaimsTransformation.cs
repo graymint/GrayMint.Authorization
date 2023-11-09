@@ -26,16 +26,16 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
             return principal;
 
         //get userRoles
-        var userRoles = await _roleAuthorizationProvider.GetUserRoles(userId: userId);
+        var userRoles = await _roleAuthorizationProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
 
         // Add the following claims
         // /resources/*/RoleName
         // /resources/appId/RoleName
         var claimsIdentity = new ClaimsIdentity();
-        foreach (var userRole in userRoles.Items)
+        foreach (var userRole in userRoles)
         {
             // add GrayMint claim
-        const string rootResourceId = AuthorizationConstants.RootResourceId;
+            const string rootResourceId = AuthorizationConstants.RootResourceId;
             claimsIdentity.AddClaim(RoleAuthorization.CreateRoleClaim(userRole.ResourceId, userRole.Role.RoleName));
 
             // add standard claim role

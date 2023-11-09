@@ -236,16 +236,16 @@ public class ResourceProviderTest
 
         // assign role
         var userRoleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await userRoleProvider.AddUser(resource2.ResourceId, Roles.AppAdmin.RoleId, user.UserId);
+        await userRoleProvider.AddUserRole(resource2.ResourceId, Roles.AppAdmin.RoleId, user.UserId);
 
         // get user roles
-        var userRoles = await userRoleProvider.GetUserRoles(userId: user.UserId);
-        Assert.IsTrue(userRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
+        var userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        Assert.IsTrue(userRoles.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
 
         // delete and get user roles again
         await testInit.ResourceProvider.Remove(resource2.ResourceId);
-        userRoles = await userRoleProvider.GetUserRoles(userId: user.UserId);
-        Assert.IsFalse(userRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
+        userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        Assert.IsFalse(userRoles.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
     }
 
     [TestMethod]

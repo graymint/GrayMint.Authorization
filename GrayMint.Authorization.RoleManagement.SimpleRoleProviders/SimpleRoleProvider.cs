@@ -42,7 +42,7 @@ public class SimpleRoleProvider : IRoleProvider
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
-    public async Task<UserRole> AddUser(string resourceId, string roleId, string userId)
+    public async Task<UserRole> AddUserRole(string resourceId, string roleId, string userId)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
         var entry = await _simpleRoleDbContext.UserRoles
@@ -58,19 +58,21 @@ public class SimpleRoleProvider : IRoleProvider
         return entry.Entity.ToDto(_roles);
     }
 
-    public async Task RemoveUser(string resourceId, string roleId, string userId)
+    public async Task RemoveUserRoles(UserRoleCriteria criteria)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
-        _simpleRoleDbContext.UserRoles.Remove(
-            new UserRoleModel
-            {
-                UserId = Guid.Parse(userId),
-                RoleId = Guid.Parse(roleId),
-                ResourceId = resourceId
-            });
+        var userRoles = await _simpleRoleDbContext.UserRoles
+            .Where(x =>
+                (criteria.RoleId == null || x.RoleId == Guid.Parse(criteria.RoleId)) &&
+                (criteria.UserId == null || x.UserId == Guid.Parse(criteria.UserId)) &&
+                (criteria.ResourceId == null || x.ResourceId == criteria.ResourceId))
+            .ToArrayAsync();
 
+        foreach (var userRole in userRoles)
+            AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
+
+        _simpleRoleDbContext.UserRoles.RemoveRange(userRoles);
         await _simpleRoleDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
     public Task<Role[]> GetRoles(string resourceId)
@@ -83,50 +85,43 @@ public class SimpleRoleProvider : IRoleProvider
         return Task.FromResult(roles);
     }
 
-    public Task<Role> Get(string resourceId, string roleId)
+    public Task<Role> GetRole(string resourceId, string roleId)
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.Single(x => x.RoleId == roleId && x.IsRoot == isRoot);
         return Task.FromResult((Role)role);
     }
 
-    public Task<Role?> FindByName(string resourceId, string roleName)
+    public Task<Role?> FindRoleByName(string resourceId, string roleName)
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.SingleOrDefault(x => x.RoleName == roleName && x.IsRoot == isRoot);
         return Task.FromResult((Role?)role);
     }
 
-    public Task<ListResult<UserRole>> GetUserRoles(string userId)
+    public async Task<UserRole[]> GetUserRoles(UserRoleCriteria criteria)
     {
-        return GetUserRoles(resourceId: null, userId: userId, roleId: null);
+        var res = await GetUserRoles(criteria, 0, int.MaxValue);
+        return res.Items.ToArray();
     }
 
-    public Task<ListResult<UserRole>> GetUserRoles(string resourceId, string userId)
+    public async Task<ListResult<UserRole>> GetUserRoles(UserRoleCriteria criteria, int recordIndex, int recordCount)
     {
-        return GetUserRoles(resourceId: resourceId, userId: userId, roleId: null);
-    }
-
-    public async Task<ListResult<UserRole>> GetUserRoles(
-        string? resourceId, string? roleId, string? userId,
-        int recordIndex = 0, int? recordCount = null)
-    {
-        recordCount ??= int.MaxValue;
-        if (userId != null)
-            return await GetUserRolesWithUserFilter(resourceId: resourceId, userId: userId, roleId: roleId,
-                recordIndex: recordIndex, recordCount: recordCount.Value);
+        if (criteria.UserId != null)
+            return await GetUserRolesWithUserFilter(criteria.ResourceId, criteria.UserId, criteria.RoleId,
+                recordIndex: recordIndex, recordCount: recordCount);
 
         await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();
         var query = _simpleRoleDbContext.UserRoles
             .Where(x =>
-                (roleId == null || x.RoleId == Guid.Parse(roleId)) &&
-                (userId == null || x.UserId == Guid.Parse(userId)) &&
-                (resourceId == null || x.ResourceId == resourceId));
+                (criteria.RoleId == null || x.RoleId == Guid.Parse(criteria.RoleId)) &&
+                (criteria.UserId == null || x.UserId == Guid.Parse(criteria.UserId)) &&
+                (criteria.ResourceId == null || x.ResourceId == criteria.ResourceId));
 
         var results = await query
             .OrderBy(x => x.ResourceId)
             .Skip(recordIndex)
-            .Take(recordCount.Value)
+            .Take(recordCount)
             .ToArrayAsync();
 
         var ret = new ListResult<UserRole>
@@ -179,7 +174,7 @@ public class SimpleRoleProvider : IRoleProvider
         var resource = await _resourceProvider.Get(resourceId);
 
         // get roles for the resource and system resource
-        var userRoles = (await GetUserRoles(resourceId: resourceId, userId: userId)).Items;
+        var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
 
         // find simple roles
         var roles = _roles.Where(x => userRoles.Any(y => y.Role.RoleId == x.RoleId))

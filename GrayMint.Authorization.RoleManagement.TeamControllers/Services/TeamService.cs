@@ -76,7 +76,7 @@ public class TeamService
         });
 
         var expirationTime = DateTime.UtcNow.AddYears(13);
-        await _roleProvider.AddUser(roleId: roleId, userId: user.UserId, resourceId: resourceId);
+        await _roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
         var apiKey = await _grayMintAuthentication
             .CreateApiKey(
                 new CreateTokenParams
@@ -105,7 +105,7 @@ public class TeamService
                 {
                     Subject = user.UserId,
                     Email = user.Email,
-                }, 
+                },
                 accessTokenExpirationTime: expirationTime);
 
         return apiKey;
@@ -127,16 +127,16 @@ public class TeamService
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // check is already exists
-        var userRoles = await _roleProvider.GetUserRoles(resourceId: resourceId, userId: userId);
-        if (userRoles.Items.Any(x => x.Role.RoleId == roleId))
+        var userRoles = await _roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
+        if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
         // add to role
-        await _roleProvider.AddUser(resourceId: resourceId, roleId: roleId, userId: userId);
+        await _roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
 
         // remove from other roles if MultipleRoles is not allowed
         if (!_teamControllersOptions.AllowUserMultiRole)
-            foreach (var userRole in userRoles.Items.Where(x => x.Role.RoleId != roleId))
+            foreach (var userRole in userRoles.Where(x => x.Role.RoleId != roleId))
                 await RemoveUser(resourceId, userRole.Role.RoleId, userId);
 
         var userRoleList = await GetUserRoles(resourceId: resourceId, roleId: roleId, userId: userId);
@@ -175,14 +175,14 @@ public class TeamService
     {
         // get userRoles
         var userRoleList = await _roleProvider.GetUserRoles(
-            resourceId: resourceId, roleId: roleId, userId: userId);
+            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
         // get users of userRoles
         var userList = await _userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
-            userIds: userRoleList.Items.Select(x => x.UserId), isBot: isBot);
+            userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
 
         // attach user to UserRoles
-        var userRoles = userRoleList.Items
+        var userRoles = userRoleList
             .Select(x => new UserRole
             {
                 ResourceId = x.ResourceId,
@@ -208,7 +208,8 @@ public class TeamService
 
     public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
-        await _roleProvider.RemoveUser(resourceId: resourceId, roleId, userId);
+        await _roleProvider.RemoveUserRoles(
+            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
         // delete if user does not have any more roles in the system
         var userRoles = await GetUserRoles(userId: userId, recordCount: 1);
