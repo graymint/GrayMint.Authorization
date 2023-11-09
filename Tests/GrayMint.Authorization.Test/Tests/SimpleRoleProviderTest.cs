@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -20,7 +21,6 @@ public class SimpleRoleProviderTest
         using var testInit = await TestInit.Create();
 
         // create a user
-        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         var userCreateRequest = new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
@@ -28,7 +28,7 @@ public class SimpleRoleProviderTest
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()
         };
-        var user = await simpleUserProvider.Create(userCreateRequest);
+        var user = await testInit.UserProvider.Create(userCreateRequest);
 
         // create a role
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
@@ -37,6 +37,9 @@ public class SimpleRoleProviderTest
         // Add the user to roles
         var resource1 = Guid.NewGuid().ToString();
         var resource2 = Guid.NewGuid().ToString();
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = resource1 });
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = resource2 });
+
         await roleProvider.AddUser(resource1, role.RoleId, user.UserId);
         await roleProvider.AddUser(resource2, role.RoleId, user.UserId);
 
@@ -74,8 +77,7 @@ public class SimpleRoleProviderTest
         using var testInit = await TestInit.Create();
 
         // create a user
-        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        var user = await userProvider.Create(new UserCreateRequest
+        var user = await testInit.UserProvider.Create(new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
             IsEmailVerified = true,
@@ -102,7 +104,7 @@ public class SimpleRoleProviderTest
         var authorizationProvider = testInit.Scope.ServiceProvider.GetRequiredService<IAuthorizationProvider>();
         var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity));
         Assert.IsNotNull(userId);
-        user = await userProvider.Get(userId);
+        user = await testInit.UserProvider.Get(userId);
         var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(identity));
         Assert.AreEqual(user.AuthorizationCode, authorizationCode);
         

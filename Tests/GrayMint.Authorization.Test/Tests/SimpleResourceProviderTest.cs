@@ -11,14 +11,13 @@ using Resource = GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos.
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class SimpleResourceProviderTest
+public class ResourceProviderTest
 {
     [TestMethod]
     public async Task Root_must_exists()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
-        var resource = await resourceProvider.Get(resourceProvider.RootResourceId);
+        var resource = await testInit.ResourceProvider.Get(testInit.ResourceProvider.RootResourceId);
         Assert.IsNull(resource.ParentResourceId);
     }
 
@@ -26,13 +25,13 @@ public class SimpleResourceProviderTest
     public async Task Crud()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
+        var resourceProvider = testInit.ResourceProvider;
 
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Create(new Resource { ResourceId = Guid.NewGuid().ToString() });
-        var resource2 = await resourceProvider.Create(new Resource
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource2 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
@@ -76,13 +75,12 @@ public class SimpleResourceProviderTest
     public async Task Fail_loop_on_create()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
 
         // loop on self
         try
         {
             var id1 = Guid.NewGuid().ToString();
-            await resourceProvider.Create(new Resource { ResourceId = id1, ParentResourceId = id1 });
+            await testInit.ResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 });
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception e)
@@ -94,12 +92,12 @@ public class SimpleResourceProviderTest
     public async Task Fail_loop_on_update()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
+        var resourceProvider = testInit.ResourceProvider;
 
         // loop on self
         try
         {
-            var resource = await resourceProvider.Create(new Resource { ResourceId = Guid.NewGuid().ToString() });
+            var resource = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
             await resourceProvider.Update(new Resource { ResourceId = resource.ResourceId, ParentResourceId = resource.ResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
@@ -109,25 +107,25 @@ public class SimpleResourceProviderTest
         }
 
         // deep loop
-        var resource1 = await resourceProvider.Create(new Resource
+        var resource1 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resourceProvider.RootResourceId
         });
 
-        var resource2 = await resourceProvider.Create(new Resource
+        var resource2 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
         });
 
-        await resourceProvider.Create(new Resource
+        await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
         });
 
-        var resource4 = await resourceProvider.Create(new Resource
+        var resource4 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
@@ -149,25 +147,25 @@ public class SimpleResourceProviderTest
     public async Task Delete_Recursive()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
+        var resourceProvider = testInit.ResourceProvider;
 
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Create(new Resource { ResourceId = Guid.NewGuid().ToString() });
-        var resource2 = await resourceProvider.Create(new Resource
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource2 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
         });
 
-        var resource21 = await resourceProvider.Create(new Resource
+        var resource21 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
         });
 
-        var resource22 = await resourceProvider.Create(new Resource
+        var resource22 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
@@ -213,13 +211,13 @@ public class SimpleResourceProviderTest
     public async Task Delete_resource_must_delete_all_its_roles()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
+        var resourceProvider = testInit.ResourceProvider;
 
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Create(new Resource { ResourceId = Guid.NewGuid().ToString() });
-        var resource2 = await resourceProvider.Create(new Resource
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource2 = await resourceProvider.Add(new Resource
         {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
@@ -255,11 +253,9 @@ public class SimpleResourceProviderTest
     public async Task Fail_removing_the_root()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
-
         try
         {
-            await resourceProvider.Remove(resourceProvider.RootResourceId);
+            await testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception e)
@@ -272,11 +268,10 @@ public class SimpleResourceProviderTest
     public async Task Fail_updating_root()
     {
         var testInit = await TestInit.Create();
-        var resourceProvider = testInit.Scope.ServiceProvider.GetRequiredService<SimpleResourceProvider>();
 
         try
         {
-            await resourceProvider.Update(new Resource { ResourceId = resourceProvider.RootResourceId });
+            await testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception e)

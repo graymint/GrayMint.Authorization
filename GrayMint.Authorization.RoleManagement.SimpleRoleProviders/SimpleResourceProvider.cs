@@ -12,13 +12,13 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
 
-public class SimpleResourceProvider
+public class ResourceProvider : IResourceProvider
 {
     private readonly SimpleRoleDbContext _simpleRoleDbContext;
     private readonly IMemoryCache _memoryCache;
     public string RootResourceId { get; }
 
-    public SimpleResourceProvider(
+    public ResourceProvider(
         SimpleRoleDbContext simpleRoleDbContext, IMemoryCache memoryCache)
     {
         _simpleRoleDbContext = simpleRoleDbContext;
@@ -27,7 +27,7 @@ public class SimpleResourceProvider
     }
 
 
-    public async Task<Resource> Create(Resource resource)
+    public async Task<Resource> Add(Resource resource)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
         await ValidateResourceParent(resource);
@@ -36,6 +36,19 @@ public class SimpleResourceProvider
         await _simpleRoleDbContext.SaveChangesAsync();
         return entry.Entity.ToDto();
     }
+
+    public async Task<Resource> Update(Resource resource)
+    {
+        _simpleRoleDbContext.ChangeTracker.Clear();
+        await ValidateResourceParent(resource);
+        if (resource.ResourceId == AuthorizationConstants.RootResourceId)
+            throw new InvalidOperationException("Root resource cannot be updated.");
+
+        var entry = _simpleRoleDbContext.Resources.Update(resource.ToModel());
+        await _simpleRoleDbContext.SaveChangesAsync();
+        return entry.Entity.ToDto();
+    }
+
 
     public async Task<Resource> Get(string resourceId)
     {
@@ -46,19 +59,6 @@ public class SimpleResourceProvider
         return resource.ToDto() ?? throw new KeyNotFoundException();
     }
 
-    public async Task<Resource> Update(Resource resource)
-    {
-        _simpleRoleDbContext.ChangeTracker.Clear();
-        if (resource.ResourceId == AuthorizationConstants.RootResourceId)
-            throw new InvalidOperationException("Root resource cannot be deleted.");
-
-        await ValidateResourceParent(resource);
-
-        var entry = _simpleRoleDbContext.Resources.Update(resource.ToModel());
-
-        await _simpleRoleDbContext.SaveChangesAsync();
-        return entry.Entity.ToDto();
-    }
     public async Task Remove(string resourceId)
     {
         _simpleRoleDbContext.ChangeTracker.Clear();
@@ -81,7 +81,7 @@ public class SimpleResourceProvider
                 AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
         }
     }
-
+    
     private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
     {
         var children = await _simpleRoleDbContext.Resources

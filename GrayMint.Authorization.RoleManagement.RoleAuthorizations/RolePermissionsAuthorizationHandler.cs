@@ -1,6 +1,7 @@
 ﻿using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using System.Security.Claims;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
@@ -20,19 +21,27 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
 
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionAuthorizationRequirement requirement)
     {
-        if (context.User.Identity?.IsAuthenticated == false)
-            return;
+        try
+        {
+            if (context.User.Identity?.IsAuthenticated == false)
+                return;
 
-        // get userId
-        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return;
+            // get userId
+            var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return;
 
-        // Add UserPermissions to claims
-        var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
-        var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
-        var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
-        var identity = new ClaimsIdentity(claims);
-        context.User.AddIdentity(identity);
+            // Add UserPermissions to claims
+            var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
+            var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+            var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
+            var identity = new ClaimsIdentity(claims);
+            context.User.AddIdentity(identity);
+
+        }
+        catch (Exception ex)
+        {
+            context.Fail(new AuthorizationFailureReason(this, ex.Message));
+        }
     }
 }

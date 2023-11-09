@@ -21,7 +21,7 @@ public static class SimpleRoleProviderExtension
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleProvider, SimpleRoleProvider>();
         services.AddScoped<IRoleAuthorizationProvider, SimpleRoleProvider>();
-        services.AddScoped<SimpleResourceProvider>();
+        services.AddScoped<IResourceProvider, ResourceProvider>();
     }
 
     public static async Task UseGrayMintSimpleRoleProvider(this IServiceProvider serviceProvider)
