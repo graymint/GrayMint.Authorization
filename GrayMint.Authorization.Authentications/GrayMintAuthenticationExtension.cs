@@ -14,10 +14,10 @@ namespace GrayMint.Authorization.Authentications;
 public static class GrayMintAuthenticationExtension
 {
     public static AuthenticationBuilder AddGrayMintAuthentication(this AuthenticationBuilder authenticationBuilder,
-        GrayMintAuthenticationOptions? authenticationOptions,
+        GrayMintAuthenticationOptions authenticationOptions,
         bool isProduction)
     {
-        if (authenticationOptions is null) throw new ArgumentNullException(nameof(authenticationOptions));
+        ArgumentNullException.ThrowIfNull(authenticationOptions);
         authenticationOptions.Validate(isProduction);
 
         authenticationBuilder

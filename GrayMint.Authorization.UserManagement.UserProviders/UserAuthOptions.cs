@@ -1,6 +1,8 @@
-﻿namespace GrayMint.Authorization.UserManagement.UserProviders;
+﻿using GrayMint.Authorization.Abstractions;
+
+namespace GrayMint.Authorization.UserManagement.UserProviders;
 
 public class UserProviderOptions
 {
-    public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromMinutes(30);
+    public TimeSpan CacheTimeout { get; set; } = AuthorizationConstants.CacheTimeout;
 }

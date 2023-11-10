@@ -24,10 +24,10 @@ public class Program
         var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? throw new Exception("Could not load AppOptions.");
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
-        builder.Services.AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions());
+        builder.Services.AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions() { AddControllers = false });
         builder.Services
             .AddAuthentication()
-            .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction());
+            .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>()!, builder.Environment.IsProduction());
 
         builder.Services.AddGrayMintRoleAuthorization();
         builder.Services.AddGrayMintUserProvider(authConfiguration.Get<UserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));

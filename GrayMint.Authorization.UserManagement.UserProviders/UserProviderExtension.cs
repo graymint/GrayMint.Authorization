@@ -12,7 +12,7 @@ public static class UserProviderExtension
 {
     public static void AddGrayMintUserProvider(this IServiceCollection services,
         UserProviderOptions? userOptions,
-        Action<DbContextOptionsBuilder>? dbOptionsAction = null)
+        Action<DbContextOptionsBuilder> dbOptionsAction)
     {
         userOptions ??= new UserProviderOptions();
         services.AddDbContext<UserDbContext>(dbOptionsAction);
