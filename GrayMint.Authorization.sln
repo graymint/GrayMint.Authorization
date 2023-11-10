@@ -27,11 +27,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Perm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Authentications.Controllers", "GrayMint.Authorization.Authentications.Controllers\GrayMint.Authorization.Authentications.Controllers.csproj", "{9F6398F8-84B3-4A93-B5FC-6E2A7AD8B8F3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.RoleManagement.NestedResourceProviders", "GrayMint.Authorization.RoleManagement.NestedResourceProviders\GrayMint.Authorization.RoleManagement.NestedResourceProviders.csproj", "{AC357FB4-5C13-46E5-A53B-219A3CAE53F0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.RoleManagement.RoleProviders", "GrayMint.Authorization.RoleManagement.RoleProviders\GrayMint.Authorization.RoleManagement.RoleProviders.csproj", "{EF964BA6-2D3D-41CD-A155-1659B0C73351}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.UserManagement.UserProviders", "GrayMint.Authorization.UserManagement.UserProviders\GrayMint.Authorization.UserManagement.UserProviders.csproj", "{C289033A-08F7-40A7-9D1C-A6F9EC8485C8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.RoleManagement.ResourceProviders", "GrayMint.Authorization.RoleManagement.ResourceProviders\GrayMint.Authorization.RoleManagement.ResourceProviders.csproj", "{0A1E5A69-7FCF-4E10-9AAC-0E35FB1DC003}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,10 +83,6 @@ Global
 		{9F6398F8-84B3-4A93-B5FC-6E2A7AD8B8F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F6398F8-84B3-4A93-B5FC-6E2A7AD8B8F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F6398F8-84B3-4A93-B5FC-6E2A7AD8B8F3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AC357FB4-5C13-46E5-A53B-219A3CAE53F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AC357FB4-5C13-46E5-A53B-219A3CAE53F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AC357FB4-5C13-46E5-A53B-219A3CAE53F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AC357FB4-5C13-46E5-A53B-219A3CAE53F0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EF964BA6-2D3D-41CD-A155-1659B0C73351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF964BA6-2D3D-41CD-A155-1659B0C73351}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF964BA6-2D3D-41CD-A155-1659B0C73351}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -95,6 +91,10 @@ Global
 		{C289033A-08F7-40A7-9D1C-A6F9EC8485C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C289033A-08F7-40A7-9D1C-A6F9EC8485C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C289033A-08F7-40A7-9D1C-A6F9EC8485C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A1E5A69-7FCF-4E10-9AAC-0E35FB1DC003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A1E5A69-7FCF-4E10-9AAC-0E35FB1DC003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A1E5A69-7FCF-4E10-9AAC-0E35FB1DC003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A1E5A69-7FCF-4E10-9AAC-0E35FB1DC003}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

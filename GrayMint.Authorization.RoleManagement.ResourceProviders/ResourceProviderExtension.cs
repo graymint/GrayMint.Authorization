@@ -1,26 +1,26 @@
 ﻿using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Persistence;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 using GrayMint.Common.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-public static class NestedResourceProviderExtension
+public static class ResourceProviderExtension
 {
-    public static void AddGrayMintNestedResourceProvider(
+    public static void AddGrayMintResourceProvider(
         this IServiceCollection services,
-        NestedResourceProviderOptions options,
+        ResourceProviderOptions options,
         Action<DbContextOptionsBuilder> dbOptionsAction)
     {
         services.AddDbContext<ResourceDbContext>(dbOptionsAction);
         services.AddSingleton(Options.Create(options));
-        services.AddScoped<IRoleResourceProvider, NestedRoleResourceProvider>();
-        services.AddScoped<INestedResourceProvider, NestedResourceProvider>();
+        services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
+        services.AddScoped<IResourceProvider, ResourceProvider>();
     }
 
-    public static async Task UseGrayMintNestedResourceProvider(this IServiceProvider serviceProvider)
+    public static async Task UseGrayMintResourceProvider(this IServiceProvider serviceProvider)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ResourceDbContext>();

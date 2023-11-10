@@ -1,8 +1,8 @@
-﻿using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
+﻿using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-public interface INestedResourceProvider
+public interface IResourceProvider
 {
     string RootResourceId { get; }
     Task<Resource> Add(Resource resource);

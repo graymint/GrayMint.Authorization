@@ -1,6 +1,6 @@
 ﻿using GrayMint.Authorization.Abstractions;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 
 public class Resource
 {

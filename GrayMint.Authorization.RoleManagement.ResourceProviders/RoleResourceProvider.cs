@@ -1,15 +1,15 @@
 ﻿using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Persistence;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-internal class NestedRoleResourceProvider : IRoleResourceProvider
+internal class RoleResourceProvider : IRoleResourceProvider
 {
     private readonly ResourceDbContext _resourceDbContext;
 
-    public NestedRoleResourceProvider(ResourceDbContext resourceDbContext)
+    public RoleResourceProvider(ResourceDbContext resourceDbContext)
     {
         _resourceDbContext = resourceDbContext;
     }

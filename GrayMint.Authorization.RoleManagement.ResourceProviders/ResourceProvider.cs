@@ -1,20 +1,20 @@
 ﻿using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.DtoConverters;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Models;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Persistence;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.DtoConverters;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Models;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-public class NestedResourceProvider : INestedResourceProvider
+public class ResourceProvider : IResourceProvider
 {
     private readonly ResourceDbContext _resourceDbContext;
     private readonly IRoleProvider _roleProvider;
     public string RootResourceId { get; }
 
-    public NestedResourceProvider(
+    public ResourceProvider(
         ResourceDbContext resourceDbContext,
         IRoleProvider roleProvider)
     {

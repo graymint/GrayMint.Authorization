@@ -1,6 +1,6 @@
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.Controllers;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+using GrayMint.Authorization.RoleManagement.ResourceProviders;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 using GrayMint.Authorization.RoleManagement.RoleProviders;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
@@ -36,8 +36,8 @@ public class Program
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddGrayMintSwagger("Test", true);
         builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        if (appOptions.UseNestedResource)
-            builder.Services.AddGrayMintNestedResourceProvider(new NestedResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        if (appOptions.UseResourceProvider)
+            builder.Services.AddGrayMintResourceProvider(new ResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Add authorization
         builder.Services.AddAuthorization(options =>
@@ -60,8 +60,8 @@ public class Program
         await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
         await webApp.Services.UseGrayMintUserProvider();
         await webApp.Services.UseGrayMintRoleProvider();
-        if (appOptions.UseNestedResource) 
-            await webApp.Services.UseGrayMintNestedResourceProvider();
+        if (appOptions.UseResourceProvider) 
+            await webApp.Services.UseGrayMintResourceProvider();
 
         await GrayMintApp.RunAsync(webApp, args);
     }

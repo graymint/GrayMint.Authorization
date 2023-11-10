@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Authentications;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.ResourceProviders;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -25,7 +25,7 @@ public class TestInit : IDisposable
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
-    public INestedResourceProvider NestedResourceProvider => Scope.ServiceProvider.GetRequiredService<INestedResourceProvider>();
+    public IResourceProvider ResourceProvider => Scope.ServiceProvider.GetRequiredService<IResourceProvider>();
     public IUserProvider UserProvider => Scope.ServiceProvider.GetRequiredService<IUserProvider>();
     public GrayMintAuthenticationOptions AuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<GrayMintAuthenticationOptions>>().Value;
     public AppsClient AppsClient => new(HttpClient);
@@ -118,17 +118,17 @@ public class TestInit : IDisposable
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
         string environment = "Development", bool allowUserMultiRole = false, 
-        bool useNestedResource = false)
+        bool useResourceProvider = false)
     {
         appSettings ??= new Dictionary<string, string?>();
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
-        appSettings["App:UseNestedResource"] = useNestedResource.ToString();
+        appSettings["App:UseResourceProvider"] = useResourceProvider.ToString();
         var testInit = new TestInit(appSettings, environment);
         await testInit.Init();
 
         // add app as the resource
-        if (useNestedResource)
-            await testInit.NestedResourceProvider.Add(new Resource { ResourceId = testInit.AppId.ToString() });
+        if (useResourceProvider)
+            await testInit.ResourceProvider.Add(new Resource { ResourceId = testInit.AppId.ToString() });
 
         return testInit;
     }

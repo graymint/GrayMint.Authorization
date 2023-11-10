@@ -1,5 +1,5 @@
 ﻿
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders.Models;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders.Models;
 
 internal class ResourceModel
 {

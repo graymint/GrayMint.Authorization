@@ -1,8 +1,8 @@
 ﻿using GrayMint.Authorization.Abstractions;
-using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Models;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders.Persistence;
+namespace GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 
 public class ResourceDbContext : DbContext
 {
