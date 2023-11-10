@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
+// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Route("/api/v{version:apiVersion}/apps")]
 public class AppsController : ControllerBase

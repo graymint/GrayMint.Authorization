@@ -8,8 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
+// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
-[Route("/api/v{version:apiVersion}/apps/{appId:int}/items")]
+[Route("/api/v{version:apiVersion}/apps/{appId}/items")]
 public class ItemsController : ControllerBase
 {
     private readonly WebApiSampleDbContext _dbContext;

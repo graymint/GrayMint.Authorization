@@ -5,11 +5,12 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers;
 
 public static class TeamControllerExtension
 {
-    public static void AddGrayMintTeamController(this IServiceCollection services,
+    public static IServiceCollection AddGrayMintTeamController(this IServiceCollection services,
         TeamControllerOptions? options = null)
     {
         options ??= new TeamControllerOptions();
         services.AddSingleton(Options.Create(options));
         services.AddScoped<TeamService>();
+        return services;
     }
 }

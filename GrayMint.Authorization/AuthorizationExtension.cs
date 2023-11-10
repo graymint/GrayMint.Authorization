@@ -17,19 +17,19 @@ public static class AuthorizationExtension
 {
     public static void AddGrayMintFullAuthorization(this WebApplicationBuilder builder,
         GrayMintAuthenticationOptions authenticationOptions,
-        TeamControllerOptions teamControllerOptions,
+        TeamControllerOptions? teamControllerOptions,
         GmRole[] roles,
         Action<DbContextOptionsBuilder> dbOptionsAction)
     {
         var services = builder.Services;
 
-        // authentication
+        // authentication & its controller
         services
             .AddGrayMintAuthenticationController()
             .AddAuthentication()
             .AddGrayMintAuthentication(authenticationOptions, builder.Environment.IsProduction());
 
-        // authorization
+        // authorization & its controller
         services
             .AddGrayMintRoleAuthorization()
             .AddAuthorization(options =>
@@ -43,23 +43,20 @@ public static class AuthorizationExtension
                 options.AddPolicy("DefaultPolicy", defaultPolicy);
                 options.DefaultPolicy = defaultPolicy;
             });
-        
+
         // users
-        services.AddGrayMintUserProvider(
-            new UserProviderOptions
-            {
-                CacheTimeout = authenticationOptions.CacheTimeout
-            }, dbOptionsAction);
+        services
+            .AddGrayMintUserProvider(
+                new UserProviderOptions(), dbOptionsAction);
 
-        // roles
-        services.AddGrayMintRoleProvider(
-            new RoleProviderOptions
-            {
-                CacheTimeout = authenticationOptions.CacheTimeout,
-                Roles = roles
-            }, dbOptionsAction);
-
-        services.AddGrayMintTeamController(teamControllerOptions);
+        // roles & its controller
+        services
+            .AddGrayMintTeamController(teamControllerOptions)
+            .AddGrayMintRoleProvider(
+                new RoleProviderOptions
+                {
+                    Roles = roles
+                }, dbOptionsAction);
     }
 
     public static async Task UseGrayMintFullAuthorization(this WebApplication webApplication)

@@ -20,37 +20,54 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        var services = builder.Services;
+
+        // options
         var authConfiguration = builder.Configuration.GetSection("Auth");
         var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? throw new Exception("Could not load AppOptions.");
-        builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+        services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
-        builder.Services.AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions() { AddControllers = false });
-        builder.Services
+        // common services
+        services
+            .AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions() { AddControllers = false })
+            .AddGrayMintSwagger("Test", true);
+
+        // authentication & its controller
+        services
+            .AddGrayMintAuthenticationController()
             .AddAuthentication()
             .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>()!, builder.Environment.IsProduction());
 
-        builder.Services.AddGrayMintRoleAuthorization();
-        builder.Services.AddGrayMintUserProvider(authConfiguration.Get<UserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintRoleProvider(new RoleProviderOptions { Roles = GmRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintAuthenticationController();
-        builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
-        builder.Services.AddGrayMintSwagger("Test", true);
-        builder.Services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        // authorization & its controller
+        services
+            .AddGrayMintRoleAuthorization()
+            .AddAuthorization(options =>
+            {
+                // create default policy
+                var policyBuilder = new AuthorizationPolicyBuilder();
+                policyBuilder.RequireAuthenticatedUser();
+                policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
+
+                var defaultPolicy = policyBuilder.Build();
+                options.AddPolicy("DefaultPolicy", defaultPolicy);
+                options.DefaultPolicy = defaultPolicy;
+            });
+
+        // users
+        services
+            .AddGrayMintUserProvider(authConfiguration.Get<UserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+
+        // roles & its controller
+        services
+            .AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>())
+            .AddGrayMintRoleProvider(new RoleProviderOptions { Roles = GmRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+
+        // nested resource controller. MUST be after role provider
         if (appOptions.UseResourceProvider)
-            builder.Services.AddGrayMintResourceProvider(new ResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            services.AddGrayMintResourceProvider(new ResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
-        // Add authorization
-        builder.Services.AddAuthorization(options =>
-        {
-            // create default policy
-            var policyBuilder = new AuthorizationPolicyBuilder();
-            policyBuilder.RequireAuthenticatedUser();
-            policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
-
-            var defaultPolicy = policyBuilder.Build();
-            options.AddPolicy("DefaultPolicy", defaultPolicy);
-            options.DefaultPolicy = defaultPolicy;
-        });
+        // Database
+        services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Add services to the container.
         var webApp = builder.Build();
@@ -60,7 +77,7 @@ public class Program
         await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
         await webApp.Services.UseGrayMintUserProvider();
         await webApp.Services.UseGrayMintRoleProvider();
-        if (appOptions.UseResourceProvider) 
+        if (appOptions.UseResourceProvider)
             await webApp.Services.UseGrayMintResourceProvider();
 
         await GrayMintApp.RunAsync(webApp, args);
