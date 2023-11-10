@@ -3,9 +3,9 @@ using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
-using GrayMint.Common.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -36,8 +36,14 @@ public class AwsCognitoTest
         using var testInit = await TestInit.Create();
 
         // add user to appCreator role
-        await TestUtil.AssertApiException<AlreadyExistsException>(
-            testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, "unit-tester@local"));
+        try
+        {
+            await testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, "unit-tester@local");
+        }
+        catch (ApiException ex)
+        {
+            Assert.AreEqual(nameof(AlreadyExistsException), ex.ExceptionTypeName);
+        }
 
         var idToken = await GetCredentialsAsync(testInit, "unit-tester", "Password1@");
         var apiKey = await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken });

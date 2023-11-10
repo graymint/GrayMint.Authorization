@@ -1,7 +1,6 @@
 ﻿using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.DataProtection.Repositories;
 using System.Security.Claims;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;

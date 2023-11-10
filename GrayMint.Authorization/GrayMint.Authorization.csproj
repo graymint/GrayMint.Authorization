@@ -26,6 +26,7 @@
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj">
       <Private>True</Private>
     </ProjectReference>
+    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.NestedResourceProviders\GrayMint.Authorization.RoleManagement.NestedResourceProviders.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj">
       <Private>True</Private>
     </ProjectReference>

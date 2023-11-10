@@ -1,16 +1,18 @@
 ﻿using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders;
 using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
-using GrayMint.Authorization.RoleManagement.TeamControllers;
-using GrayMint.Authorization.Authentications.Controllers;
+using GrayMint.Authorization.Authentications.Controllers.Controllers;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders;
+using GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
 namespace GrayMint.Authorization;
 
 internal interface IAuthorizationImporter
 {
-    public SimpleUserProviderOptions SimpleUserProviderOptions { get; set; }
-    public SimpleRoleProviderOptions SimpleRoleProviderOptions { get; set; }
-    public TeamControllerOptions TeamControllerOptions { get; set; }
-    public GrayMintAuthenticationOptions GrayMintAuthenticationOptions { get; set; }
-    public AuthenticationControllerOptions AuthenticationControllerOptions { get; set; }
+    public SimpleUserProvider SimpleUserProvider { get; set; }
+    public SimpleRoleProvider SimpleRoleProvider { get; set; }
+    public TeamControllerBase TeamController { get; set; }
+    public GrayMintAuthentication GrayMintAuthentication { get; set; }
+    public AuthenticationController AuthenticationControllerOptions { get; set; }
+    public NestedResourceProvider NestedResourceProvider { get; set; }
 }

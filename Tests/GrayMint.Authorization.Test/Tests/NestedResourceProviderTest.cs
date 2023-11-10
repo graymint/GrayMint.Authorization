@@ -1,30 +1,75 @@
 using GrayMint.Authorization.RoleManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
+using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Resource = GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos.Resource;
+using System.Net;
 
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class ResourceProviderTest
+public class NestedResourceProviderTest
 {
+    [TestMethod]
+    public async Task AppUser_access_by_hierarchy_permission()
+    {
+        var testInit1 = await TestInit.Create(useNestedResource: true);
+        var testInit2 = await TestInit.Create(useNestedResource: true);
+        var testInit3 = await TestInit.Create(useNestedResource: true);
+
+        // -------------
+        // Check: Failed if there is no hierarchy 
+        // -------------
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString()));
+
+        // Set hierarchy
+        await testInit1.NestedResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit1.AppId.ToString() });
+        await testInit1.NestedResourceProvider.Update(new Resource { ResourceId = testInit3.AppId.ToString(), ParentResourceId = testInit2.AppId.ToString() });
+
+        // **** Check: accept create item by Create Permission
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.SystemAdmin));
+        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
+
+        // **** Check: accept create item by the App permission
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
+        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
+
+        // **** Check:
+        testInit3.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
+        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
+
+        // **** Check: 
+        testInit1.SetApiKey(await testInit3.AddNewBot(Roles.AppWriter));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller has lower level permission.");
+
+        // **** Check:
+        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppReader));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            "refuse if caller does not have write permission.");
+    }
+
     [TestMethod]
     public async Task Root_must_exists()
     {
-        var testInit = await TestInit.Create();
-        var resource = await testInit.ResourceProvider.Get(testInit.ResourceProvider.RootResourceId);
+        var testInit = await TestInit.Create(useNestedResource: true);
+        var resource = await testInit.NestedResourceProvider.Get(testInit.NestedResourceProvider.RootResourceId);
         Assert.IsNull(resource.ParentResourceId);
     }
 
     [TestMethod]
     public async Task Crud()
     {
-        var testInit = await TestInit.Create();
-        var resourceProvider = testInit.ResourceProvider;
+        var testInit = await TestInit.Create(useNestedResource: true);
+        var resourceProvider = testInit.NestedResourceProvider;
 
         // ---------
         // Check: Create
@@ -73,13 +118,13 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task Fail_loop_on_create()
     {
-        var testInit = await TestInit.Create();
+        var testInit = await TestInit.Create(useNestedResource: true);
 
         // loop on self
         try
         {
             var id1 = Guid.NewGuid().ToString();
-            await testInit.ResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 });
+            await testInit.NestedResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 });
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception ex)
@@ -90,8 +135,8 @@ public class ResourceProviderTest
 
     public async Task Fail_loop_on_update()
     {
-        var testInit = await TestInit.Create();
-        var resourceProvider = testInit.ResourceProvider;
+        var testInit = await TestInit.Create(useNestedResource: true);
+        var resourceProvider = testInit.NestedResourceProvider;
 
         // loop on self
         try
@@ -145,8 +190,8 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task Delete_Recursive()
     {
-        var testInit = await TestInit.Create();
-        var resourceProvider = testInit.ResourceProvider;
+        var testInit = await TestInit.Create(useNestedResource: true);
+        var resourceProvider = testInit.NestedResourceProvider;
 
         // ---------
         // Check: Create
@@ -209,8 +254,8 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task Delete_resource_must_delete_all_its_roles()
     {
-        var testInit = await TestInit.Create();
-        var resourceProvider = testInit.ResourceProvider;
+        var testInit = await TestInit.Create(useNestedResource: true);
+        var resourceProvider = testInit.NestedResourceProvider;
 
         // ---------
         // Check: Create
@@ -243,7 +288,7 @@ public class ResourceProviderTest
         Assert.IsTrue(userRoles.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
 
         // delete and get user roles again
-        await testInit.ResourceProvider.Remove(resource2.ResourceId);
+        await testInit.NestedResourceProvider.Remove(resource2.ResourceId);
         userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
         Assert.IsFalse(userRoles.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId));
     }
@@ -251,10 +296,10 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task Fail_removing_the_root()
     {
-        var testInit = await TestInit.Create();
+        var testInit = await TestInit.Create(useNestedResource: true);
         try
         {
-            await testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId);
+            await testInit.NestedResourceProvider.Remove(testInit.NestedResourceProvider.RootResourceId);
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception ex)
@@ -266,11 +311,11 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task Fail_updating_root()
     {
-        var testInit = await TestInit.Create();
+        var testInit = await TestInit.Create(useNestedResource: true);
 
         try
         {
-            await testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId });
+            await testInit.NestedResourceProvider.Update(new Resource { ResourceId = testInit.NestedResourceProvider.RootResourceId });
             Assert.Fail("InvalidOperationException was expected.");
         }
         catch (Exception ex)

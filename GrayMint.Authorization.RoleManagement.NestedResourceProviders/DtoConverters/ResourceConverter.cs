@@ -1,7 +1,7 @@
-﻿using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
+﻿using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Models;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.DtoConverters;
+namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders.DtoConverters;
 
 internal static class ResourceConverter
 {

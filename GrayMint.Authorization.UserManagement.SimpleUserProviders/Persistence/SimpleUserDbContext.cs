@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -8,8 +9,7 @@ namespace GrayMint.Authorization.UserManagement.SimpleUserProviders.Persistence;
 // ReSharper disable once PartialTypeWithSinglePart
 public partial class SimpleUserDbContext : DbContext
 {
-    public const string Schema = "smuser";
-
+    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "user";
     internal virtual DbSet<UserModel> Users { get; set; } = default!;
 
     public SimpleUserDbContext()

@@ -13,16 +13,14 @@ public static class SimpleRoleProviderExtension
 {
     public static void AddGrayMintSimpleRoleProvider(
         this IServiceCollection services,
-        SimpleRoleProviderOptions? options,
-        Action<DbContextOptionsBuilder>? dbOptionsAction = null)
+        SimpleRoleProviderOptions options,
+        Action<DbContextOptionsBuilder> dbOptionsAction)
     {
-        options ??= new SimpleRoleProviderOptions();
         services.AddDbContext<SimpleRoleDbContext>(dbOptionsAction);
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleProvider, SimpleRoleProvider>();
         services.AddScoped<IRoleAuthorizationProvider, SimpleRoleProvider>();
-        services.AddScoped<IRoleResourceProvider, ResourceProvider>();
-        services.AddScoped<IResourceProvider, ResourceProvider>();
+        services.AddScoped<IRoleResourceProvider, SimpleRoleResourceProvider>();
     }
 
     public static async Task UseGrayMintSimpleRoleProvider(this IServiceProvider serviceProvider)

@@ -11,10 +11,9 @@ namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
 // ReSharper disable once PartialTypeWithSinglePart
 public partial class SimpleRoleDbContext : DbContext
 {
-    public const string Schema = "smrole";
+    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "role";
 
     internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = default!;
-    internal virtual DbSet<ResourceModel> Resources { get; set; } = default!;
 
     public SimpleRoleDbContext()
     {
@@ -51,28 +50,6 @@ public partial class SimpleRoleDbContext : DbContext
 
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);
-
-            entity.HasOne(d => d.Resource)
-                .WithMany(p => p.UserRoles)
-                .HasForeignKey(d => d.ResourceId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<ResourceModel>(entity =>
-        {
-            entity.HasKey(ex => new { AppId = ex.ResourceId });
-
-            entity.Property(x => x.ResourceId)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.ParentResourceId)
-                .HasMaxLength(100);
-
-            entity.HasData(new ResourceModel
-            {
-                ResourceId = AuthorizationConstants.RootResourceId,
-                ParentResourceId = null
-            });
         });
 
         // ReSharper disable once InvocationIsSkipped

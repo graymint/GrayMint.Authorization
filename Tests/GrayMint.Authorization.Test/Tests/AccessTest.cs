@@ -1,5 +1,4 @@
 using System.Net;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Utils;
@@ -78,50 +77,5 @@ public class AccessTest
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
             testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
             "refuse if caller does not have write permission.");
-    }
-
-    [TestMethod]
-    public async Task AppUser_access_by_hierarchy_permission()
-    {
-        var testInit1 = await TestInit.Create();
-        var testInit2 = await TestInit.Create();
-        var testInit3 = await TestInit.Create();
-
-        // -------------
-        // Check: Failed if there is no hierarchy 
-        // -------------
-        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
-            testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString()));
-
-        // Set hierarchy
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit1.AppId.ToString() });
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit3.AppId.ToString(), ParentResourceId = testInit2.AppId.ToString() });
-
-        // **** Check: accept create item by Create Permission
-        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.SystemAdmin));
-        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
-
-        // **** Check: accept create item by the App permission
-        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
-        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
-
-        // **** Check:
-        testInit3.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
-        await testInit3.ItemsClient.CreateByPermissionAsync(testInit3.App.AppId, Guid.NewGuid().ToString());
-
-        // **** Check: 
-        testInit1.SetApiKey(await testInit3.AddNewBot(Roles.AppWriter));
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
-            "refuse if caller has lower level permission.");
-
-        // **** Check:
-        testInit3.SetApiKey(await testInit1.AddNewBot(Roles.AppReader));
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
-            "refuse if caller does not have write permission.");
-
-
     }
 }

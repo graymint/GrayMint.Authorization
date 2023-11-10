@@ -1,33 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Version>3.0.63</Version>
-    <IsPackable>false</IsPackable>
-    <RootNamespace>$(AssemblyName)</RootNamespace>
-    <Authors>GrayMint</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/graymint/GrayMint.Common</RepositoryUrl>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Version>3.0.63</Version>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>$(AssemblyName)</RootNamespace>
+		<Authors>GrayMint</Authors>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="wwwroot\index.htm" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="wwwroot\index.htm" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.159" />
-    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.157" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="7.0.13" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.13" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.13" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.159" />
+		<PackageReference Include="GrayMint.Common.Swagger" Version="2.0.157" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="7.0.13" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.13" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.13" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\GrayMint.Authorization\GrayMint.Authorization.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\GrayMint.Authorization\GrayMint.Authorization.csproj" />
+	</ItemGroup>
 
 </Project>

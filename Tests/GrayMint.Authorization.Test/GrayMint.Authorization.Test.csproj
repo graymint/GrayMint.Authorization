@@ -1,35 +1,39 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Version>3.0.63</Version>
-    <IsPackable>false</IsPackable>
-    <RootNamespace>$(AssemblyName)</RootNamespace>
-    <Authors>GrayMint</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/graymint/GrayMint.Common</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/graymint/GrayMint.Common</RepositoryUrl>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>3.0.63</Version>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>$(AssemblyName)</RootNamespace>
+		<Authors>GrayMint</Authors>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Amazon.Extensions.CognitoAuthentication" Version="2.5.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.13" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
-    <PackageReference Include="coverlet.collector" Version="6.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Amazon.Extensions.CognitoAuthentication" Version="2.5.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.13" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+		<PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
+		<PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+		<PackageReference Include="coverlet.collector" Version="6.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\GrayMint.Authorization.Test.WebApiSample\GrayMint.Authorization.Test.WebApiSample.csproj" />
+	</ItemGroup>
 
-  <ProjectExtensions><VisualStudio><UserProperties api_4api_1nswag__JsonSchema="https://docs.renovatebot.com/renovate-schema.json" /></VisualStudio></ProjectExtensions>
+	<ProjectExtensions>
+		<VisualStudio>
+			<UserProperties api_4api_1nswag__JsonSchema="https://docs.renovatebot.com/renovate-schema.json" />
+		</VisualStudio>
+	</ProjectExtensions>
 
 </Project>

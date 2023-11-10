@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -36,9 +35,6 @@ public class SimpleRoleProviderTest
         // Add the user to roles
         var resource1 = Guid.NewGuid().ToString();
         var resource2 = Guid.NewGuid().ToString();
-        await testInit.ResourceProvider.Add(new Resource { ResourceId = resource1 });
-        await testInit.ResourceProvider.Add(new Resource { ResourceId = resource2 });
-
         await roleProvider.AddUserRole(resource1, role.RoleId, user.UserId);
         await roleProvider.AddUserRole(resource2, role.RoleId, user.UserId);
 

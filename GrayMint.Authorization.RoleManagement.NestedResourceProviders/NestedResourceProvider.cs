@@ -1,58 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using GrayMint.Authorization.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.DtoConverters;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
+﻿using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.RoleManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.DtoConverters;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Models;
+using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
+namespace GrayMint.Authorization.RoleManagement.NestedResourceProviders;
 
-public class ResourceProvider : IResourceProvider
+public class NestedResourceProvider : INestedResourceProvider
 {
-    private readonly SimpleRoleDbContext _simpleRoleDbContext;
-    private readonly IMemoryCache _memoryCache;
+    private readonly ResourceDbContext _resourceDbContext;
+    private readonly IRoleProvider _roleProvider;
     public string RootResourceId { get; }
 
-    public ResourceProvider(
-        SimpleRoleDbContext simpleRoleDbContext, IMemoryCache memoryCache)
+    public NestedResourceProvider(
+        ResourceDbContext resourceDbContext,
+        IRoleProvider roleProvider)
     {
-        _simpleRoleDbContext = simpleRoleDbContext;
-        _memoryCache = memoryCache;
+        _resourceDbContext = resourceDbContext;
+        _roleProvider = roleProvider;
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
 
     public async Task<Resource> Add(Resource resource)
     {
-        _simpleRoleDbContext.ChangeTracker.Clear();
+        _resourceDbContext.ChangeTracker.Clear();
         await ValidateResourceParent(resource);
 
-        var entry = await _simpleRoleDbContext.Resources.AddAsync(resource.ToModel());
-        await _simpleRoleDbContext.SaveChangesAsync();
+        var entry = await _resourceDbContext.Resources.AddAsync(resource.ToModel());
+        await _resourceDbContext.SaveChangesAsync();
         return entry.Entity.ToDto();
     }
 
     public async Task<Resource> Update(Resource resource)
     {
-        _simpleRoleDbContext.ChangeTracker.Clear();
+        _resourceDbContext.ChangeTracker.Clear();
         await ValidateResourceParent(resource);
         if (resource.ResourceId == AuthorizationConstants.RootResourceId)
             throw new InvalidOperationException("Root resource cannot be updated.");
 
-        var entry = _simpleRoleDbContext.Resources.Update(resource.ToModel());
-        await _simpleRoleDbContext.SaveChangesAsync();
+        var entry = _resourceDbContext.Resources.Update(resource.ToModel());
+        await _resourceDbContext.SaveChangesAsync();
         return entry.Entity.ToDto();
     }
 
 
     public async Task<Resource> Get(string resourceId)
     {
-        var resource = await _simpleRoleDbContext.Resources
+        var resource = await _resourceDbContext.Resources
             .AsNoTracking()
             .SingleAsync(x => x.ResourceId == resourceId);
 
@@ -61,32 +58,26 @@ public class ResourceProvider : IResourceProvider
 
     public async Task Remove(string resourceId)
     {
-        _simpleRoleDbContext.ChangeTracker.Clear();
+        _resourceDbContext.ChangeTracker.Clear();
         if (resourceId == AuthorizationConstants.RootResourceId)
             throw new InvalidOperationException("Root resource cannot be deleted.");
 
-        // delete from database
-        var resource = await _simpleRoleDbContext.Resources
-            .Include(x => x.UserRoles)
+        var resource = await _resourceDbContext.Resources
             .SingleAsync(x => x.ResourceId == resourceId);
 
+        // delete from database
         var deletedItems = new List<ResourceModel>();
         await DeleteRecursive(resource, deletedItems);
-        await _simpleRoleDbContext.SaveChangesAsync();
+        await _resourceDbContext.SaveChangesAsync();
 
-        // remove all resource from cache
-        foreach (var item in deletedItems)
-        {
-            foreach (var userRole in item.UserRoles!)
-                AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
-        }
+        // clean user roles
+        await _roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId });
     }
-    
+
     private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
     {
-        var children = await _simpleRoleDbContext.Resources
+        var children = await _resourceDbContext.Resources
             .AsNoTracking()
-            .Include(x => x.UserRoles)
             .Where(x => x.ParentResourceId == resource.ResourceId)
             .ToArrayAsync();
 
@@ -94,7 +85,7 @@ public class ResourceProvider : IResourceProvider
             await DeleteRecursive(child, resources);
 
         resources.Add(resource);
-        _simpleRoleDbContext.Resources.Remove(resource);
+        _resourceDbContext.Resources.Remove(resource);
     }
 
     private async Task ValidateResourceParent(Resource resource)
