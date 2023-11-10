@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>3.0.69</Version>
+    <Version>3.0.70</Version>
     <IsPackable>true</IsPackable>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
