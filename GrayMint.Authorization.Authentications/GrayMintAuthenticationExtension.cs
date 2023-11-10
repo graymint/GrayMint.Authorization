@@ -8,19 +8,21 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using GrayMint.Authorization.Authentications.Dtos;
+using GrayMint.Authorization.Abstractions;
+using System.ComponentModel;
 
 namespace GrayMint.Authorization.Authentications;
 
 public static class GrayMintAuthenticationExtension
 {
-    public static AuthenticationBuilder AddGrayMintAuthentication(this AuthenticationBuilder authenticationBuilder,
+    public static AuthenticationBuilder AddGrayMintAuthentication(this AuthenticationBuilder builder,
         GrayMintAuthenticationOptions authenticationOptions,
         bool isProduction)
     {
         ArgumentNullException.ThrowIfNull(authenticationOptions);
         authenticationOptions.Validate(isProduction);
 
-        authenticationBuilder
+        builder
             .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options =>
             {
                 options.TokenValidationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions);
@@ -44,10 +46,11 @@ public static class GrayMintAuthenticationExtension
                 };
             });
 
-        authenticationBuilder.Services.AddSingleton(Options.Create(authenticationOptions));
-        authenticationBuilder.Services.AddScoped<GrayMintTokenValidator>();
-        authenticationBuilder.Services.AddScoped<GrayMintAuthentication>();
-        return authenticationBuilder;
+        builder.Services.AddSingleton<UserAuthorizationCache>();
+        builder.Services.AddSingleton(Options.Create(authenticationOptions));
+        builder.Services.AddScoped<GrayMintTokenValidator>();
+        builder.Services.AddScoped<GrayMintAuthentication>();
+        return builder;
     }
 
     // todo: for compatibility

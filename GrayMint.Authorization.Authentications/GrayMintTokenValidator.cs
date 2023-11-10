@@ -15,16 +15,19 @@ namespace GrayMint.Authorization.Authentications;
 public class GrayMintTokenValidator
 {
     private readonly IAuthorizationProvider _authorizationProvider;
+    private readonly UserAuthorizationCache _userAuthorizationCache;
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
     private readonly IMemoryCache _memoryCache;
 
     public GrayMintTokenValidator(
         IOptions<GrayMintAuthenticationOptions> authenticationOptions,
         IMemoryCache memoryCache,
-        IAuthorizationProvider authorizationProvider)
+        IAuthorizationProvider authorizationProvider,
+        UserAuthorizationCache userAuthorizationCache)
     {
         _memoryCache = memoryCache;
         _authorizationProvider = authorizationProvider;
+        _userAuthorizationCache = userAuthorizationCache;
         _authenticationOptions = authenticationOptions.Value;
     }
 
@@ -72,11 +75,12 @@ public class GrayMintTokenValidator
             entry.SetAbsoluteExpiration(_authenticationOptions.CacheTimeout);
             return _authorizationProvider.GetUserId(claimsPrincipal);
         });
+
         if (userId != null)
         {
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, userId);
-            AuthorizationCache.AddKey(_memoryCache, userId, userIdCacheKey);
-            AuthorizationCache.AddKey(_memoryCache, userId, authCodeCacheKey);
+            _userAuthorizationCache.AddUserItem(userId, userIdCacheKey);
+            _userAuthorizationCache.AddUserItem(userId, authCodeCacheKey);
         }
 
         await _authorizationProvider.OnAuthenticated(claimsPrincipal);

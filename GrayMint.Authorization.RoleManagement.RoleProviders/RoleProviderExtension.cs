@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Persistence;
 using GrayMint.Common.EntityFrameworkCore;
@@ -16,11 +17,12 @@ public static class RoleProviderExtension
         RoleProviderOptions options,
         Action<DbContextOptionsBuilder> dbOptionsAction)
     {
-        services.AddDbContext<RoleDbContext>(dbOptionsAction);
+        services.AddSingleton<UserAuthorizationCache>();
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleProvider, RoleProvider>();
         services.AddScoped<IRoleAuthorizationProvider, RoleProvider>();
         services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
+        services.AddDbContext<RoleDbContext>(dbOptionsAction);
     }
 
     public static async Task UseGrayMintRoleProvider(this IServiceProvider serviceProvider)

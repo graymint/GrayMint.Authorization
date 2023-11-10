@@ -58,6 +58,36 @@ public class ResourceProviderTest
     }
 
     [TestMethod]
+    public async Task AppUser_access_by_hierarchy_permission_after_update()
+    {
+        var testInit1 = await TestInit.Create(useResourceProvider: true);
+        var testInit2 = await TestInit.Create(useResourceProvider: true);
+        var testInit3 = await TestInit.Create(useResourceProvider: true);
+        var testInit4 = await TestInit.Create(useResourceProvider: true);
+        var testInit5 = await TestInit.Create(useResourceProvider: true);
+        testInit4.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
+
+        // Set hierarchy
+        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit1.AppId.ToString() });
+        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit3.AppId.ToString(), ParentResourceId = testInit2.AppId.ToString() });
+
+        // **** Check: 
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString()),
+            "Should not have access if it is not one of its parent.");
+
+        // **** Check: Should have access if it is one of its parent.
+        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit4.AppId.ToString(), ParentResourceId = testInit3.AppId.ToString() });
+        await testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString());
+
+        // **** Check: 
+        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit5.AppId.ToString() });
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString()),
+            "Should not have access if it is not one of its parent.");
+    }
+
+    [TestMethod]
     public async Task Root_must_exists()
     {
         var testInit = await TestInit.Create(useResourceProvider: true);

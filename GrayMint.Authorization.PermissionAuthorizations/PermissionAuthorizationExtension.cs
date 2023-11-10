@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using GrayMint.Authorization.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GrayMint.Authorization.PermissionAuthorizations;
 

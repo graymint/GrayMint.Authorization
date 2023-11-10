@@ -14,15 +14,18 @@ namespace GrayMint.Authorization.UserManagement.UserProviders;
 public class UserProvider : IUserProvider
 {
     private readonly UserDbContext _userDbContext;
+    private readonly UserAuthorizationCache _userAuthorizationCache;
     private readonly UserProviderOptions _userProviderOptions;
     private readonly IMemoryCache _memoryCache;
 
     public UserProvider(
         UserDbContext userDbContext,
+        UserAuthorizationCache userAuthorizationCache,
         IOptions<UserProviderOptions> userProviderOptions,
         IMemoryCache memoryCache)
     {
         _userDbContext = userDbContext;
+        _userAuthorizationCache = userAuthorizationCache;
         _userProviderOptions = userProviderOptions.Value;
         _memoryCache = memoryCache;
     }
@@ -66,15 +69,10 @@ public class UserProvider : IUserProvider
         if (request.PictureUrl != null) user.PictureUrl = request.PictureUrl;
         if (request.Description != null) user.Description = request.Description;
         if (request.ExData != null) user.ExData = request.ExData;
-        if (request.Email != null)
-        {
-            _memoryCache.Remove(GetCacheKeyForEmail(user.Email));
-            _memoryCache.Remove(GetCacheKeyForEmail(request.Email));
-            user.Email = request.Email;
-        }
+        if (request.Email != null) user.Email = request.Email;
 
         await _userDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        _userAuthorizationCache.ClearUserItems(userId);
         return user.ToDto();
     }
 
@@ -83,12 +81,12 @@ public class UserProvider : IUserProvider
         if (!Guid.TryParse(userId, out var uid))
             return null;
 
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
-        var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
-        {
-            entry.SetAbsoluteExpiration(_userProviderOptions.CacheTimeout);
-            return _userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
-        });
+        var user = await _userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
+            entry =>
+            {
+                entry.SetAbsoluteExpiration(_userProviderOptions.CacheTimeout);
+                return _userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
+            });
 
         return user?.ToDto();
     }
@@ -104,9 +102,6 @@ public class UserProvider : IUserProvider
         var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AccessedTime = DateTime.UtcNow;
         await _userDbContext.SaveChangesAsync();
-
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
-        _memoryCache.Set(cacheKey, user, TimeSpan.FromMinutes(60));
     }
 
     public async Task Remove(string userId)
@@ -116,7 +111,7 @@ public class UserProvider : IUserProvider
         var user = new UserModel { UserId = Guid.Parse(userId) };
         _userDbContext.Users.Remove(user);
         await _userDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        _userAuthorizationCache.ClearUserItems(userId);
     }
 
     public async Task ResetAuthorizationCode(string userId)
@@ -124,24 +119,12 @@ public class UserProvider : IUserProvider
         var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AuthCode = Guid.NewGuid().ToString();
         await _userDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        _userAuthorizationCache.ClearUserItems(userId);
     }
 
     public async Task<User?> FindByEmail(string email)
     {
-        //get from cache
-        var cacheKey = GetCacheKeyForEmail(email);
-        if (_memoryCache.TryGetValue(cacheKey, out UserModel? user) && user != null)
-            return user.ToDto();
-
-        //add to cache
-        user = await _userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
-        if (user != null)
-        {
-            _memoryCache.Set(cacheKey, user);
-            AuthorizationCache.AddKey(_memoryCache, user.UserId.ToString(), cacheKey);
-        }
-
+        var user = await _userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
         return user?.ToDto();
     }
 

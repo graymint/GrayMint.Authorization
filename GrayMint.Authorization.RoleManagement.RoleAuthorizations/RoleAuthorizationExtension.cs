@@ -1,4 +1,5 @@
-﻿using GrayMint.Authorization.PermissionAuthorizations;
+﻿using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.PermissionAuthorizations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 
@@ -12,6 +13,7 @@ public static class RoleAuthorizationExtension
         if (services.Any(x => x.ServiceType == typeof(IAuthorizationHandler) && x.ImplementationType==typeof(PermissionAuthorizationHandler) ))
             throw new InvalidOperationException($"{nameof(PermissionAuthorization)} should not be added before {nameof(RoleAuthorization)}.");
 
+        services.AddSingleton<UserAuthorizationCache>();
         services.AddScoped<IAuthorizationHandler, RolePermissionsAuthorizationHandler>();
         services.AddTransient<IClaimsTransformation, RoleAuthorizationClaimsTransformation>();
         services.AddGrayMintPermissionAuthorization();

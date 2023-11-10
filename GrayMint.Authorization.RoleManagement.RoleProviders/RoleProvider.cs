@@ -22,21 +22,21 @@ public class RoleProvider : IRoleProvider
     private readonly RoleProviderOptions _roleProviderOptions;
     private readonly IRoleResourceProvider _roleResourceProvider;
     private readonly IEnumerable<GmRole> _roles;
-    private readonly IMemoryCache _memoryCache;
+    private readonly UserAuthorizationCache _userAuthorizationCache;
     public string RootResourceId { get; }
 
     public RoleProvider(
         RoleDbContext roleDbContext,
+        UserAuthorizationCache userAuthorizationCache,
         IRoleResourceProvider roleResourceProvider,
-        IOptions<RoleProviderOptions> roleProviderOptions,
-        IMemoryCache memoryCache)
+        IOptions<RoleProviderOptions> roleProviderOptions)
     {
         if (roleProviderOptions.Value.Roles.GroupBy(x => x.RoleId).Any(g => g.Count() > 1))
             throw new DuplicateNameException("Duplicate RoleId has been found.");
 
         _roleDbContext = roleDbContext;
         _roleProviderOptions = roleProviderOptions.Value;
-        _memoryCache = memoryCache;
+        _userAuthorizationCache = userAuthorizationCache;
         _roleResourceProvider = roleResourceProvider;
         _roles = roleProviderOptions.Value.Roles;
         RootResourceId = AuthorizationConstants.RootResourceId;
@@ -54,7 +54,7 @@ public class RoleProvider : IRoleProvider
             });
 
         await _roleDbContext.SaveChangesAsync();
-        AuthorizationCache.ResetUser(_memoryCache, userId);
+        _userAuthorizationCache.ClearUserItems(userId);
         return entry.Entity.ToDto(_roles);
     }
 
@@ -68,11 +68,12 @@ public class RoleProvider : IRoleProvider
                 (criteria.ResourceId == null || x.ResourceId == criteria.ResourceId))
             .ToArrayAsync();
 
-        foreach (var userRole in userRoles)
-            AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
-
         _roleDbContext.UserRoles.RemoveRange(userRoles);
         await _roleDbContext.SaveChangesAsync();
+
+        // Clear cache
+        foreach (var userRole in userRoles)
+            _userAuthorizationCache.ClearUserItems(userRole.UserId.ToString().ToLower());
     }
 
     public Task<Role[]> GetRoles(string resourceId)
@@ -136,22 +137,19 @@ public class RoleProvider : IRoleProvider
     private async Task<ListResult<UserRole>> GetUserRolesWithUserFilter(string? resourceId, string userId,
         string? roleId, int recordIndex, int recordCount)
     {
-        var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "user-roles");
-        var userRoles = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            await using var trans = await _roleDbContext.WithNoLockTransaction();
-            var res = await _roleDbContext.UserRoles
-                .Where(x => x.UserId == Guid.Parse(userId))
-                .ToArrayAsync();
+        var allUserRoles = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
+            async entry =>
+            {
+                await using var trans = await _roleDbContext.WithNoLockTransaction();
+                var res = await _roleDbContext.UserRoles
+                    .Where(x => x.UserId == Guid.Parse(userId))
+                    .ToArrayAsync();
 
-            entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
-            return res;
-        });
+                entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
+                return res;
+            });
 
-        if (userRoles == null)
-            throw new Exception("Role cache has been corrupted.");
-
-        var results = userRoles
+        var results = allUserRoles
             .Where(x =>
                 (roleId == null || x.RoleId == Guid.Parse(roleId)) &&
                 (resourceId == null || x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)))
@@ -162,7 +160,7 @@ public class RoleProvider : IRoleProvider
 
         var ret = new ListResult<UserRole>
         {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : userRoles.LongCount(),
+            TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.LongCount(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
 
@@ -171,7 +169,19 @@ public class RoleProvider : IRoleProvider
 
     public async Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
+        var permissions = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, 
+            $"resources:{resourceId}:user-permissions",
+            async entry =>
+            {
+                entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
+                return await GetUserPermissionsInternal(resourceId, userId);
+            });
 
+        return permissions;
+    }
+
+    private async Task<string[]> GetUserPermissionsInternal(string resourceId, string userId)
+    {
         // get roles for the resource and system resource
         var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
 

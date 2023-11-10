@@ -36,7 +36,8 @@ public class ResourceDbContext : DbContext
 
         modelBuilder.Entity<ResourceModel>(entity =>
         {
-            entity.HasKey(ex => new { AppId = ex.ResourceId });
+            entity.HasKey(e => new { AppId = e.ResourceId });
+            entity.HasIndex(e => e.ParentResourceId);
 
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);

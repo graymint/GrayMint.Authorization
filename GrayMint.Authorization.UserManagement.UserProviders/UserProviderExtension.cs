@@ -15,10 +15,11 @@ public static class UserProviderExtension
         Action<DbContextOptionsBuilder> dbOptionsAction)
     {
         userOptions ??= new UserProviderOptions();
-        services.AddDbContext<UserDbContext>(dbOptionsAction);
+        services.AddSingleton<UserAuthorizationCache>();
         services.AddSingleton(Options.Create(userOptions));
         services.AddScoped<IUserProvider, UserProvider>();
         services.AddScoped<IAuthorizationProvider, AuthorizationProvider>();
+        services.AddDbContext<UserDbContext>(dbOptionsAction);
     }
 
     public static async Task UseGrayMintUserProvider(this IServiceProvider serviceProvider)
