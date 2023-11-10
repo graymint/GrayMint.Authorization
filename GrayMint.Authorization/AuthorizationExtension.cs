@@ -15,7 +15,7 @@ namespace GrayMint.Authorization;
 
 public static class AuthorizationExtension
 {
-    public static void AddGrayMintFullAuthorization(this WebApplicationBuilder builder,
+    public static void AddGrayMintCommonAuthorizationForApp(this WebApplicationBuilder builder,
         GrayMintAuthenticationOptions authenticationOptions,
         TeamControllerOptions? teamControllerOptions,
         GmRole[] roles,
@@ -59,7 +59,7 @@ public static class AuthorizationExtension
                 }, dbOptionsAction);
     }
 
-    public static async Task UseGrayMintFullAuthorization(this WebApplication webApplication)
+    public static async Task UseGrayMinCommonAuthorizationForApp(this WebApplication webApplication)
     {
         await webApplication.Services.UseGrayMintUserProvider();
         await webApplication.Services.UseGrayMintRoleProvider();
