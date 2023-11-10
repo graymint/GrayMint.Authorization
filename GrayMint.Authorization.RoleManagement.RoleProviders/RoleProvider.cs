@@ -21,7 +21,7 @@ public class RoleProvider : IRoleProvider
     private readonly RoleDbContext _roleDbContext;
     private readonly RoleProviderOptions _roleProviderOptions;
     private readonly IRoleResourceProvider _roleResourceProvider;
-    private readonly IEnumerable<SimpleRole> _roles;
+    private readonly IEnumerable<GmRole> _roles;
     private readonly IMemoryCache _memoryCache;
     public string RootResourceId { get; }
 

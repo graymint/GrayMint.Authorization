@@ -5,6 +5,6 @@ namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 public class RoleProviderOptions
 {
-    public SimpleRole[] Roles { get; init; } = Array.Empty<SimpleRole>();
+    public GmRole[] Roles { get; init; } = Array.Empty<GmRole>();
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(60);
 }

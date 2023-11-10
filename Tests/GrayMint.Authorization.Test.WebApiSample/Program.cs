@@ -31,7 +31,7 @@ public class Program
 
         builder.Services.AddGrayMintRoleAuthorization();
         builder.Services.AddGrayMintUserProvider(authConfiguration.Get<UserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintRoleProvider(new RoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        builder.Services.AddGrayMintRoleProvider(new RoleProviderOptions { Roles = GmRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintAuthenticationController();
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddGrayMintSwagger("Test", true);

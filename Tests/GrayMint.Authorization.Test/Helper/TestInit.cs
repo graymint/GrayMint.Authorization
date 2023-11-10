@@ -64,13 +64,13 @@ public class TestInit : IDisposable
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }
 
-    public async Task<ApiKey> AddNewBot(SimpleRole simpleRole, bool setAsCurrent = true)
+    public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true)
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
 
-        var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
-        var apiKey = await TeamClient.AddNewBotAsync(resourceId, simpleRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
+        var resourceId = gmRole.IsRoot ? RootResourceId : AppResourceId;
+        var apiKey = await TeamClient.AddNewBotAsync(resourceId, gmRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
             ? new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value) : oldAuthorization;
@@ -78,10 +78,10 @@ public class TestInit : IDisposable
         return apiKey;
     }
 
-    public async Task<UserRole> AddNewUser(SimpleRole simpleRole)
+    public async Task<UserRole> AddNewUser(GmRole gmRole)
     {
-        var resourceId = simpleRole.IsRoot ? RootResourceId : AppResourceId;
-        var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, simpleRole.RoleId, NewEmail());
+        var resourceId = gmRole.IsRoot ? RootResourceId : AppResourceId;
+        var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, gmRole.RoleId, NewEmail());
         return teamUserRole;
     }
 

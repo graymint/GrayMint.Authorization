@@ -6,7 +6,7 @@ namespace GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 
 public class ResourceDbContext : DbContext
 {
-    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "nres";
+    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "reso";
 
     internal virtual DbSet<ResourceModel> Resources { get; set; } = default!;
 
