@@ -65,8 +65,8 @@ public class UserAuthorizationCache
 
     public void ClearUserItems(string userId)
     {
-        var userKey = BuildUserCacheKey(userId);
-        var keys = _memoryCache.Get<HashSet<string>>(userKey);
+        var userCacheKey = BuildUserCacheKey(userId);
+        var keys = _memoryCache.Get<HashSet<string>>(userCacheKey);
         if (keys == null) 
             return;
 
@@ -75,6 +75,6 @@ public class UserAuthorizationCache
                 _memoryCache.Remove(actualKey);
 
         // remove key itself
-        _memoryCache.Remove(userKey);
+        _memoryCache.Remove(userCacheKey);
     }
 }
