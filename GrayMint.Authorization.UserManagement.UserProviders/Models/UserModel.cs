@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
+﻿namespace GrayMint.Authorization.UserManagement.UserProviders.Models;
 
 internal class UserModel
 {

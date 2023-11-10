@@ -1,25 +1,22 @@
-﻿using System;
-using System.Data;
-using System.Threading.Tasks;
+﻿using System.Data;
 using GrayMint.Authorization.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
+using GrayMint.Authorization.UserManagement.UserProviders.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
+namespace GrayMint.Authorization.UserManagement.UserProviders.Persistence;
 
 // ReSharper disable once PartialTypeWithSinglePart
-public partial class SimpleRoleDbContext : DbContext
+public partial class UserDbContext : DbContext
 {
-    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "role";
+    public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "user";
+    internal virtual DbSet<UserModel> Users { get; set; } = default!;
 
-    internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = default!;
-
-    public SimpleRoleDbContext()
+    public UserDbContext()
     {
     }
 
-    public SimpleRoleDbContext(DbContextOptions<SimpleRoleDbContext> options)
+    public UserDbContext(DbContextOptions<UserDbContext> options)
         : base(options)
     {
     }
@@ -44,12 +41,27 @@ public partial class SimpleRoleDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
 
-        modelBuilder.Entity<UserRoleModel>(entity =>
+        modelBuilder.Entity<UserModel>(entity =>
         {
-            entity.HasKey(ex => new { AppId = ex.ResourceId, ex.UserId, ex.RoleId });
+            entity.HasKey(x => x.UserId);
 
-            entity.Property(x => x.ResourceId)
-                .HasMaxLength(100);
+            entity.Property(e => e.UserId)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.IsDisabled)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(e => e.Email)
+                .IsUnique();
+            
+            entity.HasIndex(e => e.FirstName);
+            entity.HasIndex(e => e.LastName);
+
+            entity.Property(e => e.IsBot)
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.ExData)
+                .HasMaxLength(int.MaxValue);
         });
 
         // ReSharper disable once InvocationIsSkipped

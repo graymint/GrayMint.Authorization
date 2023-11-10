@@ -1,35 +1,35 @@
 ﻿using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.Abstractions;
-using GrayMint.Authorization.UserManagement.SimpleUserProviders.DtoConverters;
-using GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
-using GrayMint.Authorization.UserManagement.SimpleUserProviders.Persistence;
+using GrayMint.Authorization.UserManagement.UserProviders.DtoConverters;
+using GrayMint.Authorization.UserManagement.UserProviders.Models;
+using GrayMint.Authorization.UserManagement.UserProviders.Persistence;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace GrayMint.Authorization.UserManagement.SimpleUserProviders;
+namespace GrayMint.Authorization.UserManagement.UserProviders;
 
-public class SimpleUserProvider : IUserProvider
+public class UserProvider : IUserProvider
 {
-    private readonly SimpleUserDbContext _simpleUserDbContext;
-    private readonly SimpleUserProviderOptions _simpleUserProviderOptions;
+    private readonly UserDbContext _userDbContext;
+    private readonly UserProviderOptions _userProviderOptions;
     private readonly IMemoryCache _memoryCache;
 
-    public SimpleUserProvider(
-        SimpleUserDbContext simpleUserDbContext,
-        IOptions<SimpleUserProviderOptions> simpleUserProviderOptions,
+    public UserProvider(
+        UserDbContext userDbContext,
+        IOptions<UserProviderOptions> userProviderOptions,
         IMemoryCache memoryCache)
     {
-        _simpleUserDbContext = simpleUserDbContext;
-        _simpleUserProviderOptions = simpleUserProviderOptions.Value;
+        _userDbContext = userDbContext;
+        _userProviderOptions = userProviderOptions.Value;
         _memoryCache = memoryCache;
     }
 
     public async Task<User> Create(UserCreateRequest request)
     {
-        var res = await _simpleUserDbContext.Users.AddAsync(new UserModel
+        var res = await _userDbContext.Users.AddAsync(new UserModel
         {
             Email = request.Email,
             Name = request.Name,
@@ -47,7 +47,7 @@ public class SimpleUserProvider : IUserProvider
             IsBot = request.IsBot,
             ExData = request.ExData
         });
-        await _simpleUserDbContext.SaveChangesAsync();
+        await _userDbContext.SaveChangesAsync();
 
         _memoryCache.Remove(GetCacheKeyForEmail(request.Email));
         return res.Entity.ToDto();
@@ -55,7 +55,7 @@ public class SimpleUserProvider : IUserProvider
 
     public async Task<User> Update(string userId, UserUpdateRequest request)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         if (request.Name != null) user.Name = request.Name;
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
@@ -73,7 +73,7 @@ public class SimpleUserProvider : IUserProvider
             user.Email = request.Email;
         }
 
-        await _simpleUserDbContext.SaveChangesAsync();
+        await _userDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
         return user.ToDto();
     }
@@ -86,8 +86,8 @@ public class SimpleUserProvider : IUserProvider
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
         var user = await _memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
-            entry.SetAbsoluteExpiration(_simpleUserProviderOptions.CacheTimeout);
-            return _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
+            entry.SetAbsoluteExpiration(_userProviderOptions.CacheTimeout);
+            return _userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
         });
 
         return user?.ToDto();
@@ -101,9 +101,9 @@ public class SimpleUserProvider : IUserProvider
 
     public async Task UpdateAccessedTime(string userId)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AccessedTime = DateTime.UtcNow;
-        await _simpleUserDbContext.SaveChangesAsync();
+        await _userDbContext.SaveChangesAsync();
 
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "provider:user-model");
         _memoryCache.Set(cacheKey, user, TimeSpan.FromMinutes(60));
@@ -111,19 +111,19 @@ public class SimpleUserProvider : IUserProvider
 
     public async Task Remove(string userId)
     {
-        _simpleUserDbContext.ChangeTracker.Clear();
+        _userDbContext.ChangeTracker.Clear();
 
         var user = new UserModel { UserId = Guid.Parse(userId) };
-        _simpleUserDbContext.Users.Remove(user);
-        await _simpleUserDbContext.SaveChangesAsync();
+        _userDbContext.Users.Remove(user);
+        await _userDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
     public async Task ResetAuthorizationCode(string userId)
     {
-        var user = await _simpleUserDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AuthCode = Guid.NewGuid().ToString();
-        await _simpleUserDbContext.SaveChangesAsync();
+        await _userDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
     }
 
@@ -135,7 +135,7 @@ public class SimpleUserProvider : IUserProvider
             return user.ToDto();
 
         //add to cache
-        user = await _simpleUserDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
+        user = await _userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
         if (user != null)
         {
             _memoryCache.Set(cacheKey, user);
@@ -159,8 +159,8 @@ public class SimpleUserProvider : IUserProvider
         recordCount ??= int.MaxValue;
         if (!Guid.TryParse(search, out var searchGuid)) searchGuid = Guid.Empty;
 
-        await using var trans = await _simpleUserDbContext.WithNoLockTransaction();
-        var query = _simpleUserDbContext.Users
+        await using var trans = await _userDbContext.WithNoLockTransaction();
+        var query = _userDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
                 (userIds == null || userIds.Contains(x.UserId.ToString())) &&

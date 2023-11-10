@@ -3,7 +3,7 @@ using System.Security.Claims;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.RoleManagement.NestedResourceProviders;
 using GrayMint.Authorization.RoleManagement.NestedResourceProviders.Dtos;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Test.Api;

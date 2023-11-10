@@ -1,4 +1,4 @@
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Security;

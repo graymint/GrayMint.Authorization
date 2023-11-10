@@ -30,18 +30,14 @@
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj">
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.SimpleRoleProviders\GrayMint.Authorization.RoleManagement.SimpleRoleProviders.csproj">
-      <Private>True</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleProviders\GrayMint.Authorization.RoleManagement.RoleProviders.csproj" />
     <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj">
       <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj">
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.UserManagement.SimpleUserProviders\GrayMint.Authorization.UserManagement.SimpleUserProviders.csproj">
-      <Private>True</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\GrayMint.Authorization.UserManagement.UserProviders\GrayMint.Authorization.UserManagement.UserProviders.csproj" />
   </ItemGroup>
 
   <ItemGroup>

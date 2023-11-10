@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+namespace GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 
 public class SimpleRole : Role
 {

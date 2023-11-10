@@ -269,7 +269,7 @@ public class NestedResourceProviderTest
 
 
         // create a user
-        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         var userCreateRequest = new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
@@ -277,7 +277,7 @@ public class NestedResourceProviderTest
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()
         };
-        var user = await simpleUserProvider.Create(userCreateRequest);
+        var user = await userProvider.Create(userCreateRequest);
 
         // assign role
         var userRoleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();

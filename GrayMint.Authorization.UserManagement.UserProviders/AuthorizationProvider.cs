@@ -2,13 +2,13 @@
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.Abstractions;
 
-namespace GrayMint.Authorization.UserManagement.SimpleUserProviders;
+namespace GrayMint.Authorization.UserManagement.UserProviders;
 
-public class SimpleAuthorizationProvider : IAuthorizationProvider
+public class AuthorizationProvider : IAuthorizationProvider
 {
     private readonly IUserProvider _userProvider;
 
-    public SimpleAuthorizationProvider(IUserProvider userProvider)
+    public AuthorizationProvider(IUserProvider userProvider)
     {
         _userProvider = userProvider;
     }
@@ -55,8 +55,8 @@ public class SimpleAuthorizationProvider : IAuthorizationProvider
         // update access time
         if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60))
         {
-            if (_userProvider is SimpleUserProvider simpleUserProvider)
-                await simpleUserProvider.UpdateAccessedTime(user.UserId);
+            if (_userProvider is UserProvider userProvider)
+                await userProvider.UpdateAccessedTime(user.UserId);
         }
     }
 }

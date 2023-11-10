@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Models;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.DtoConverters;
+namespace GrayMint.Authorization.RoleManagement.RoleProviders.DtoConverters;
 
 internal static class UserRoleConverter
 {

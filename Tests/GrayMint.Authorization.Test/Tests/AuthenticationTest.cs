@@ -23,8 +23,8 @@ public class AuthenticationTest
         // make sure the current token is working
         await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
 
-        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        await simpleUserProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
+        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        await userProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()),

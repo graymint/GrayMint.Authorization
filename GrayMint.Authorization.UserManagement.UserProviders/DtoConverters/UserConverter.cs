@@ -1,7 +1,7 @@
 ﻿using GrayMint.Authorization.UserManagement.Abstractions;
-using GrayMint.Authorization.UserManagement.SimpleUserProviders.Models;
+using GrayMint.Authorization.UserManagement.UserProviders.Models;
 
-namespace GrayMint.Authorization.UserManagement.SimpleUserProviders.DtoConverters;
+namespace GrayMint.Authorization.UserManagement.UserProviders.DtoConverters;
 
 internal static class UserConverter
 {

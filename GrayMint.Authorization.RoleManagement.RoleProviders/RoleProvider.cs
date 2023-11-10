@@ -5,47 +5,47 @@ using System.Linq;
 using System.Threading.Tasks;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.DtoConverters;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Persistence;
+using GrayMint.Authorization.RoleManagement.RoleProviders.DtoConverters;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Models;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Persistence;
 using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
+namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
-public class SimpleRoleProvider : IRoleProvider
+public class RoleProvider : IRoleProvider
 {
-    private readonly SimpleRoleDbContext _simpleRoleDbContext;
-    private readonly SimpleRoleProviderOptions _simpleRoleProviderOptions;
+    private readonly RoleDbContext _roleDbContext;
+    private readonly RoleProviderOptions _roleProviderOptions;
     private readonly IRoleResourceProvider _roleResourceProvider;
     private readonly IEnumerable<SimpleRole> _roles;
     private readonly IMemoryCache _memoryCache;
     public string RootResourceId { get; }
 
-    public SimpleRoleProvider(
-        SimpleRoleDbContext simpleRoleDbContext,
+    public RoleProvider(
+        RoleDbContext roleDbContext,
         IRoleResourceProvider roleResourceProvider,
-        IOptions<SimpleRoleProviderOptions> simpleRoleProviderOptions,
+        IOptions<RoleProviderOptions> roleProviderOptions,
         IMemoryCache memoryCache)
     {
-        if (simpleRoleProviderOptions.Value.Roles.GroupBy(x => x.RoleId).Any(g => g.Count() > 1))
+        if (roleProviderOptions.Value.Roles.GroupBy(x => x.RoleId).Any(g => g.Count() > 1))
             throw new DuplicateNameException("Duplicate RoleId has been found.");
 
-        _simpleRoleDbContext = simpleRoleDbContext;
-        _simpleRoleProviderOptions = simpleRoleProviderOptions.Value;
+        _roleDbContext = roleDbContext;
+        _roleProviderOptions = roleProviderOptions.Value;
         _memoryCache = memoryCache;
         _roleResourceProvider = roleResourceProvider;
-        _roles = simpleRoleProviderOptions.Value.Roles;
+        _roles = roleProviderOptions.Value.Roles;
         RootResourceId = AuthorizationConstants.RootResourceId;
     }
 
     public async Task<UserRole> AddUserRole(string resourceId, string roleId, string userId)
     {
-        _simpleRoleDbContext.ChangeTracker.Clear();
-        var entry = await _simpleRoleDbContext.UserRoles
+        _roleDbContext.ChangeTracker.Clear();
+        var entry = await _roleDbContext.UserRoles
             .AddAsync(new UserRoleModel
             {
                 RoleId = Guid.Parse(roleId),
@@ -53,15 +53,15 @@ public class SimpleRoleProvider : IRoleProvider
                 ResourceId = resourceId
             });
 
-        await _simpleRoleDbContext.SaveChangesAsync();
+        await _roleDbContext.SaveChangesAsync();
         AuthorizationCache.ResetUser(_memoryCache, userId);
         return entry.Entity.ToDto(_roles);
     }
 
     public async Task RemoveUserRoles(UserRoleCriteria criteria)
     {
-        _simpleRoleDbContext.ChangeTracker.Clear();
-        var userRoles = await _simpleRoleDbContext.UserRoles
+        _roleDbContext.ChangeTracker.Clear();
+        var userRoles = await _roleDbContext.UserRoles
             .Where(x =>
                 (criteria.RoleId == null || x.RoleId == Guid.Parse(criteria.RoleId)) &&
                 (criteria.UserId == null || x.UserId == Guid.Parse(criteria.UserId)) &&
@@ -71,8 +71,8 @@ public class SimpleRoleProvider : IRoleProvider
         foreach (var userRole in userRoles)
             AuthorizationCache.ResetUser(_memoryCache, userRole.UserId.ToString().ToLower());
 
-        _simpleRoleDbContext.UserRoles.RemoveRange(userRoles);
-        await _simpleRoleDbContext.SaveChangesAsync();
+        _roleDbContext.UserRoles.RemoveRange(userRoles);
+        await _roleDbContext.SaveChangesAsync();
     }
 
     public Task<Role[]> GetRoles(string resourceId)
@@ -111,8 +111,8 @@ public class SimpleRoleProvider : IRoleProvider
             return await GetUserRolesWithUserFilter(criteria.ResourceId, criteria.UserId, criteria.RoleId,
                 recordIndex: recordIndex, recordCount: recordCount);
 
-        await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();
-        var query = _simpleRoleDbContext.UserRoles
+        await using var trans = await _roleDbContext.WithNoLockTransaction();
+        var query = _roleDbContext.UserRoles
             .Where(x =>
                 (criteria.RoleId == null || x.RoleId == Guid.Parse(criteria.RoleId)) &&
                 (criteria.UserId == null || x.UserId == Guid.Parse(criteria.UserId)) &&
@@ -139,12 +139,12 @@ public class SimpleRoleProvider : IRoleProvider
         var cacheKey = AuthorizationCache.CreateKey(_memoryCache, userId, "user-roles");
         var userRoles = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
         {
-            await using var trans = await _simpleRoleDbContext.WithNoLockTransaction();
-            var res = await _simpleRoleDbContext.UserRoles
+            await using var trans = await _roleDbContext.WithNoLockTransaction();
+            var res = await _roleDbContext.UserRoles
                 .Where(x => x.UserId == Guid.Parse(userId))
                 .ToArrayAsync();
 
-            entry.SetAbsoluteExpiration(_simpleRoleProviderOptions.CacheTimeout);
+            entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
             return res;
         });
 
@@ -175,7 +175,7 @@ public class SimpleRoleProvider : IRoleProvider
         // get roles for the resource and system resource
         var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
 
-        // find simple roles
+        // find roles
         var roles = _roles.Where(x => userRoles.Any(y => y.Role.RoleId == x.RoleId))
             .DistinctBy(x => x.RoleId);
 

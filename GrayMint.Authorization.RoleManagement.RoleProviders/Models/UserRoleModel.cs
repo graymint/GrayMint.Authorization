@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Models;
+namespace GrayMint.Authorization.RoleManagement.RoleProviders.Models;
 
 internal class UserRoleModel
 {

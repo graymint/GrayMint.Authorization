@@ -2,9 +2,9 @@
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 
-namespace GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
+namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
-internal class SimpleRoleResourceProvider : IRoleResourceProvider
+internal class RoleResourceProvider : IRoleResourceProvider
 {
     public Task<string?> GetParentResourceId(string resourceId)
     {

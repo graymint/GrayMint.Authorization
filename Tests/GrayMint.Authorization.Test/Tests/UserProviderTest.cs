@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class SimpleUserProviderTest 
+public class UserProviderTest 
 {
     [TestMethod]
     public async Task Crud()
@@ -15,7 +15,7 @@ public class SimpleUserProviderTest
         using var testInit = await TestInit.Create();
 
         // Create
-        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         var request = new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
@@ -31,7 +31,7 @@ public class SimpleUserProviderTest
             ExData = "zz"
         };
 
-        var user = await simpleUserProvider.Create(request);
+        var user = await userProvider.Create(request);
         Assert.AreEqual(request.Email, user.Email);
         Assert.AreEqual(request.Name, user.Name);
         Assert.AreEqual(request.FirstName, user.FirstName);
@@ -47,7 +47,7 @@ public class SimpleUserProviderTest
         Assert.AreNotEqual(string.Empty, user.AuthorizationCode.Trim());
 
         // Get
-        var user2 = await simpleUserProvider.Get(user.UserId);
+        var user2 = await userProvider.Get(user.UserId);
         Assert.AreEqual(user.Email, user2.Email);
         Assert.AreEqual(user.FirstName, user2.FirstName);
         Assert.AreEqual(user.LastName, user2.LastName);
@@ -56,7 +56,7 @@ public class SimpleUserProviderTest
         Assert.AreEqual(user.CreatedTime, user2.CreatedTime);
         Assert.AreEqual(user.UserId, user2.UserId);
 
-        var user3 = await simpleUserProvider.GetByEmail(user.Email);
+        var user3 = await userProvider.GetByEmail(user.Email);
         Assert.AreEqual(user.UserId, user3.UserId);
         Assert.AreEqual(user.FirstName, user3.FirstName);
 
@@ -76,10 +76,10 @@ public class SimpleUserProviderTest
             ExData = Guid.NewGuid().ToString(),
             
         };
-        await simpleUserProvider.Update(user.UserId, updateRequest);
+        await userProvider.Update(user.UserId, updateRequest);
 
         // Get
-        var user4 = await simpleUserProvider.Get(user.UserId);
+        var user4 = await userProvider.Get(user.UserId);
         Assert.AreEqual(user4.Email, updateRequest.Email.Value);
         Assert.AreEqual(user4.Name, updateRequest.Name.Value);
         Assert.AreEqual(user4.FirstName, updateRequest.FirstName.Value);
@@ -90,9 +90,9 @@ public class SimpleUserProviderTest
         Assert.AreEqual(user4.AuthorizationCode, user.AuthorizationCode);
 
         // Remove
-        await simpleUserProvider.Remove(user.UserId);
+        await userProvider.Remove(user.UserId);
         await TestUtil.AssertNotExistsException(
-            simpleUserProvider.Get(user.UserId));
+            userProvider.Get(user.UserId));
     }
 
     [TestMethod]
@@ -101,7 +101,7 @@ public class SimpleUserProviderTest
         using var testInit = await TestInit.Create();
 
         // Create
-        var simpleUserProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         var request = new UserCreateRequest
         {
             Email = $"{Guid.NewGuid()}@local",
@@ -109,10 +109,10 @@ public class SimpleUserProviderTest
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()
         };
-        await simpleUserProvider.Create(request);
+        await userProvider.Create(request);
 
         // AlreadyExists exception
         await TestUtil.AssertAlreadyExistsException(
-            simpleUserProvider.Create(request));
+            userProvider.Create(request));
     }
 }

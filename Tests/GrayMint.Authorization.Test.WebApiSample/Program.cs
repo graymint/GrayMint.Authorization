@@ -2,12 +2,12 @@ using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.Controllers;
 using GrayMint.Authorization.RoleManagement.NestedResourceProviders;
 using GrayMint.Authorization.RoleManagement.RoleAuthorizations;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders;
-using GrayMint.Authorization.RoleManagement.SimpleRoleProviders.Dtos;
+using GrayMint.Authorization.RoleManagement.RoleProviders;
+using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.TeamControllers;
 using GrayMint.Authorization.Test.WebApiSample.Persistence;
 using GrayMint.Authorization.Test.WebApiSample.Security;
-using GrayMint.Authorization.UserManagement.SimpleUserProviders;
+using GrayMint.Authorization.UserManagement.UserProviders;
 using GrayMint.Common.AspNetCore;
 using GrayMint.Common.Swagger;
 using Microsoft.AspNetCore.Authorization;
@@ -30,8 +30,8 @@ public class Program
             .AddGrayMintAuthentication(authConfiguration.Get<GrayMintAuthenticationOptions>(), builder.Environment.IsProduction());
 
         builder.Services.AddGrayMintRoleAuthorization();
-        builder.Services.AddGrayMintSimpleUserProvider(authConfiguration.Get<SimpleUserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
-        builder.Services.AddGrayMintSimpleRoleProvider(new SimpleRoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        builder.Services.AddGrayMintUserProvider(authConfiguration.Get<UserProviderOptions>(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        builder.Services.AddGrayMintRoleProvider(new RoleProviderOptions { Roles = SimpleRole.GetAll(typeof(Roles)) }, options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         builder.Services.AddGrayMintAuthenticationController();
         builder.Services.AddGrayMintTeamController(builder.Configuration.GetSection("TeamController").Get<TeamControllerOptions>());
         builder.Services.AddGrayMintSwagger("Test", true);
@@ -58,8 +58,8 @@ public class Program
         webApp.UseGrayMintSwagger();
         webApp.UseStaticFiles(new StaticFileOptions());
         await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
-        await webApp.Services.UseGrayMintSimpleUserProvider();
-        await webApp.Services.UseGrayMintSimpleRoleProvider();
+        await webApp.Services.UseGrayMintUserProvider();
+        await webApp.Services.UseGrayMintRoleProvider();
         if (appOptions.UseNestedResource) 
             await webApp.Services.UseGrayMintNestedResourceProvider();
 

@@ -20,7 +20,7 @@ internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
 
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        // add simple roles to app-role claims
+        // add roles to app-role claims
         var userId = await _authorizationProvider.GetUserId(principal);
         if (userId == null)
             return principal;

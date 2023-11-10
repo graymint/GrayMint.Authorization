@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class SimpleRoleProviderTest
+public class RoleProviderTest
 {
 
     [TestMethod]
