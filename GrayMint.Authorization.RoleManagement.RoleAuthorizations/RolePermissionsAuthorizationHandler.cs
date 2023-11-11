@@ -18,7 +18,9 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
         _roleAuthorizationProvider = roleAuthorizationProvider;
     }
 
-    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionAuthorizationRequirement requirement)
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context, 
+        PermissionAuthorizationRequirement requirement)
     {
         try
         {

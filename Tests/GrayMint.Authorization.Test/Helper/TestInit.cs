@@ -64,12 +64,12 @@ public class TestInit : IDisposable
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }
 
-    public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true)
+    public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, string? resourceId = null )
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
 
-        var resourceId = gmRole.IsRoot ? RootResourceId : AppResourceId;
+        resourceId ??= gmRole.IsRoot ? RootResourceId : AppResourceId;
         var apiKey = await TeamClient.AddNewBotAsync(resourceId, gmRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent

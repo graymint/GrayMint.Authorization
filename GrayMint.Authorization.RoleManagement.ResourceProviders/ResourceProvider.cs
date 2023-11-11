@@ -5,7 +5,6 @@ using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Models;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
@@ -31,6 +30,7 @@ public class ResourceProvider : IResourceProvider
     public async Task<Resource> Add(Resource resource)
     {
         _resourceDbContext.ChangeTracker.Clear();
+        resource.ParentResourceId ??= RootResourceId; // set default parent
         var effectedResourceIds = await ValidateResourceParent(resource);
 
         var entry = await _resourceDbContext.Resources.AddAsync(resource.ToModel());
@@ -43,7 +43,8 @@ public class ResourceProvider : IResourceProvider
     public async Task<Resource> Update(Resource resource)
     {
         _resourceDbContext.ChangeTracker.Clear();
-        if (resource.ResourceId == AuthorizationConstants.RootResourceId)
+        resource.ParentResourceId ??= RootResourceId; // set default parent
+        if (resource.ResourceId == RootResourceId)
             throw new InvalidOperationException("Root resource cannot be updated.");
 
         var curResource = await Get(resource.ResourceId);
@@ -54,6 +55,7 @@ public class ResourceProvider : IResourceProvider
         var entry = _resourceDbContext.Resources.Update(resource.ToModel());
         await _resourceDbContext.SaveChangesAsync();
 
+        // invalidate users in parent sources and destination
         await ClearResourceCache(effectedResourceIdsDes);
         await ClearResourceCache(effectedResourceIdsSrc);
         return entry.Entity.ToDto();

@@ -16,7 +16,9 @@ public static class RoleAuthorizationExtension
         services.AddSingleton<UserAuthorizationCache>();
         services.AddScoped<IAuthorizationHandler, RolePermissionsAuthorizationHandler>();
         services.AddTransient<IClaimsTransformation, RoleAuthorizationClaimsTransformation>();
-        services.AddGrayMintPermissionAuthorization();
+
+        //warning: this should be added after RolePermissionsAuthorizationHandler to make sure role handler fills the claims
+        services.AddGrayMintPermissionAuthorization(); 
         return services;
     }
 }

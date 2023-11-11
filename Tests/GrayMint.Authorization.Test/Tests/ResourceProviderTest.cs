@@ -60,31 +60,45 @@ public class ResourceProviderTest
     [TestMethod]
     public async Task AppUser_access_by_hierarchy_permission_after_update()
     {
-        var testInit1 = await TestInit.Create(useResourceProvider: true);
-        var testInit2 = await TestInit.Create(useResourceProvider: true);
-        var testInit3 = await TestInit.Create(useResourceProvider: true);
-        var testInit4 = await TestInit.Create(useResourceProvider: true);
-        var testInit5 = await TestInit.Create(useResourceProvider: true);
-        testInit4.SetApiKey(await testInit1.AddNewBot(Roles.AppWriter));
+        var testInit = await TestInit.Create(useResourceProvider: true);
+        var app1 = testInit.App;
+        var app2 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        var app3 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        var app4 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        var app5 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+
+        // fix app parent 
+        await testInit.ResourceProvider.Update(new Resource { ResourceId = app1.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = app2.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = app3.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = app4.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+        await testInit.ResourceProvider.Add(new Resource { ResourceId = app5.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+
+        // -----------
+        // **** Check:  Should not have access if user have not access on its parent or itself.
+        // -----------
+        
+        // create a user that has access to app4
+        testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app1.AppId.ToString()));
 
         // Set hierarchy
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit1.AppId.ToString() });
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit3.AppId.ToString(), ParentResourceId = testInit2.AppId.ToString() });
-
-        // **** Check: 
+        await testInit.ResourceProvider.Update(new Resource { ResourceId = app2.AppId.ToString(), ParentResourceId = app1.AppId.ToString() });
+        await testInit.ResourceProvider.Update(new Resource { ResourceId = app3.AppId.ToString(), ParentResourceId = app2.AppId.ToString() });
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString()),
-            "Should not have access if it is not one of its parent.");
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString()));
 
+        // -----------
         // **** Check: Should have access if it is one of its parent.
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit4.AppId.ToString(), ParentResourceId = testInit3.AppId.ToString() });
-        await testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString());
+        // -----------
+        await testInit.ResourceProvider.Update(new Resource { ResourceId = app4.AppId.ToString(), ParentResourceId = app3.AppId.ToString() });
+        await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString());
 
-        // **** Check: 
-        await testInit1.ResourceProvider.Update(new Resource { ResourceId = testInit2.AppId.ToString(), ParentResourceId = testInit5.AppId.ToString() });
+        // -----------
+        // **** Check: Should not have access if it is not one of its parent after moving a node in the middle
+        // -----------
+        await testInit.ResourceProvider.Update(new Resource { ResourceId = app2.AppId.ToString(), ParentResourceId = app5.AppId.ToString() });
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit4.ItemsClient.CreateByPermissionAsync(testInit4.App.AppId, Guid.NewGuid().ToString()),
-            "Should not have access if it is not one of its parent.");
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString()));
     }
 
     [TestMethod]
