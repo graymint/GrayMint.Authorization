@@ -44,6 +44,11 @@ public class RoleProvider : IRoleProvider
 
     public async Task<UserRole> AddUserRole(string resourceId, string roleId, string userId)
     {
+        // validate role
+        var role = _roles.Single(x => x.RoleId == roleId);
+        if (role.IsRoot && !IsRootResource(resourceId))
+            throw new InvalidOperationException($"The role of {role.RoleName} can only be added on the system resource.");
+
         _roleDbContext.ChangeTracker.Clear();
         var entry = await _roleDbContext.UserRoles
             .AddAsync(new UserRoleModel
