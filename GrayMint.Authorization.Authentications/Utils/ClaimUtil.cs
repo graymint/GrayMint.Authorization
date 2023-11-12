@@ -7,7 +7,7 @@ namespace GrayMint.Authorization.Authentications.Utils;
 
 public static class ClaimUtil
 {
-    public static void AddClaim(ClaimsIdentity source, ClaimsIdentity destination, string sourceType,
+    public static void CopyClaim(ClaimsIdentity source, ClaimsIdentity destination, string sourceType,
         string? destinationType = null, string? destinationValueType = null, bool replace = true)
     {
         foreach (var claim in source.Claims.Where(x => x.Type == sourceType))
@@ -59,10 +59,10 @@ public static class ClaimUtil
     public static ClaimsPrincipal CreateClaimsPrincipal(ClaimsIdentity claimsIdentity)
     {
         var destination = claimsIdentity.Clone();
-        AddClaim(claimsIdentity, destination, JwtRegisteredClaimNames.Sub, ClaimTypes.NameIdentifier);
-        AddClaim(claimsIdentity, destination, JwtRegisteredClaimNames.Email, ClaimTypes.Email);
-        AddClaim(claimsIdentity, destination, JwtRegisteredClaimNames.GivenName, ClaimTypes.GivenName);
-        AddClaim(claimsIdentity, destination, JwtRegisteredClaimNames.FamilyName, ClaimTypes.Surname);
+        CopyClaim(claimsIdentity, destination, JwtRegisteredClaimNames.Sub, ClaimTypes.NameIdentifier);
+        CopyClaim(claimsIdentity, destination, JwtRegisteredClaimNames.Email, ClaimTypes.Email);
+        CopyClaim(claimsIdentity, destination, JwtRegisteredClaimNames.GivenName, ClaimTypes.GivenName);
+        CopyClaim(claimsIdentity, destination, JwtRegisteredClaimNames.FamilyName, ClaimTypes.Surname);
         return new ClaimsPrincipal(destination);
     }
 }

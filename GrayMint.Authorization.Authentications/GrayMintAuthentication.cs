@@ -116,14 +116,6 @@ public class GrayMintAuthentication
     {
         var claimsIdentity = clientIdentity?.Clone() ?? new ClaimsIdentity();
 
-        // add subject
-        if (tokenOptions.Subject != null)
-            ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, tokenOptions.Subject));
-
-        // add email
-        if (tokenOptions.Email != null)
-            ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Email, tokenOptions.Email));
-
         // try to add subject if not set
         if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null)
         {
@@ -132,11 +124,12 @@ public class GrayMintAuthentication
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
         }
 
-        // add AuthTime
-        if (tokenOptions.AuthTime != null)
+        // AuthCode. try to retrieve it from authorization Provider if not set
+        if (claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null)
         {
-            var unixTime = ((DateTimeOffset)tokenOptions.AuthTime).ToUnixTimeSeconds();
-            ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.AuthTime, unixTime.ToString(), ClaimValueTypes.Integer64));
+            var authCode = await _authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+            if (!string.IsNullOrEmpty(authCode))
+                ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AuthCode, authCode));
         }
 
         // validate times
@@ -146,14 +139,6 @@ public class GrayMintAuthentication
         if (authTime > expTime) throw new InvalidOperationException("AuthTime can not be more than ExpTime.");
         if (authTime > authEndTime) throw new InvalidOperationException("AuthTime can not be more than AuthEndTime.");
         if (expTime > authEndTime) throw new InvalidOperationException("ExpTime can not be more than AuthEndTime.");
-
-        // AuthCode. try to retrieve it from authorization Provider if not set
-        if (tokenOptions.AuthCode == null && claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null)
-        {
-            var authCode = await _authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
-            if (!string.IsNullOrEmpty(authCode))
-                ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AuthCode, authCode));
-        }
 
         // add authorization code to claim
         ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.TokenUse, tokenUse));
@@ -261,14 +246,14 @@ public class GrayMintAuthentication
             ?? throw new UnregisteredUser();
 
         // update userId in claims
+        var issuedAt = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat);
         ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
+        ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, issuedAt));
 
         var apiKey = await CreateApiKey(new ApiKeyOptions
         {
             TokenOptions = new TokenOptions
             {
-                AuthTime = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat), // set auth time as id claim issued time
-                Subject = userId,
                 ValidateAuthCode = true,
                 ValidateSubject = true,
             },
