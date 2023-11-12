@@ -6,6 +6,7 @@ using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
+using GrayMint.Common.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.Tests;
@@ -50,5 +51,15 @@ public class AwsCognitoTest
 
         testInit.SetApiKey(apiKey);
         await testInit.AppsClient.ListAsync();
+    }
+
+
+    [TestMethod]
+    public async Task Failed_on_expired_token()
+    {
+        using var testInit = await TestInit.Create();
+        var expiredIdToken = "eyJraWQiOiJNWHhGY3Ziam9PYlJqMVhIR0EybGdYM1p5dmQweVRGcFpjNG5HUzIxRTJZPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI3ODY2MjZmMy03ZjA3LTRkN2MtYTA4Ny02MzNiYjIzZDVkOTUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLnVzLWVhc3QtMi5hbWF6b25hd3MuY29tXC91cy1lYXN0LTJfd1hEY3FHTW42IiwiY29nbml0bzp1c2VybmFtZSI6InVuaXQtdGVzdGVyIiwib3JpZ2luX2p0aSI6ImExZTEwYjViLWQ3YjgtNGMzYy1hN2Y4LWMzZjgzY2I2Y2JkNSIsImF1ZCI6IjJrbnJqdmxiMjVscDFtdnY5Y2ZmM3Z0c2NpIiwiZXZlbnRfaWQiOiIxYjEyMjk0Ny1lNTk2LTQ0NWQtOGNjYS1hZWY0NzIyNTI0ZDIiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY5OTc4MTk3MiwiZXhwIjoxNjk5ODY4MzcyLCJpYXQiOjE2OTk3ODE5NzIsImp0aSI6IjJkM2RlZjllLTZkMGUtNDk4MS1hMGVlLTBiYjc3YzFjZTRhMCIsImVtYWlsIjoidW5pdC10ZXN0ZXJAbG9jYWwifQ.yefAfe6v7A-W4YWR7jS1SRRUBFvUysyGtMdkYlKxUB0rqpKQKukhR5-2anrC8VuBRBJrN6vMqHhd25jHs3vCT9-q9KxBXQPrfCmTOKL7-G9tC6a8vhBprgpvpkmQ8qiHdtQlpGyEiBwhG1IrMc8OzryhSq8Uq1Y7tdHiuAW_oefdQSlumcToObrn1h32ELqM3QgQ-uM67Jtw8CV_a9IQs0Sj5Ur8U1iPo3ojRHuK1_EulVWi-UJtMGRi7r606PvpXHVLGRvZEeNFd8cYiUDghlb3DJWVDCr9lSN0RrQeESZI2sKvn1w0zV5EWhKO3Xkpi0NzAFwbyJvXMMGPVZeSSg";
+        await TestUtil.AssertApiException(System.Net.HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = expiredIdToken }));
     }
 }
