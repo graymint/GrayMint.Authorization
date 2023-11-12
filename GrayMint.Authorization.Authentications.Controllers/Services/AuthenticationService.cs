@@ -6,6 +6,7 @@ using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace GrayMint.Authorization.Authentications.Controllers.Services;
 
@@ -63,16 +64,19 @@ public class AuthenticationService
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
-        var expirationTime = DateTime.UtcNow.AddYears(13);
         await _userProvider.ResetAuthorizationCode(user.UserId);
+
+        // create new api key
+        var claimIdentity = new ClaimsIdentity();
+        claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(
-                new CreateTokenParams
-                {
-                    Subject = user.UserId,
-                    Email = user.Email
-                },
-                accessTokenExpirationTime: expirationTime);
+            .CreateApiKey(new ApiKeyOptions
+            {
+                TokenOptions = new TokenOptions { ValidateAuthCode = true, ValidateSubject = false },
+                ClaimsIdentity = claimIdentity,
+                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13),
+                RefreshTokenType = RefreshTokenType.None,
+            });
 
         return apiKey;
     }
@@ -112,8 +116,12 @@ public class AuthenticationService
         var apiKey = await _grayMintAuthentication
             .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType);
 
+        // make sure userId is not null 
+        if (apiKey.UserId is null)
+            throw new Exception("SignIn should not return null UserId.");
+
         // update user profile by claims
-        if (apiKey.AccessToken.ClaimsPrincipal != null)
+        if (apiKey.AccessToken.ClaimsPrincipal is not null)
         {
             var user = await _userProvider.Get(apiKey.UserId);
             await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal);

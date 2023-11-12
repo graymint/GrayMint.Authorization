@@ -161,7 +161,7 @@ public class AuthenticationTest
     {
         var testInit = await TestInit.Create(new Dictionary<string, string?>
         {
-            {"Auth:RefreshTokenAppTimeout", "00:00:02" }
+            {"Auth:SessionWebTimeout", "00:00:02" }
         });
 
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);

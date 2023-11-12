@@ -56,11 +56,10 @@ public class ItemsController : ControllerBase
 
     [HttpDelete]
     [AuthorizeAppIdPermission(Permissions.ItemWrite)]
-    public async Task DeleteByPermission(int appId, string itemName)
+    public async Task DeleteByPermission(int appId, int itemId)
     {
-        var item = await _dbContext.Items.SingleAsync(x => x.AppId == appId && x.ItemName == itemName);
+        var item = await _dbContext.Items.SingleAsync(x => x.AppId == appId && x.ItemId == itemId);
         _dbContext.Items.Remove(item);
         await _dbContext.SaveChangesAsync();
     }
-
 }

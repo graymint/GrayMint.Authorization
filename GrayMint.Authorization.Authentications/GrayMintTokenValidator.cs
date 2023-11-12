@@ -43,16 +43,16 @@ public class GrayMintTokenValidator
         var tokenVersion = tokenVersionStr != null ? int.Parse(tokenVersionStr) : 1;
 
         // check token usage
-        if (tokenVersion > 1 && tokenUsage!=null && !claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, tokenUsage))
+        if (tokenVersion > 1 && tokenUsage != null && !claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, tokenUsage))
             throw new AuthenticationException($"Can not authenticated by this token usage. RequiredToken: {tokenUsage}");
 
         // check authCode
-        var tokenAuthCode = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintAuthenticationDefaults.AuthorizationCodeTypeName)?.Value;
+        var tokenAuthCode = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
         var authCodeCacheKey = $"graymint:auth:token:auth-code:jti={tokenId}";
         if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode)
         {
             if (string.IsNullOrEmpty(tokenAuthCode))
-                throw new AuthenticationException($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in the token.");
+                throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");
 
             // get authCode and manage cache
             var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
@@ -62,10 +62,10 @@ public class GrayMintTokenValidator
             });
 
             if (string.IsNullOrEmpty(authCode))
-                throw new AuthenticationException($"Could not find {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName} in token.");
+                throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in token.");
 
             if (authCode != tokenAuthCode)
-                throw new AuthenticationException($"Invalid {GrayMintAuthenticationDefaults.AuthorizationCodeTypeName}.");
+                throw new AuthenticationException($"Invalid {GrayMintClaimTypes.AuthCode}.");
         }
 
         // update name-identifier
@@ -86,6 +86,11 @@ public class GrayMintTokenValidator
         await _authorizationProvider.OnAuthenticated(claimsPrincipal);
     }
 
+    private Task<OpenIdConnectConfiguration> GetOpenIdConnectConfigurationByIssuer(string issuer)
+    {
+        return GetOpenIdConnectConfiguration($"{issuer}/.well-known/openid-configuration");
+    }
+
     private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
     {
         var openIdConfig = await _memoryCache.GetOrCreateAsync(url, async entry =>
@@ -98,45 +103,16 @@ public class GrayMintTokenValidator
         return openIdConfig;
     }
 
-    private static void AddClaim(JwtPayload source, ClaimsIdentity destination, string sourceType,
-        string? destinationType = null, string? destinationValueType = null)
+    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, string issuer, string audience)
     {
-        foreach (var claim in source.Claims.Where(x => x.Type == sourceType))
-            destination.AddClaim(new Claim(destinationType ?? sourceType, claim.Value, destinationValueType ?? claim.ValueType));
-    }
-
-    private static void AddKnownClaims(JwtPayload source, ClaimsIdentity destination)
-    {
-        AddClaim(source, destination, JwtRegisteredClaimNames.Sub);
-        AddClaim(source, destination, JwtRegisteredClaimNames.Name);
-        AddClaim(source, destination, JwtRegisteredClaimNames.GivenName);
-        AddClaim(source, destination, JwtRegisteredClaimNames.FamilyName);
-        AddClaim(source, destination, JwtRegisteredClaimNames.Email);
-        AddClaim(source, destination, JwtRegisteredClaimNames.AuthTime);
-        AddClaim(source, destination, GrayMintClaimTypes.EmailVerified);
-        AddClaim(source, destination, GrayMintClaimTypes.Nonce);
-        AddClaim(source, destination, GrayMintClaimTypes.Picture);
-        AddClaim(source, destination, GrayMintClaimTypes.CognitoGroup);
-        AddClaim(source, destination, GrayMintClaimTypes.TokenUse);
-        AddClaim(source, destination, GrayMintClaimTypes.RefreshTokenType);
-    }
-
-    public async Task<ClaimsIdentity> ValidateCognitoToken(string idToken)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.CognitoArn);
-        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.CognitoClientId);
-
-        var cognitoArn = new AwsArn(_authenticationOptions.CognitoArn);
-        var metaDataUrl = $"https://{cognitoArn.Service}.{cognitoArn.Region}.amazonaws.com/{cognitoArn.ResourceId}/.well-known/openid-configuration";
-        var openIdConfig = await GetOpenIdConnectConfiguration(metaDataUrl);
-
         // Set the parameters for token validation
+        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = openIdConfig.Issuer,
             ValidateAudience = true,
-            ValidAudience = _authenticationOptions.CognitoClientId,
+            ValidAudience = audience,
             ValidateLifetime = true,
             IssuerSigningKeys = openIdConfig.SigningKeys,
             ValidateIssuerSigningKey = true
@@ -145,43 +121,11 @@ public class GrayMintTokenValidator
         var tokenHandler = new JwtSecurityTokenHandler();
         tokenHandler.ValidateToken(idToken, validationParameters, out var token);
         var jwtToken = (JwtSecurityToken)token;
-        var jwtPayload = jwtToken.Payload;
-
-        var claimsIdentity = new ClaimsIdentity();
-        AddKnownClaims(jwtPayload, claimsIdentity);
-        return claimsIdentity;
-    }
-
-    public async Task<ClaimsIdentity> ValidateGoogleIdToken(string idToken)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.GoogleClientId);
-
-        const string metaDataUrl = "https://accounts.google.com/.well-known/openid-configuration";
-        var openIdConfig = await GetOpenIdConnectConfiguration(metaDataUrl);
-
-        // Set the parameters for token validation
-        var validationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = openIdConfig.Issuer,
-            ValidateAudience = true,
-            ValidAudience = _authenticationOptions.GoogleClientId,
-            ValidateLifetime = true,
-            IssuerSigningKeys = openIdConfig.SigningKeys,
-            ValidateIssuerSigningKey = true
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        tokenHandler.ValidateToken(idToken, validationParameters, out var token);
-        var jwtToken = (JwtSecurityToken)token;
-        var jwtPayload = jwtToken.Payload;
+        var claimsIdentity = new ClaimsIdentity(jwtToken.Claims);
 
         // check if this token is an id token
-        var claimsIdentity = new ClaimsIdentity();
-        AddKnownClaims(jwtPayload, claimsIdentity);
-
-        if (jwtPayload.Any(x => x.Key == JwtRegisteredClaimNames.Email))
-            claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Id));
+        if (claimsIdentity.HasClaim(x => x.Type is JwtRegisteredClaimNames.Email or JwtRegisteredClaimNames.Name))
+            ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Id));
 
         return claimsIdentity;
 
@@ -194,15 +138,11 @@ public class GrayMintTokenValidator
         // Set the parameters for token validation
         var tokenHandler = new JwtSecurityTokenHandler();
         var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(_authenticationOptions);
-        var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out var securityToken);
+        var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
         await PostValidate(claimsPrincipal);
 
-        var jwtToken = (JwtSecurityToken)securityToken;
-        var jwtPayload = jwtToken.Payload;
-
-        var claimsIdentity = new ClaimsIdentity();
-        AddKnownClaims(jwtPayload, claimsIdentity);
-        return claimsIdentity;
+        var claimIdentity = new ClaimsIdentity(claimsPrincipal.Claims);
+        return claimIdentity;
     }
 
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
@@ -215,10 +155,16 @@ public class GrayMintTokenValidator
             ClaimsIdentity claimsIdentity;
 
             if (securityToken.Issuer.Contains(".amazonaws.com"))
-                claimsIdentity = await ValidateCognitoToken(idToken);
+                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
+                    _authenticationOptions.CognitoClientId ?? throw new AuthenticationException("CognitoClientId has not been set."));
+
+            else if (securityToken.Issuer.Contains("https://securetoken.google.com/"))
+                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
+                    _authenticationOptions.FirebaseProjectId ?? throw new AuthenticationException("FirebaseProjectId has not been set."));
 
             else if (securityToken.Issuer.Contains(".google.com"))
-                claimsIdentity = await ValidateGoogleIdToken(idToken);
+                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
+                    _authenticationOptions.GoogleClientId ?? throw new AuthenticationException("GoogleClientId has not been set."));
 
             else if (securityToken.Issuer == _authenticationOptions.Issuer)
                 claimsIdentity = await ValidateGrayMintToken(idToken);

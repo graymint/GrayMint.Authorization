@@ -15,25 +15,22 @@ public static class JwtUtil
     public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null, 
         string? email = null, Claim[]? claims = null, string[]? roles = null, DateTime? expirationTime = null)
     {
-        var claimsList = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        if (subject != null) claimsList.Add(new Claim(JwtRegisteredClaimNames.Sub, subject));
-        if (email != null) claimsList.Add(new Claim(JwtRegisteredClaimNames.Email, email));
-        if (claims != null) claimsList.AddRange(claims);
-        if (roles != null) claimsList.AddRange(roles.Select(x => new Claim(ClaimTypes.Role, x)));
+        var claimIdentity = new ClaimsIdentity(claims);   
+        ClaimUtil.SetClaim(claimIdentity, ClaimUtil.CreateClaimTime("iat", DateTime.UtcNow));
+        ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+        claimIdentity.TryRemoveClaim(claimIdentity.FindFirst(JwtRegisteredClaimNames.Aud));
+        claimIdentity.TryRemoveClaim(claimIdentity.FindFirst(JwtRegisteredClaimNames.Iss));
+        if (subject != null) ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Sub, subject));
+        if (email != null) ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Email, email));
+        if (roles != null) claimIdentity.AddClaims( roles.Select(x => new Claim(ClaimTypes.Role, x)));
         
         // add issued at time
-        var unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
-        claimsList.Add(new Claim("iat", unixTime.ToString(), ClaimValueTypes.Integer64));
 
         // create token
         var secKey = new SymmetricSecurityKey(key);
         var signingCredentials = new SigningCredentials(secKey, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(issuer,
-            claims: claimsList.ToArray(),
+            claims: claimIdentity.Claims,
             audience: audience,
             expires: expirationTime ?? DateTime.UtcNow.AddYears(13),
             signingCredentials: signingCredentials);

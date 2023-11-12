@@ -1,4 +1,6 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using GrayMint.Authorization.Abstractions;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Authentication;
 using System.Security.Claims;
 
 namespace GrayMint.Authorization.Authentications.Utils;
@@ -22,10 +24,36 @@ public static class ClaimUtil
             claimsIdentity.TryRemoveClaim(claim);
     }
 
-    public static void ReplaceClaim(ClaimsIdentity claimsIdentity, Claim claim)
+    public static void SetClaim(ClaimsIdentity claimsIdentity, Claim claim)
     {
         RemoveClaims(claimsIdentity, claim.Type);
         claimsIdentity.AddClaim(claim);
+    }
+
+    public static DateTime? GetUtcTime(ClaimsIdentity claimsIdentity, string type)
+    {
+        var linuxTime = claimsIdentity.FindFirst(type)?.Value;
+        return linuxTime != null
+            ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(linuxTime)).UtcDateTime
+            : null;
+    }
+
+    public static DateTime GetRequiredUtcTime(ClaimsIdentity claimsIdentity, string type)
+    {
+        return GetUtcTime(claimsIdentity, type)
+            ?? throw new AuthenticationException($"Could not find {type} claim.");
+    }
+
+    public static string GetRequiredClaimString(ClaimsIdentity claimsIdentity, string type)
+    {
+        return claimsIdentity.FindFirst(GrayMintClaimTypes.RefreshTokenType)?.Value
+            ?? throw new AuthenticationException($"Could not find {type} claim.");
+    }
+
+    public static Claim CreateClaimTime(string type, DateTime value)
+    {
+        var unixTime = ((DateTimeOffset)value).ToUnixTimeSeconds();
+        return new Claim(type, unixTime.ToString(), ClaimValueTypes.Integer64);
     }
 
     public static ClaimsPrincipal CreateClaimsPrincipal(ClaimsIdentity claimsIdentity)

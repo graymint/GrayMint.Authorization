@@ -12,6 +12,7 @@ using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.UserRole;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
@@ -75,15 +76,21 @@ public class TeamService
             IsBot = true
         });
 
-        var expirationTime = DateTime.UtcNow.AddYears(13);
         await _roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
+
+        // create the access token
+        var claimIdentity = new ClaimsIdentity(new Claim[] { new (JwtRegisteredClaimNames.Sub, user.UserId)});
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(
-                new CreateTokenParams
+            .CreateApiKey(new ApiKeyOptions
+            {
+                TokenOptions = new TokenOptions
                 {
-                    Subject = user.UserId,
+                    ValidateSubject = true,
+                    ValidateAuthCode = true,
                 },
-                accessTokenExpirationTime: expirationTime);
+                ClaimsIdentity = claimIdentity,
+                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
+            });
 
         return apiKey;
     }
@@ -97,16 +104,21 @@ public class TeamService
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
-        var expirationTime = DateTime.UtcNow.AddYears(13);
         await _userProvider.ResetAuthorizationCode(user.UserId);
+        
+        // Create a new api key
+        var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(
-                new CreateTokenParams
+            .CreateApiKey(new ApiKeyOptions
+            {
+                TokenOptions = new TokenOptions
                 {
-                    Subject = user.UserId,
-                    Email = user.Email,
+                    ValidateSubject = true,
+                    ValidateAuthCode = true,
                 },
-                accessTokenExpirationTime: expirationTime);
+                ClaimsIdentity = claimIdentity,
+                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
+            });
 
         return apiKey;
     }

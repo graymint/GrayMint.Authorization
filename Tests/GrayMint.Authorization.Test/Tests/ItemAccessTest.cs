@@ -7,14 +7,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GrayMint.Authorization.Test.Tests;
 
 [TestClass]
-public class AccessTest
+public class ItemAccessTest
 {
 
     [TestMethod]
     public async Task Foo()
     {
         await Task.Delay(0);
-
     }
 
     [TestMethod]

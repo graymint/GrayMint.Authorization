@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
@@ -13,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using ApiKey = GrayMint.Common.Test.Api.ApiKey;
+using RefreshTokenType = GrayMint.Common.Test.Api.RefreshTokenType;
 
 namespace GrayMint.Authorization.Test.Helper;
 
@@ -31,6 +34,7 @@ public class TestInit : IDisposable
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public TeamClient TeamClient => new(HttpClient);
+    public CustomersClient CustomerClient => new(HttpClient);
     public AuthenticationClient AuthenticationClient => new(HttpClient);
     public ApiKey SystemAdminApiKey { get; private set; } = default!;
 
@@ -96,7 +100,7 @@ public class TestInit : IDisposable
         if (claims != null) claimsIdentity.AddClaims(claims);
 
         var grayMintAuthentication = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
-        var token = await grayMintAuthentication.CreateIdToken(claimsIdentity);
+        var token = await grayMintAuthentication.CreateIdToken(new TokenOptions { ValidateAuthCode = false, ValidateSubject = false, }, claimsIdentity);
         return token.Value;
     }
 

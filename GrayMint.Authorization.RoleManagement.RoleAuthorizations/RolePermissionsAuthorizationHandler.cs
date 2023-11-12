@@ -38,7 +38,6 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
             var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
             var identity = new ClaimsIdentity(claims);
             context.User.AddIdentity(identity);
-
         }
         catch (Exception ex)
         {

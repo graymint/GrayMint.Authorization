@@ -17,11 +17,14 @@ public class GrayMintAuthenticationOptions
     public string? Audience { get; init; }
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
-    public TimeSpan IdTokenExpiration { get; init; } = TimeSpan.FromMinutes(15);
+    public TimeSpan IdTokenTimeout { get; init; } = TimeSpan.FromMinutes(15);
     public TimeSpan AccessTokenTimeout { get; init; } = TimeSpan.FromHours(30);
     public TimeSpan RefreshTokenWebTimeout { get; init; } = TimeSpan.FromDays(2);
     public TimeSpan RefreshTokenAppTimeout { get; init; } = TimeSpan.FromDays(30);
+    public TimeSpan SessionWebTimeout { get; init; } = TimeSpan.FromDays(30);
+    public TimeSpan SessionAppTimeout { get; init; } = TimeSpan.FromDays(360);
     public string? GoogleClientId { get; init; }
+    public string? FirebaseProjectId { get; init; }
     public string? CognitoClientId { get; init; }
     public string? CognitoArn { get; init; }
     public bool AllowUserSelfRegister { get; set; }
