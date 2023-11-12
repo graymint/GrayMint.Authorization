@@ -70,10 +70,8 @@ public class AuthenticationService
         var claimIdentity = new ClaimsIdentity();
         claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new ApiKeyOptions
+            .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
-                TokenOptions = new TokenOptions { ValidateAuthCode = true, ValidateSubject = false },
-                ClaimsIdentity = claimIdentity,
                 AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13),
                 RefreshTokenType = RefreshTokenType.None,
             });

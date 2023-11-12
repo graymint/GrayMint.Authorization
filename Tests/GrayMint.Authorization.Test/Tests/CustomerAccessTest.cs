@@ -20,13 +20,10 @@ public class CustomerAccessTest
         var testInit = await TestInit.Create();
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         var customerId = 2000;
-        var apiKeyDto = await grayMintAuthentication.CreateApiKey(new ApiKeyOptions{
-            TokenOptions = new TokenOptions { ValidateSubject = false, ValidateAuthCode = false },
-            ClaimsIdentity = new ClaimsIdentity(new[]
-            {
-                PermissionAuthorization.BuildPermissionClaim($"apps:{testInit.AppId}:customers:{customerId}", Permissions.CustomerRead)
-            }),
-        });
+
+        var claimsIdentity = new ClaimsIdentity();
+        claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim($"apps:{testInit.AppId}:customers:{customerId}", Permissions.CustomerRead));
+        var apiKeyDto = await grayMintAuthentication.CreateApiKey(claimsIdentity);
 
         // ------
         // **** Check: success

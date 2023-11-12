@@ -81,14 +81,13 @@ public class TeamService
         // create the access token
         var claimIdentity = new ClaimsIdentity(new Claim[] { new (JwtRegisteredClaimNames.Sub, user.UserId)});
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new ApiKeyOptions
+            .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
-                TokenOptions = new TokenOptions
+                ValidateOptions = new ValidateOptions
                 {
                     ValidateSubject = true,
                     ValidateAuthCode = true,
                 },
-                ClaimsIdentity = claimIdentity,
                 AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
             });
 
@@ -109,14 +108,8 @@ public class TeamService
         // Create a new api key
         var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
         var apiKey = await _grayMintAuthentication
-            .CreateApiKey(new ApiKeyOptions
+            .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
-                TokenOptions = new TokenOptions
-                {
-                    ValidateSubject = true,
-                    ValidateAuthCode = true,
-                },
-                ClaimsIdentity = claimIdentity,
                 AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
             });
 

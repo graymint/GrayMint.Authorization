@@ -54,10 +54,10 @@ public class GrayMintAuthentication
     }
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(
-        TokenOptions options, ClaimsIdentity? claimsIdentity = null, DateTime? expirationTime = null)
+        ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null, DateTime? expirationTime = null)
     {
         expirationTime ??= DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout;
-        var accessToken = await CreateToken(options, claimsIdentity, TokenUse.Access, expirationTime.Value);
+        var accessToken = await CreateToken(claimsIdentity, validateOptions, TokenUse.Access, expirationTime.Value);
         return new AuthenticationHeaderValue(accessToken.Scheme, accessToken.Value);
     }
 
@@ -74,12 +74,14 @@ public class GrayMintAuthentication
         };
     }
 
-    public async Task<ApiKey> CreateApiKey(ApiKeyOptions options)
+    public async Task<ApiKey> CreateApiKey(ClaimsIdentity claimsIdentity, ApiKeyOptions? options = null)
     {
+        options ??= new ApiKeyOptions();
+
         // create access token
         var accessToken = await CreateToken(
-            options.TokenOptions,
-            options.ClaimsIdentity,
+            claimsIdentity,
+            options.ValidateOptions,
             TokenUse.Access,
             options.AccessTokenExpirationTime ?? DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout);
 
@@ -88,15 +90,15 @@ public class GrayMintAuthentication
         if (options.RefreshTokenType != RefreshTokenType.None && _authenticationOptions.AllowRefreshToken)
         {
             // add refresh token clams
-            var clientIdentity = options.ClaimsIdentity.Clone();
-            ClaimUtil.SetClaim(clientIdentity, new Claim(GrayMintClaimTypes.RefreshTokenType, options.RefreshTokenType.ToString()));
-            ClaimUtil.SetClaim(clientIdentity, new Claim(GrayMintClaimTypes.AccessToken, accessToken.Value));
+            claimsIdentity = claimsIdentity.Clone();
+            ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.RefreshTokenType, options.RefreshTokenType.ToString()));
+            ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AccessToken, accessToken.Value));
             if (options.RefreshTokenMaxExpirationTime != null)
-                ClaimUtil.SetClaim(clientIdentity, ClaimUtil.CreateClaimTime(GrayMintClaimTypes.AuthEndTime, options.RefreshTokenMaxExpirationTime.Value));
+                ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(GrayMintClaimTypes.AuthEndTime, options.RefreshTokenMaxExpirationTime.Value));
 
             refreshToken = await CreateToken(
-                options.TokenOptions,
-                clientIdentity: clientIdentity,
+                claimsIdentity: claimsIdentity,
+                options.ValidateOptions,
                 tokenUse: TokenUse.Refresh,
                 expTime: GetRefreshTokenExpirationTime(options.RefreshTokenType, options.RefreshTokenExpirationTime));
         }
@@ -112,9 +114,10 @@ public class GrayMintAuthentication
     }
 
 
-    public async Task<Token> CreateToken(TokenOptions tokenOptions, ClaimsIdentity? clientIdentity, string tokenUse, DateTime expTime)
+    public async Task<Token> CreateToken(ClaimsIdentity claimsIdentity, ValidateOptions? tokenOptions, string tokenUse, DateTime expTime)
     {
-        var claimsIdentity = clientIdentity?.Clone() ?? new ClaimsIdentity();
+        claimsIdentity = claimsIdentity.Clone();
+        tokenOptions ??= new ValidateOptions();
 
         // try to add subject if not set
         if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null)
@@ -220,10 +223,9 @@ public class GrayMintAuthentication
 
         // Create the refresh token  with new access key
         var apiKey = await CreateApiKey(
+            accessTokenClaimIdentity,
             new ApiKeyOptions
             {
-                TokenOptions = new TokenOptions { ValidateAuthCode = false, ValidateSubject = false },
-                ClaimsIdentity = accessTokenClaimIdentity,
                 RefreshTokenType = refreshTokenType,
                 RefreshTokenExpirationTime = newExpTime
             });
@@ -250,24 +252,20 @@ public class GrayMintAuthentication
         ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
         ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, issuedAt));
 
-        var apiKey = await CreateApiKey(new ApiKeyOptions
-        {
-            TokenOptions = new TokenOptions
+        var apiKey = await CreateApiKey(claimsIdentity,
+            new ApiKeyOptions
             {
-                ValidateAuthCode = true,
-                ValidateSubject = true,
-            },
-            ClaimsIdentity = claimsIdentity,
-            RefreshTokenType = refreshTokenType
-        });
+                ValidateOptions = new ValidateOptions {ValidateAuthCode = true, ValidateSubject = true},
+                RefreshTokenType = refreshTokenType
+            });
 
         return apiKey;
     }
 
-    public async Task<Token> CreateIdToken(TokenOptions tokenOptions, ClaimsIdentity? claimsIdentity = null)
+    public async Task<Token> CreateIdToken(ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null)
     {
         var expirationTime = DateTime.UtcNow + _authenticationOptions.IdTokenTimeout;
-        var token = await CreateToken(tokenOptions, claimsIdentity, TokenUse.Id, expirationTime);
+        var token = await CreateToken(claimsIdentity, validateOptions, TokenUse.Id, expirationTime);
         return token;
     }
 
@@ -277,7 +275,7 @@ public class GrayMintAuthentication
             throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
 
         var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
-        var token = await CreateIdToken(new TokenOptions { ValidateAuthCode = false, ValidateSubject = false }, claimsIdentity);
+        var token = await CreateIdToken(claimsIdentity);
 
         // Adding a parameter
         var uriBuilder = new UriBuilder(_authenticationOptions.SignInRedirectUrl);

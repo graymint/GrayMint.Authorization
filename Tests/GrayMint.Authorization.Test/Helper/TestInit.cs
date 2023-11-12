@@ -68,7 +68,7 @@ public class TestInit : IDisposable
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }
 
-    public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, object? resourceId = null )
+    public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, object? resourceId = null)
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
@@ -100,13 +100,13 @@ public class TestInit : IDisposable
         if (claims != null) claimsIdentity.AddClaims(claims);
 
         var grayMintAuthentication = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
-        var token = await grayMintAuthentication.CreateIdToken(new TokenOptions { ValidateAuthCode = false, ValidateSubject = false, }, claimsIdentity);
+        var token = await grayMintAuthentication.CreateIdToken(claimsIdentity);
         return token.Value;
     }
 
-    public async Task<ApiKey> SignUpNewUser(string? email = null, Claim[]? claims = null, 
+    public async Task<ApiKey> SignUpNewUser(string? email = null, Claim[]? claims = null,
         bool setAsCurrent = true, RefreshTokenType refreshTokenType = RefreshTokenType.None)
-    { 
+    {
         var idToken = await CreateUnregisteredUserIdToken(email, claims);
         var apiKey = await AuthenticationClient.SignUpAsync(
             new SignUpRequest { IdToken = idToken, RefreshTokenType = refreshTokenType });
@@ -121,7 +121,7 @@ public class TestInit : IDisposable
     }
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
-        string environment = "Development", bool allowUserMultiRole = false, 
+        string environment = "Development", bool allowUserMultiRole = false,
         bool useResourceProvider = false)
     {
         appSettings ??= new Dictionary<string, string?>();
