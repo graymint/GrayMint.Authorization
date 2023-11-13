@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using GrayMint.Authorization.Authentications;
-using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;

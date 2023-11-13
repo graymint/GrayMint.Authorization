@@ -16,19 +16,23 @@ public class AwsCognitoTest
 {
     public static async Task<string> GetCredentialsAsync(TestInit testInit, string email, string password)
     {
-        var cognitoArn = Arn.Parse(testInit.AuthenticationOptions.CognitoArn);
+        // ReSharper disable StringLiteralTypo
+        var cognitoArn = Arn.Parse("arn:aws:cognito-idp:us-west-1:462524074877:userpool/us-west-1_YNaOUCR2Z");
+        var cognitoClientId = "jqo9dsrijnrq5ikkj9rnlgss3";
+        // ReSharper restore StringLiteralTypo
+
         var awsRegion = RegionEndpoint.GetBySystemName(cognitoArn.Region);
         var provider = new AmazonCognitoIdentityProviderClient(new Amazon.Runtime.AnonymousAWSCredentials(), awsRegion);
-        var userPool = new CognitoUserPool(cognitoArn.Resource, testInit.AuthenticationOptions.CognitoClientId, provider);
-        var user = new CognitoUser(email, testInit.AuthenticationOptions.CognitoClientId, userPool, provider);
+        var userPool = new CognitoUserPool(cognitoArn.Resource, cognitoClientId, provider);
+        var user = new CognitoUser(email, cognitoClientId, userPool, provider);
         var authRequest = new InitiateSrpAuthRequest()
         {
             Password = password
         };
 
-        var authResponse = await user.StartWithSrpAuthAsync(authRequest).ConfigureAwait(false);
-        var accessToken = authResponse.AuthenticationResult.IdToken;
-        return accessToken;
+        var authResponse = await user.StartWithSrpAuthAsync(authRequest);
+        var idToken = authResponse.AuthenticationResult.IdToken;
+        return idToken;
     }
 
     [TestMethod]
@@ -39,7 +43,7 @@ public class AwsCognitoTest
         // add user to appCreator role
         try
         {
-            await testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, "unit-tester@local");
+            await testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, "unit-tester@foo.local");
         }
         catch (ApiException ex)
         {
@@ -58,20 +62,10 @@ public class AwsCognitoTest
     public async Task Failed_on_expired_token()
     {
         using var testInit = await TestInit.Create();
+
         // ReSharper disable StringLiteralTypo
-        var expiredIdToken = 
-            "eyJraWQiOiJNWHhGY3Ziam9PYlJqMVhIR0EybGdYM1p5dmQweVRGcFpjNG5HUzIxRTJZPSIsImFsZyI6IlJTMjU2In0." +
-            "eyJzdWIiOiI3ODY2MjZmMy03ZjA3LTRkN2MtYTA4Ny02MzNiYjIzZDVkOTUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwi" +
-            "aXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLnVzLWVhc3QtMi5hbWF6b25hd3MuY29tXC91cy1lYXN0LTJfd1hEY3FH" +
-            "TW42IiwiY29nbml0bzp1c2VybmFtZSI6InVuaXQtdGVzdGVyIiwib3JpZ2luX2p0aSI6ImExZTEwYjViLWQ3YjgtNGMz" +
-            "Yy1hN2Y4LWMzZjgzY2I2Y2JkNSIsImF1ZCI6IjJrbnJqdmxiMjVscDFtdnY5Y2ZmM3Z0c2NpIiwiZXZlbnRfaWQiOiIx" +
-            "YjEyMjk0Ny1lNTk2LTQ0NWQtOGNjYS1hZWY0NzIyNTI0ZDIiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY5" +
-            "OTc4MTk3MiwiZXhwIjoxNjk5ODY4MzcyLCJpYXQiOjE2OTk3ODE5NzIsImp0aSI6IjJkM2RlZjllLTZkMGUtNDk4MS1h" +
-            "MGVlLTBiYjc3YzFjZTRhMCIsImVtYWlsIjoidW5pdC10ZXN0ZXJAbG9jYWwifQ.yefAfe6v7A-W4YWR7jS1SRRUBFvUy" +
-            "syGtMdkYlKxUB0rqpKQKukhR5-2anrC8VuBRBJrN6vMqHhd25jHs3vCT9-q9KxBXQPrfCmTOKL7-G9tC6a8vhBprgpvp" +
-            "kmQ8qiHdtQlpGyEiBwhG1IrMc8OzryhSq8Uq1Y7tdHiuAW_oefdQSlumcToObrn1h32ELqM3QgQ-uM67Jtw8CV_a9IQs" +
-            "0Sj5Ur8U1iPo3ojRHuK1_EulVWi-UJtMGRi7r606PvpXHVLGRvZEeNFd8cYiUDghlb3DJWVDCr9lSN0RrQeESZI2sKvn" +
-            "1w0zV5EWhKO3Xkpi0NzAFwbyJvXMMGPVZeSSg";
+        var expiredIdToken =
+            "eyJhbGciOiJSUzI1NiIsImtpZCI6ImY4MzNlOGE3ZmUzZmU0Yjg3ODk0ODIxOWExNjg0YWZhMzczY2E4NmYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI5OTMwMjQ4NTUyMzMtbjVzdmhuMWlzMWR0cm1za21qanRzZzM3dXBqY3BwNjAuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI5OTMwMjQ4NTUyMzMtbjVzdmhuMWlzMWR0cm1za21qanRzZzM3dXBqY3BwNjAuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDkwMDk2MDgxNTg5OTI1Nzg1MjMiLCJlbWFpbCI6Im1hZG5pazdAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5vbmNlIjoiMTExMTExMTExMTExMTExMTEiLCJuYmYiOjE2OTk4NTIyMTMsIm5hbWUiOiJNb2hhbW1hZCBOaWtyYXZhbiIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NJM3lWdzljRmRsTUp4Tk1aRnVBR0tEM1d1Q04zWHdOWTkzVjQxVU53WGFzeEdHPXM5Ni1jIiwiZ2l2ZW5fbmFtZSI6Ik1vaGFtbWFkIiwiZmFtaWx5X25hbWUiOiJOaWtyYXZhbiIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNjk5ODUyNTEzLCJleHAiOjE2OTk4NTYxMTMsImp0aSI6ImE3NzA1OTllMDM4MzgyODI0YjMyMmI5MGI5OWM0ZmM3NjdjMGNkOWMifQ.i8RZX6zkrnqK7bc8OPGyiCbt5EYs44spvysieJqiUSJ4LK_uf3H0Rk4_ZWwXitByKEVMwjrtsnr9QikjxbKuA7rV93NzwQhLXIx7C5fl97-GcDaufPHJNLvXzFjFKy4FycLBFiYvjy6ctq40OWodQDmO0jqHY-m-n7vgV07z0j59wNPZ36gush7O7kjhqqHhKNXRyX_k6tzLJLFBt4R7JEABYLllL1xmZbpWhY2msMQ8BJaSXvpIbjU8NnHc2ISfatt0ArZxyvQ6RuGVSfSHws6CwyJYzqT5wbIINTeC7ktdM1rY-_HbxZTC09qO0CPazgwvpfsvxvWlWZKs5dqTaw";
         // ReSharper restore StringLiteralTypo
 
         await TestUtil.AssertApiException(System.Net.HttpStatusCode.Unauthorized,

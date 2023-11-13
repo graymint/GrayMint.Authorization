@@ -103,16 +103,16 @@ public class GrayMintTokenValidator
         return openIdConfig;
     }
 
-    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, string issuer, string audience)
+    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider)
     {
         // Set the parameters for token validation
-        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
+        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(openIdProvider.Issuer);
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = openIdConfig.Issuer,
             ValidateAudience = true,
-            ValidAudience = audience,
+            ValidAudience = openIdProvider.Audience,
             ValidateLifetime = true,
             IssuerSigningKeys = openIdConfig.SigningKeys,
             ValidateIssuerSigningKey = true
@@ -133,8 +133,6 @@ public class GrayMintTokenValidator
 
     public async Task<ClaimsIdentity> ValidateGrayMintToken(string token)
     {
-        ArgumentException.ThrowIfNullOrEmpty(_authenticationOptions.GoogleClientId);
-
         // Set the parameters for token validation
         var tokenHandler = new JwtSecurityTokenHandler();
         var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(_authenticationOptions);
@@ -153,24 +151,15 @@ public class GrayMintTokenValidator
             var securityToken = tokenHandler.ReadToken(idToken);
 
             ClaimsIdentity claimsIdentity;
-
-            if (securityToken.Issuer.Contains(".amazonaws.com"))
-                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
-                    _authenticationOptions.CognitoClientId ?? throw new AuthenticationException("CognitoClientId has not been set."));
-
-            else if (securityToken.Issuer.Contains("https://securetoken.google.com/"))
-                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
-                    _authenticationOptions.FirebaseProjectId ?? throw new AuthenticationException("FirebaseProjectId has not been set."));
-
-            else if (securityToken.Issuer.Contains(".google.com"))
-                claimsIdentity = await ValidateOpenIdToken(idToken, securityToken.Issuer,
-                    _authenticationOptions.GoogleClientId ?? throw new AuthenticationException("GoogleClientId has not been set."));
+            var openIdProvider = _authenticationOptions.OpenIdProviders.SingleOrDefault(x => x.Issuer == securityToken.Issuer);
+            if (openIdProvider != null)
+                claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
 
             else if (securityToken.Issuer == _authenticationOptions.Issuer)
                 claimsIdentity = await ValidateGrayMintToken(idToken);
 
             else
-                throw new AuthenticationException("Could not find any provider for this token.");
+                throw new AuthenticationException($"Could not find any provider for this issuer. {securityToken.Issuer}");
 
             // check if this token is an id token
             if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))

@@ -1,4 +1,6 @@
-﻿namespace GrayMint.Authorization.Authentications;
+﻿using GrayMint.Authorization.Authentications.Dtos;
+
+namespace GrayMint.Authorization.Authentications;
 
 public class GrayMintAuthenticationOptions
 {
@@ -23,14 +25,11 @@ public class GrayMintAuthenticationOptions
     public TimeSpan RefreshTokenAppTimeout { get; init; } = TimeSpan.FromDays(30);
     public TimeSpan SessionWebTimeout { get; init; } = TimeSpan.FromDays(30);
     public TimeSpan SessionAppTimeout { get; init; } = TimeSpan.FromDays(360);
-    public string? GoogleClientId { get; init; }
-    public string? FirebaseProjectId { get; init; }
-    public string? CognitoClientId { get; init; }
-    public string? CognitoArn { get; init; }
-    public bool AllowUserSelfRegister { get; set; }
-    public bool AllowUserApiKey { get; set; }
-    public Uri? SignInRedirectUrl { get; set; }
-    public bool AllowRefreshToken { get; set; }
+    public bool AllowUserSelfRegister { get; init; }
+    public bool AllowUserApiKey { get; init; }
+    public Uri? SignInRedirectUrl { get; init; }
+    public bool AllowRefreshToken { get; init; }
+    public OpenIdProvider[] OpenIdProviders { get; init; } = Array.Empty<OpenIdProvider>();
 
     public void Validate(bool isProduction)
     {

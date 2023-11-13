@@ -30,7 +30,7 @@ public class Program
         // common services
         services.AddMemoryCache();
         services
-            .AddGrayMintCommonServices(new GrayMintCommonOptions(), new RegisterServicesOptions() { AddMemoryCache = false })
+            .AddGrayMintCommonServices(new RegisterServicesOptions() { AddMemoryCache = false })
             .AddGrayMintSwagger("Test", true);
 
         // authentication & its controller

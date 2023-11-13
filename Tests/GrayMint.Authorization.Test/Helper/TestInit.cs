@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
-using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;

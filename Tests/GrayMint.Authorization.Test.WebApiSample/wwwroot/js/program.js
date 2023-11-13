@@ -2,12 +2,12 @@ function main() {
     setInterval(tryLogin, 15000);
 
     google.accounts.id.initialize({
-        client_id: '637321499771-gioemfem1ngm8i027cf9nj03l9nj2n0l.apps.googleusercontent.com',
+        client_id: '993024855233-n5svhn1is1dtrmskmjjtsg37upjcpp60.apps.googleusercontent.com',
         callback: handleCredentialResponse,
         ux_mode: "popup",
         auto_select: true,
-        nonce: "11111111111111111"
     });
+
     tryLogin();
 
     const parent = document.getElementById('gsi-google-btn');
@@ -18,7 +18,7 @@ async function handleCredentialResponse(googleUser) {
     if (!googleUser || !googleUser.credential)
         return;
 
-    console.log(googleUser);
+    console.log("GoogleUser", googleUser);
 
     let apiKey = null;
     try {
@@ -29,19 +29,16 @@ async function handleCredentialResponse(googleUser) {
             apiKey = await signUp(googleUser.credential);
     }
 
-    console.log(apiKey);
+    console.log("GrayMintApiKey", apiKey);
 }
 
 function tryLogin() {
     google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // continue with another identity provider.
+        if (notification.isNotDisplayed() || notification.isSkippedMoment())
             console.log("continue with another identity provider", notification);
-        }
         else
             console.log("success", notification);
 
-        console.log("xxx", notification.getDismissedReason());
     });
 }
 

@@ -1,6 +1,4 @@
-﻿using System.Security.Claims;
-
-namespace GrayMint.Authorization.Authentications.Dtos;
+﻿namespace GrayMint.Authorization.Authentications.Dtos;
 
 public class ApiKeyOptions
 {
