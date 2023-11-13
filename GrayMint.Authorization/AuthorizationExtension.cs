@@ -8,6 +8,7 @@ using GrayMint.Authorization.UserManagement.UserProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,11 +16,27 @@ namespace GrayMint.Authorization;
 
 public static class AuthorizationExtension
 {
-    public static void AddGrayMintCommonAuthorizationForApp(this WebApplicationBuilder builder,
-        GrayMintAuthenticationOptions authenticationOptions,
-        TeamControllerOptions? teamControllerOptions,
+    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp<TRoles>(this WebApplicationBuilder builder,
+        Action<DbContextOptionsBuilder> dbOptionsAction,
+        string authenticationOptionsSectionName = "Auth",
+        string teamControllerOptionsSectionName = "TeamController")
+    {
+        var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName).Get<GrayMintAuthenticationOptions>()
+            ?? throw new ArgumentException($"Could not read auth configuration from {authenticationOptionsSectionName}", nameof(authenticationOptionsSectionName));
+
+        return builder.AddGrayMintCommonAuthorizationForApp(
+                GmRole.GetAll(typeof(TRoles)),
+                dbOptionsAction,
+                authenticationOptions,
+                builder.Configuration.GetSection(teamControllerOptionsSectionName).Get<TeamControllerOptions>());
+    }
+
+
+    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(this WebApplicationBuilder builder,
         GmRole[] roles,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
+        Action<DbContextOptionsBuilder> dbOptionsAction,
+        GrayMintAuthenticationOptions authenticationOptions,
+        TeamControllerOptions? teamControllerOptions)
     {
         var services = builder.Services;
 
@@ -57,6 +74,8 @@ public static class AuthorizationExtension
                 {
                     Roles = roles
                 }, dbOptionsAction);
+
+        return builder;
     }
 
     public static async Task UseGrayMinCommonAuthorizationForApp(this WebApplication webApplication)
