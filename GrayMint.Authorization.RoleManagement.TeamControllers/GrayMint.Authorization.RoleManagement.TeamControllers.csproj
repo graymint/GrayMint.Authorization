@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <LangVersion>latest</LangVersion>
-    <Version>3.0.72</Version>
+    <Version>3.0.73</Version>
     <IsPackable>true</IsPackable>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <Authors>GrayMint</Authors>
