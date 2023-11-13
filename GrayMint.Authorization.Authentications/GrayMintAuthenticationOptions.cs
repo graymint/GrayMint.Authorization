@@ -20,7 +20,7 @@ public class GrayMintAuthenticationOptions
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenTimeout { get; init; } = TimeSpan.FromMinutes(15);
-    public TimeSpan AccessTokenTimeout { get; init; } = TimeSpan.FromHours(30);
+    public TimeSpan AccessTokenTimeout { get; init; } = TimeSpan.FromMinutes(20);
     public TimeSpan RefreshTokenWebTimeout { get; init; } = TimeSpan.FromDays(2);
     public TimeSpan RefreshTokenAppTimeout { get; init; } = TimeSpan.FromDays(30);
     public TimeSpan SessionWebTimeout { get; init; } = TimeSpan.FromDays(30);
