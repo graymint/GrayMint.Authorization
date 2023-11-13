@@ -16,7 +16,8 @@ namespace GrayMint.Authorization;
 
 public static class AuthorizationExtension
 {
-    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp<TRoles>(this WebApplicationBuilder builder,
+    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(this WebApplicationBuilder builder,
+        GmRole[] roles,
         Action<DbContextOptionsBuilder> dbOptionsAction,
         string authenticationOptionsSectionName = "Auth",
         string teamControllerOptionsSectionName = "TeamController")
@@ -25,7 +26,7 @@ public static class AuthorizationExtension
             ?? throw new ArgumentException($"Could not read auth configuration from {authenticationOptionsSectionName}", nameof(authenticationOptionsSectionName));
 
         return builder.AddGrayMintCommonAuthorizationForApp(
-                GmRole.GetAll(typeof(TRoles)),
+                roles,
                 dbOptionsAction,
                 authenticationOptions,
                 builder.Configuration.GetSection(teamControllerOptionsSectionName).Get<TeamControllerOptions>());
