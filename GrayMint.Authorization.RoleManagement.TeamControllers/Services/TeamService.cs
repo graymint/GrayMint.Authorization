@@ -155,7 +155,7 @@ public class TeamService
 
     public async Task<string> GetUserId(ClaimsPrincipal user)
     {
-        var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUser();
+        var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
         return userId;
     }
 

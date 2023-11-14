@@ -248,7 +248,7 @@ public class GrayMintAuthentication
 
         // check user existence
         var userId = await _authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
-            ?? throw new UnregisteredUser();
+            ?? throw new UnregisteredUserException();
 
         // update userId in claims
         var issuedAt = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat);

@@ -3,9 +3,9 @@ using System.Net;
 
 namespace GrayMint.Authorization.Abstractions.Exceptions;
 
-public sealed class UnregisteredUser : Exception
+public sealed class UnregisteredUserException : Exception
 {
-    public UnregisteredUser() : base("User has not been registered.")
+    public UnregisteredUserException() : base("User has not been registered.")
     {
         Data["HttpStatusCode"] = (int)HttpStatusCode.Forbidden;
     }

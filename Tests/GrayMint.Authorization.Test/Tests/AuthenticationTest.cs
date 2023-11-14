@@ -235,8 +235,8 @@ public class AuthenticationTest
             {"Auth:RefreshTokenAppTimeout", "00:10:00" }
         });
 
-        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App);
-        Assert.IsNull(apiKey.RefreshToken);
+        await TestUtil.AssertApiException<UnauthorizedAccessException>(
+            testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App));
     }
 
     [TestMethod]
