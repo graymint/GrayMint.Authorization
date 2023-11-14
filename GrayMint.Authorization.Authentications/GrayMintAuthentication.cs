@@ -56,7 +56,7 @@ public class GrayMintAuthentication
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(
         ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null, DateTime? expirationTime = null)
     {
-        expirationTime ??= DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout;
+        expirationTime ??= JwtUtil.UtcNow + _authenticationOptions.AccessTokenTimeout;
         var accessToken = await CreateToken(claimsIdentity, validateOptions, TokenUse.Access, expirationTime.Value);
         return new AuthenticationHeaderValue(accessToken.Scheme, accessToken.Value);
     }
@@ -68,8 +68,8 @@ public class GrayMintAuthentication
 
         return refreshTokenType switch
         {
-            RefreshTokenType.Web => DateTime.UtcNow + _authenticationOptions.RefreshTokenWebTimeout,
-            RefreshTokenType.App => DateTime.UtcNow + _authenticationOptions.RefreshTokenAppTimeout,
+            RefreshTokenType.Web => JwtUtil.UtcNow + _authenticationOptions.RefreshTokenWebTimeout,
+            RefreshTokenType.App => JwtUtil.UtcNow + _authenticationOptions.RefreshTokenAppTimeout,
             _ => throw new AuthenticationException("Invalid refresh_token_type.")
         };
     }
@@ -83,7 +83,7 @@ public class GrayMintAuthentication
             claimsIdentity,
             options.ValidateOptions,
             TokenUse.Access,
-            options.AccessTokenExpirationTime ?? DateTime.UtcNow + _authenticationOptions.AccessTokenTimeout);
+            options.AccessTokenExpirationTime ?? JwtUtil.UtcNow + _authenticationOptions.AccessTokenTimeout);
 
         // create refresh token
         Token? refreshToken = null;
@@ -165,7 +165,7 @@ public class GrayMintAuthentication
             Value = jwt,
             Scheme = JwtBearerDefaults.AuthenticationScheme,
             ExpirationTime = expTime,
-            IssuedTime = DateTime.UtcNow,
+            IssuedTime = JwtUtil.UtcNow,
             ClaimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity)
         };
 
@@ -209,11 +209,11 @@ public class GrayMintAuthentication
                 _ => authTime + _authenticationOptions.SessionWebTimeout
             };
 
-        if (DateTime.UtcNow > authEndTime)
+        if (JwtUtil.UtcNow > authEndTime)
             throw new AuthenticationException("Can not use this refresh token anymore.");
 
         // Calculate refresh token expiration tome
-        var newExpTime = DateTime.UtcNow + (expTime - issuedTime);
+        var newExpTime = JwtUtil.UtcNow + (expTime - issuedTime);
         if (newExpTime > authEndTime)
             newExpTime = authEndTime.Value;
 
@@ -267,7 +267,7 @@ public class GrayMintAuthentication
 
     public async Task<Token> CreateIdToken(ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null)
     {
-        var expirationTime = DateTime.UtcNow + _authenticationOptions.IdTokenTimeout;
+        var expirationTime = JwtUtil.UtcNow + _authenticationOptions.IdTokenTimeout;
         var token = await CreateToken(claimsIdentity, validateOptions, TokenUse.Id, expirationTime);
         return token;
     }

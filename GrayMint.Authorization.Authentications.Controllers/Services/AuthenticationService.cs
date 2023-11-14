@@ -72,7 +72,7 @@ public class AuthenticationService
         var apiKey = await _grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
-                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13),
+                AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13),
                 RefreshTokenType = RefreshTokenType.None,
             });
 

@@ -3,6 +3,7 @@ using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Abstractions.Exceptions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.Dtos;
+using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
@@ -88,7 +89,7 @@ public class TeamService
                     ValidateSubject = true,
                     ValidateAuthCode = true,
                 },
-                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
+                AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
             });
 
         return apiKey;
@@ -110,7 +111,7 @@ public class TeamService
         var apiKey = await _grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
-                AccessTokenExpirationTime = DateTime.UtcNow.AddYears(13)
+                AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
             });
 
         return apiKey;

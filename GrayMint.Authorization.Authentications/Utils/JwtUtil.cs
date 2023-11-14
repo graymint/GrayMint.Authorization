@@ -12,18 +12,28 @@ public static class JwtUtil
         return CreateSymmetricJwt(key, issuer, audience, subject, email, null, roles);
     }
 
-    public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null, 
+    public static DateTime UtcNow
+    {
+        get
+        {
+            // drop milliseconds
+            var utcNow = DateTime.UtcNow;   
+            return new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second, DateTimeKind.Utc);    
+        }
+    }
+
+    public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null,
         string? email = null, Claim[]? claims = null, string[]? roles = null, DateTime? expirationTime = null)
     {
-        var claimIdentity = new ClaimsIdentity(claims);   
-        ClaimUtil.SetClaim(claimIdentity, ClaimUtil.CreateClaimTime("iat", DateTime.UtcNow));
+        var claimIdentity = new ClaimsIdentity(claims);
+        ClaimUtil.SetClaim(claimIdentity, ClaimUtil.CreateClaimTime("iat", UtcNow));
         ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
         claimIdentity.TryRemoveClaim(claimIdentity.FindFirst(JwtRegisteredClaimNames.Aud));
         claimIdentity.TryRemoveClaim(claimIdentity.FindFirst(JwtRegisteredClaimNames.Iss));
         if (subject != null) ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Sub, subject));
         if (email != null) ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Email, email));
-        if (roles != null) claimIdentity.AddClaims( roles.Select(x => new Claim(ClaimTypes.Role, x)));
-        
+        if (roles != null) claimIdentity.AddClaims(roles.Select(x => new Claim(ClaimTypes.Role, x)));
+
         // add issued at time
 
         // create token
@@ -32,7 +42,7 @@ public static class JwtUtil
         var token = new JwtSecurityToken(issuer,
             claims: claimIdentity.Claims,
             audience: audience,
-            expires: expirationTime ?? DateTime.UtcNow.AddYears(13),
+            expires: expirationTime ?? JwtUtil.UtcNow.AddYears(13),
             signingCredentials: signingCredentials);
 
         var handler = new JwtSecurityTokenHandler();
