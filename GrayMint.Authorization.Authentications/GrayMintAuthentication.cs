@@ -87,8 +87,11 @@ public class GrayMintAuthentication
 
         // create refresh token
         Token? refreshToken = null;
-        if (options.RefreshTokenType != RefreshTokenType.None && _authenticationOptions.AllowRefreshToken)
+        if (options.RefreshTokenType != RefreshTokenType.None)
         {
+            if (!_authenticationOptions.AllowRefreshToken)
+                throw new UnauthorizedAccessException("Refresh token is not available on the server.");
+
             // add refresh token clams
             claimsIdentity = claimsIdentity.Clone();
             ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.RefreshTokenType, options.RefreshTokenType.ToString()));
