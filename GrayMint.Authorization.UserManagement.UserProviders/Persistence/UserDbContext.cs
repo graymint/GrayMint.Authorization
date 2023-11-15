@@ -60,6 +60,12 @@ public partial class UserDbContext : DbContext
             entity.Property(e => e.IsBot)
                 .HasDefaultValue(false);
 
+            entity.Property(e => e.IsEmailVerified)
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.IsPhoneVerified)
+                .HasDefaultValue(false);
+
             entity.Property(e => e.ExData)
                 .HasMaxLength(int.MaxValue);
         });
