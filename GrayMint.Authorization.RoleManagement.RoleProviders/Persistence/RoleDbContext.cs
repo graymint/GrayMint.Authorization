@@ -46,7 +46,15 @@ public partial class RoleDbContext : DbContext
 
         modelBuilder.Entity<UserRoleModel>(entity =>
         {
-            entity.HasKey(ex => new { AppId = ex.ResourceId, ex.UserId, ex.RoleId });
+            entity
+                .HasKey(e => e.UserRoleId);
+
+            entity
+                .HasIndex(e => new { AppId = e.ResourceId, e.UserId, e.RoleId })
+                .IsUnique();
+
+            entity
+                .HasIndex(e => e.UserId);
 
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);
