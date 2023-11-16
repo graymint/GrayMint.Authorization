@@ -34,6 +34,7 @@ public class UserProvider : IUserProvider
     {
         var res = await _userDbContext.Users.AddAsync(new UserModel
         {
+            UserId = Guid.NewGuid(), 
             Email = request.Email,
             Name = request.Name,
             FirstName = request.FirstName,
@@ -48,7 +49,7 @@ public class UserProvider : IUserProvider
             PictureUrl = request.PictureUrl,
             Phone = request.Phone,
             IsBot = request.IsBot,
-            ExData = request.ExData
+            ExData = request.ExData,
         });
         await _userDbContext.SaveChangesAsync();
 
@@ -108,7 +109,7 @@ public class UserProvider : IUserProvider
     {
         _userDbContext.ChangeTracker.Clear();
 
-        var user = new UserModel { UserId = Guid.Parse(userId) };
+        var user = _userDbContext.Users.Single(x=>x.UserId == Guid.Parse(userId));
         _userDbContext.Users.Remove(user);
         await _userDbContext.SaveChangesAsync();
         _userAuthorizationCache.ClearUserItems(userId);
@@ -154,7 +155,7 @@ public class UserProvider : IUserProvider
                 (x.UserId == searchGuid && searchGuid != Guid.Empty) ||
                 (x.FirstName != null && x.FirstName.StartsWith(search)) ||
                 (x.LastName != null && x.LastName.StartsWith(search)) ||
-                (x.Email.StartsWith(search)));
+                (x.Email != null && x.Email.StartsWith(search)));
 
         var results = await query
             .OrderBy(x => x.Email)

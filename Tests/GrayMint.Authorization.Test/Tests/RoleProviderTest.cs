@@ -88,7 +88,8 @@ public class RoleProviderTest
 
         // check authorization code
         var identity = new ClaimsIdentity();
-        identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+        if (user.Email!=null)
+            identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         var authorizationProvider = testInit.Scope.ServiceProvider.GetRequiredService<IAuthorizationProvider>();
         var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity));
         Assert.IsNotNull(userId);

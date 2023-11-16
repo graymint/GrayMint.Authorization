@@ -56,7 +56,7 @@ public class UserProviderTest
         Assert.AreEqual(user.CreatedTime, user2.CreatedTime);
         Assert.AreEqual(user.UserId, user2.UserId);
 
-        var user3 = await userProvider.GetByEmail(user.Email);
+        var user3 = await userProvider.GetByEmail(request.Email);
         Assert.AreEqual(user.UserId, user3.UserId);
         Assert.AreEqual(user.FirstName, user3.FirstName);
 

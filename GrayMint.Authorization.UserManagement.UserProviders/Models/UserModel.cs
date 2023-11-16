@@ -2,9 +2,9 @@
 
 internal class UserModel
 {
-    public Guid UserId { get; set; } = default!;
+    public required Guid UserId { get; set; }
     public bool IsDisabled { get; set; }
-    public string Email { get; set; } = default!;
+    public string? Email { get; set; }
     public string? Name { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
@@ -12,10 +12,10 @@ internal class UserModel
     public string? Phone { get; set; }
     public DateTime CreatedTime { get; set; }
     public DateTime? AccessedTime { get; set; }
-    public string? AuthCode { get; set; }
     public bool IsEmailVerified { get; set; }
     public bool IsPhoneVerified { get; set; }
     public bool IsBot { get; set; }
+    public required string AuthCode { get; set; } 
     public string? Description { get; set; }
     public string? ExData { get; set; }
 }
