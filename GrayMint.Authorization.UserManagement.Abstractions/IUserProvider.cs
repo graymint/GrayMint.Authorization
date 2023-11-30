@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using GrayMint.Common.Generics;
+﻿using GrayMint.Common.Generics;
 
 namespace GrayMint.Authorization.UserManagement.Abstractions;
 

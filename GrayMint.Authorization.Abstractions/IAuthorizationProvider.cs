@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace GrayMint.Authorization.Abstractions;
 

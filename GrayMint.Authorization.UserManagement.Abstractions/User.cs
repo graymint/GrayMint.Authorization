@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GrayMint.Authorization.UserManagement.Abstractions;
+﻿namespace GrayMint.Authorization.UserManagement.Abstractions;
 
 public class User
 {

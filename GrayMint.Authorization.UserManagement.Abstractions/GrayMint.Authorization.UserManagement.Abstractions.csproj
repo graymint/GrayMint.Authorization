@@ -1,28 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Version>3.0.80</Version>
-    <IsPackable>true</IsPackable>
-    <RootNamespace>$(AssemblyName)</RootNamespace>
-    <Authors>GrayMint</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-    <PackageIcon>GrayMint.Authorization.png</PackageIcon>
-  </PropertyGroup>
+	<PropertyGroup>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<LangVersion>12</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="GrayMint.Common" Version="2.0.167" />
-  </ItemGroup>
+	<PropertyGroup>
+		<Authors>GrayMint</Authors>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Copyright>GrayMint. All rights reserved.</Copyright>
+		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
+		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+		<Version>3.0.80</Version>
+		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="GrayMint.Common" Version="2.0.174" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

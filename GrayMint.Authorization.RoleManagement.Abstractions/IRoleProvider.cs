@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using GrayMint.Common.Generics;
+﻿using GrayMint.Common.Generics;
 
 namespace GrayMint.Authorization.RoleManagement.Abstractions;
 

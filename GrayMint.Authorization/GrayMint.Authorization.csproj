@@ -1,50 +1,48 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Reference all GrayMint authorization.</Description>
+		<TargetFramework>net8.0</TargetFramework>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Version>3.0.80</Version>
-    <IsPackable>true</IsPackable>
-    <RootNamespace>$(AssemblyName)</RootNamespace>
-    <Authors>GrayMint</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-    <PackageIcon>GrayMint.Authorization.png</PackageIcon>
-  </PropertyGroup>
+	<PropertyGroup>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<LangVersion>12</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.Authentications.Controllers\GrayMint.Authorization.Authentications.Controllers.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.ResourceProviders\GrayMint.Authorization.RoleManagement.ResourceProviders.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleProviders\GrayMint.Authorization.RoleManagement.RoleProviders.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj">
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\GrayMint.Authorization.UserManagement.UserProviders\GrayMint.Authorization.UserManagement.UserProviders.csproj" />
-  </ItemGroup>
+	<PropertyGroup>
+		<Authors>GrayMint</Authors>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Copyright>GrayMint. All rights reserved.</Copyright>
+		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
+		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+		<Version>3.0.80</Version>
+		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.Authentications.Controllers\GrayMint.Authorization.Authentications.Controllers.csproj" />
+		<ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.ResourceProviders\GrayMint.Authorization.RoleManagement.ResourceProviders.csproj" />
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleProviders\GrayMint.Authorization.RoleManagement.RoleProviders.csproj" />
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.UserManagement.UserProviders\GrayMint.Authorization.UserManagement.UserProviders.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

@@ -1,6 +1,3 @@
 ﻿namespace GrayMint.Authorization.Authentications.Controllers;
 
-public class AuthenticationControllerOptions
-{
-
-}
+public class AuthenticationControllerOptions;

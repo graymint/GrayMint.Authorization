@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using GrayMint.Authorization.RoleManagement.Abstractions;
+﻿using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Models;
 
 namespace GrayMint.Authorization.RoleManagement.RoleProviders.DtoConverters;

@@ -1,22 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
 
 	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>3.0.80</Version>
-		<IsPackable>false</IsPackable>
-		<RootNamespace>$(AssemblyName)</RootNamespace>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<LangVersion>12</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<Authors>GrayMint</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Copyright>GrayMint. All rights reserved.</Copyright>
+		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<LangVersion>latest</LangVersion>
+		<Version>3.0.80</Version>
+		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
+
 
 	<ItemGroup>
 		<PackageReference Include="Amazon.Extensions.CognitoAuthentication" Version="2.5.2" />
-		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.13" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
 		<PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
 		<PackageReference Include="MSTest.TestFramework" Version="3.1.1" />

@@ -1,5 +1,4 @@
-﻿using System;
-using GrayMint.Authorization.Abstractions;
+﻿using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 
 namespace GrayMint.Authorization.RoleManagement.RoleProviders;

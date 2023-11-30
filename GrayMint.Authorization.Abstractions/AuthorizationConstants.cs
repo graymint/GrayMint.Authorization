@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GrayMint.Authorization.Abstractions;
+﻿namespace GrayMint.Authorization.Abstractions;
 
 public static class AuthorizationConstants
 {
