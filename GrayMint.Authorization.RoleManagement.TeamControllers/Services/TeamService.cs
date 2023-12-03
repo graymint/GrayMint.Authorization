@@ -252,8 +252,8 @@ public class TeamService
             var permissions = await _roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
             if (permissions.Contains(RolePermissions.RoleWrite))
             {
-                var user = await AddNewBot(rootResourceId, systemRole.RoleId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
-                return user;
+                var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
+                return apiKey;
             }
         }
 
