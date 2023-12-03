@@ -133,7 +133,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         return ToDto(res);
     }
 
-
     [HttpDelete("resources/{resourceId}/roles/{roleId}/users/{userId}")]
     public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
@@ -145,9 +144,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
     [HttpPost("system/api-key")]
     [AllowAnonymous]
-    public async Task<ApiKey> CreateSystemApiKey()
+    public async Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
     {
-        var res = await _teamService.CreateSystemApiKey();
+        var res = await _teamService.CreateSystemApiKey(secret);
         return res;
     }
 

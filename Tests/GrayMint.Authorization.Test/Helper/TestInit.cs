@@ -62,7 +62,7 @@ public class TestInit : IDisposable
 
     private async Task Init()
     {
-        SystemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync();
+        SystemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(AuthenticationOptions.Secret));
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
         App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
     }

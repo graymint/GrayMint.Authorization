@@ -23,6 +23,7 @@ public class TeamService
     private readonly IRoleProvider _roleProvider;
     private readonly IUserProvider _userProvider;
     private readonly IAuthorizationProvider _authorizationProvider;
+    private readonly GrayMintAuthenticationOptions _authenticationOptions;
     private readonly IAuthorizationService _authorizationService;
     private readonly GrayMintAuthentication _grayMintAuthentication;
     private readonly TeamControllerOptions _teamControllersOptions;
@@ -32,12 +33,14 @@ public class TeamService
         IUserProvider userProvider,
         IAuthorizationProvider authorizationProvider,
         IOptions<TeamControllerOptions> teamControllersOptions,
+        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
         GrayMintAuthentication grayMintAuthentication,
         IAuthorizationService authorizationService)
     {
         _roleProvider = roleProvider;
         _userProvider = userProvider;
         _authorizationProvider = authorizationProvider;
+        _authenticationOptions = authenticationOptions.Value;
         _grayMintAuthentication = grayMintAuthentication;
         _authorizationService = authorizationService;
         _teamControllersOptions = teamControllersOptions.Value;
@@ -234,10 +237,10 @@ public class TeamService
         return roles;
     }
 
-    public async Task<ApiKey> CreateSystemApiKey()
+    public async Task<ApiKey> CreateSystemApiKey(string secret)
     {
-        if (!_teamControllersOptions.IsTestEnvironment)
-            throw new UnauthorizedAccessException();
+        if (!Convert.FromBase64String(secret).SequenceEqual((_authenticationOptions.Secret)))
+            throw new UnauthorizedAccessException("Bad secret.");
 
         var rootResourceId = GetRootResourceId();
         var systemRoles = await _roleProvider.GetRoles(rootResourceId);

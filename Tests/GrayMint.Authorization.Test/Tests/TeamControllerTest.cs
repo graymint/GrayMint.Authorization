@@ -131,7 +131,7 @@ public class TeamControllerTest
         using var testInit2 = await TestInit.Create();
         await testInit2.AddNewBot(Roles.AppAdmin);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit2.TeamClient.AddUserByEmailAsync(testInit2.AppResourceId, Roles.AppAdmin.RoleId, botUserRole.User!.Email));
+            testInit2.TeamClient.AddUserByEmailAsync(testInit2.AppResourceId, Roles.AppAdmin.RoleId, botUserRole.User!.Email!));
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit2.TeamClient.AddUserAsync(testInit2.AppResourceId, Roles.AppAdmin.RoleId, botUserRole.User!.UserId));
