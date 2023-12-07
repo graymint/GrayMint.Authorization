@@ -31,7 +31,7 @@ public class GrayMintTokenValidator
         _authenticationOptions = authenticationOptions.Value;
     }
 
-    /// <param name="claimsPrincipal">Must has been already validated</param>
+    /// <param name="claimsPrincipal">Must have been already been validated</param>
     /// <param name="tokenUsage">the tokenUsage claim must be this value if it is not null</param>
     public async Task PostValidate(ClaimsPrincipal claimsPrincipal, string? tokenUsage = null)
     {
@@ -93,11 +93,11 @@ public class GrayMintTokenValidator
 
     private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
     {
-        var openIdConfig = await _memoryCache.GetOrCreateAsync(url, async entry =>
+        var openIdConfig = await _memoryCache.GetOrCreateAsync(url, entry =>
         {
             var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
             entry.SetAbsoluteExpiration(_authenticationOptions.OpenIdConfigTimeout);
-            return await configurationManager.GetConfigurationAsync();
+            return configurationManager.GetConfigurationAsync();
         }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
 
         return openIdConfig;

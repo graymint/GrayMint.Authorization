@@ -171,11 +171,10 @@ public class RoleProvider : IRoleProvider
     public async Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
         var permissions = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, 
-            $"resources:{resourceId}:user-permissions",
-            async entry =>
+            $"resources:{resourceId}:user-permissions", entry =>
             {
                 entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
-                return await GetUserPermissionsInternal(resourceId, userId);
+                return GetUserPermissionsInternal(resourceId, userId);
             });
 
         return permissions;

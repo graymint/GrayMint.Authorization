@@ -152,9 +152,9 @@ public class TeamService
         return userRoleList.Items.Single(x => x.UserId == userId);
     }
 
-    public async Task<User?> FindUserByEmail(string email)
+    public Task<User?> FindUserByEmail(string email)
     {
-        return await _userProvider.FindByEmail(email);
+        return _userProvider.FindByEmail(email);
     }
 
     public async Task<string> GetUserId(ClaimsPrincipal user)
@@ -279,7 +279,7 @@ public class TeamService
 
     public async Task<UserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, string userId)
     {
-        // check user permission over all of the user roles on this resource
+        // check user permission over all the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
         if (!userRoles.Items.Any())
             throw new UnauthorizedAccessException();

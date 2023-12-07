@@ -11,9 +11,9 @@ public class ItemAccessTest
 {
 
     [TestMethod]
-    public async Task Foo()
+    public Task Foo()
     {
-        await Task.Delay(0);
+        return Task.Delay(0);
     }
 
     [TestMethod]
