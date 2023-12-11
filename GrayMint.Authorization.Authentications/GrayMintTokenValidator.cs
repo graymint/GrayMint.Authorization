@@ -38,6 +38,11 @@ public class GrayMintTokenValidator
         var tokenId = claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Jti)
                       ?? throw new AuthenticationException("Can not find jti in token.");
 
+        // translate name-identifier to userId
+        var sub = claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!string.IsNullOrEmpty(sub) && claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!=null)
+            AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, sub);
+
         // get token version
         var tokenVersionStr = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.Version)?.Value;
         var tokenVersion = tokenVersionStr != null ? int.Parse(tokenVersionStr) : 1;
