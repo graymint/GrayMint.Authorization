@@ -15,9 +15,9 @@ namespace GrayMint.Authorization.Authentications;
 public class GrayMintTokenValidator
 {
     private readonly IAuthorizationProvider _authorizationProvider;
+    private readonly IMemoryCache _memoryCache;
     private readonly UserAuthorizationCache _userAuthorizationCache;
     private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly IMemoryCache _memoryCache;
 
     public GrayMintTokenValidator(
         IOptions<GrayMintAuthenticationOptions> authenticationOptions,
