@@ -28,9 +28,8 @@ public class Program
         services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
         // common services
-        services.AddMemoryCache();
         services
-            .AddGrayMintCommonServices(new RegisterServicesOptions() { AddMemoryCache = false })
+            .AddGrayMintCommonServices(new RegisterServicesOptions())
             .AddGrayMintSwagger("Test", true);
 
         // authentication & its controller
