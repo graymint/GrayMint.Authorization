@@ -1,4 +1,9 @@
-﻿using System.Security.Claims;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Dtos;
+using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.MicroserviceAuthorization;
 
@@ -46,7 +51,7 @@ public class MicroserviceAuthorizationService(
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, AuthorizationConstants.SystemUserId));
         var authorizationCode  = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity)) 
-            ?? throw new NotExistsException("Could not find authorization code for system user.");
+            ?? throw new KeyNotFoundException("Could not find authorization code for system user.");
 
         // create ClaimsIdentity
         claimsIdentity = new ClaimsIdentity();

@@ -1,18 +1,21 @@
 ﻿using System.Security.Claims;
+using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GrayMint.Authorization.MicroserviceAuthorization;
 
-[ApiVersion("1")]
 [ApiController]
 [Authorize]
 [Route("/api/v{version:apiVersion}/authorization")]
-public class SimpleAuthorizationController(MicroserviceAuthorizationService resourceAuthorizationService) : ControllerBase
+public class SimpleAuthorizationController(MicroserviceAuthorizationService microserviceAuthorizationService) : ControllerBase
 {
     [HttpPost("system/api-key")]
     [AllowAnonymous]
     public virtual Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
     {
-        return resourceAuthorizationService.CreateSystemApiKey(secret);
+        return microserviceAuthorizationService.CreateSystemApiKey(secret);
     }
 
     [HttpPost("system/reset-user-api-key")]
@@ -23,12 +26,12 @@ public class SimpleAuthorizationController(MicroserviceAuthorizationService reso
 
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId));
-        return resourceAuthorizationService.ResetApiKey(new ClaimsPrincipal(claimsIdentity));
+        return microserviceAuthorizationService.ResetApiKey(new ClaimsPrincipal(claimsIdentity));
     }
 
     [HttpPost("current/reset-api-key")]
     public virtual Task<ApiKey> ResetCurrentUserApiKey()
     {
-        return resourceAuthorizationService.ResetApiKey(User);
+        return microserviceAuthorizationService.ResetApiKey(User);
     }
 }
