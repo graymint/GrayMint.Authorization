@@ -30,4 +30,11 @@
 	  <ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
 </Project>
