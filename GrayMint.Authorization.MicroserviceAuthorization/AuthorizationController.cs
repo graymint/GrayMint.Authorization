@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GrayMint.Authorization.MicroserviceAuthorization;
 
+// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Authorize]
 [Route("/api/v{version:apiVersion}/authorization")]
-public class SimpleAuthorizationController(MicroserviceAuthorizationService microserviceAuthorizationService) : ControllerBase
+public class AuthorizationController(MicroserviceAuthorizationService microserviceAuthorizationService) : ControllerBase
 {
     [HttpPost("system/api-key")]
     [AllowAnonymous]
