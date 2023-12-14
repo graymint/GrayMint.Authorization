@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.Test.MicroserviceSample.Dtos;
+﻿namespace GrayMint.Authorization.Test.ItemServices.Dtos;
 
 public class ItemCreateRequest
 {

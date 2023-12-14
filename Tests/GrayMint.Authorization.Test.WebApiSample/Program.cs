@@ -1,6 +1,7 @@
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
-using GrayMint.Authorization.Test.WebApiSample.Persistence;
+using GrayMint.Authorization.Test.ItemServices;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.AspNetCore;
 using GrayMint.Common.Swagger;
@@ -34,7 +35,8 @@ public class Program
             services.AddGrayMintResourceProvider(new ResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Database
-        services.AddDbContext<WebApiSampleDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        services.AddItemServices();
 
         // Add services to the container.
         var webApp = builder.Build();
@@ -42,7 +44,7 @@ public class Program
         webApp.UseGrayMintSwagger(true);
         webApp.UseStaticFiles(new StaticFileOptions());
         await webApp.UseGrayMinCommonAuthorizationForApp();
-        await webApp.Services.UseGrayMintDatabaseCommand<WebApiSampleDbContext>(args);
+        await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
         if (appOptions.UseResourceProvider)
             await webApp.Services.UseGrayMintResourceProvider();
 

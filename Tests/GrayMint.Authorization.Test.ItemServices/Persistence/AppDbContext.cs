@@ -1,13 +1,11 @@
-﻿using GrayMint.Authorization.Test.MicroserviceSample.Models;
+﻿using GrayMint.Authorization.Test.ItemServices.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.Test.MicroserviceSample.Persistence;
+namespace GrayMint.Authorization.Test.ItemServices.Persistence;
 
 // ReSharper disable once PartialTypeWithSinglePart
 public partial class AppDbContext : DbContext
 {
-    public const string Schema = "dbo";
-
     public virtual DbSet<AppModel> Apps { get; set; } = default!;
     public virtual DbSet<ItemModel> Items { get; set; } = default!;
 
@@ -23,7 +21,6 @@ public partial class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema(Schema);
 
         modelBuilder.Entity<AppModel>(entity =>
         {

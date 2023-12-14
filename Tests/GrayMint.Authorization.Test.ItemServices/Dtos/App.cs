@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.Test.ItemService.Dtos;
+﻿namespace GrayMint.Authorization.Test.ItemServices.Dtos;
 
 public class App
 {

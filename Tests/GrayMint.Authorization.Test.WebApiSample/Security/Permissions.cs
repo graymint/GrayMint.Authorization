@@ -2,9 +2,8 @@ namespace GrayMint.Authorization.Test.WebApiSample.Security;
 
 public static class Permissions
 {
-    public const string SystemRead = nameof(SystemRead);
-    public const string SystemWrite = nameof(SystemWrite);
-    public const string ItemWrite = nameof(ItemWrite);
-    public const string ItemRead = nameof(ItemRead);
+    public const string AppCreate = nameof(AppCreate);
+    public const string AppRead = nameof(AppRead);
+    public const string AppWrite = nameof(AppWrite);
     public const string CustomerRead = nameof(CustomerRead);
 }

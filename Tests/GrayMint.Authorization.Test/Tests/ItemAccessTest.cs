@@ -25,12 +25,12 @@ public class ItemAccessTest
         await testInit.AddNewBot(Roles.SystemAdmin);
 
         // Check: accept All apps permission
-        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        await testInit.AppsClient.CreateAppAsync();
 
         // Check: 
         await testInit.AddNewBot(Roles.AppOwner);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()),
+            testInit.AppsClient.CreateAppAsync(),
             "refuse if caller does not have all app permission");
     }
 
@@ -43,7 +43,7 @@ public class ItemAccessTest
         // Create an AppCreator
         // **** Check: accept create item by AllApps access
         await testInit.AddNewBot(Roles.SystemAdmin);
-        var item = await testInit.ItemsClient.CreateByRoleAsync(testInit.App.AppId, Guid.NewGuid().ToString());
+        var item = await testInit.ItemsClient.CreateByRoleAsync(testInit.App.AppId);
 
         // **** Check: accept get item by AllApps access
         await testInit.AddNewBot(Roles.SystemReader);
@@ -59,22 +59,22 @@ public class ItemAccessTest
 
         // **** Check: accept create item by Create Permission
         await testInit1.AddNewBot(Roles.SystemAdmin);
-        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
+        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId);
 
         // **** Check: accept create item by the App permission
         await testInit1.AddNewBot(Roles.AppWriter);
-        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString());
+        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId);
 
         // Check:
         testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId),
             "refuse if caller belong to other app and does not have all the app permission.");
 
         // **** Check:
         testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppReader));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId, Guid.NewGuid().ToString()),
+            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId),
             "refuse if caller does not have write permission.");
     }
 }

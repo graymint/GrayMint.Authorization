@@ -64,7 +64,7 @@ public class TestInit : IDisposable
     {
         SystemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(AuthenticationOptions.Secret));
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
-        App = await AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        App = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
     }
 
     public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, object? resourceId = null)

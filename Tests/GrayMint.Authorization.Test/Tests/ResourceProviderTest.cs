@@ -19,8 +19,8 @@ public class ResourceProviderTest
     {
         var testInit = await TestInit.Create(useResourceProvider: true);
         var app1 = testInit.App.AppId;
-        var app2 = (await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString())).AppId;
-        var app3 = (await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString())).AppId;
+        var app2 = (await testInit.AppsClient.CreateAppAsync()).AppId;
+        var app3 = (await testInit.AppsClient.CreateAppAsync()).AppId;
 
         // set app parent resource 
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app1.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
@@ -32,7 +32,7 @@ public class ResourceProviderTest
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app1));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app3, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(app3));
 
         // Set hierarchy
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app2.ToString(), ParentResourceId = app1.ToString() });
@@ -42,30 +42,30 @@ public class ResourceProviderTest
         // **** Check: accept create item by System Admin
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.SystemAdmin));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         // -------------
         // **** Check: accept create item by the App Writer on app1
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app1));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app2));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         // -----------
         // **** Check: Refuse if caller has lower level permission
         // -----------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app3));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app1, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(app1));
 
         // -----------
         // **** Check: "refuse if caller does not have write permission even if it is on higher level."
         // -----------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppReader, resourceId: app1));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app3, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(app3));
     }
 
     [TestMethod]
@@ -73,10 +73,10 @@ public class ResourceProviderTest
     {
         var testInit = await TestInit.Create(useResourceProvider: true);
         var app1 = testInit.App;
-        var app2 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-        var app3 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-        var app4 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
-        var app5 = await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        var app2 = await testInit.AppsClient.CreateAppAsync();
+        var app3 = await testInit.AppsClient.CreateAppAsync();
+        var app4 = await testInit.AppsClient.CreateAppAsync();
+        var app5 = await testInit.AppsClient.CreateAppAsync();
 
         // set app parent resource 
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app1.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
@@ -96,20 +96,20 @@ public class ResourceProviderTest
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app2.AppId.ToString(), ParentResourceId = app1.AppId.ToString() });
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app3.AppId.ToString(), ParentResourceId = app2.AppId.ToString() });
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
 
         // -----------
         // **** Check: Should have access if it is one of its parent.
         // -----------
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app4.AppId.ToString(), ParentResourceId = app3.AppId.ToString() });
-        await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId);
 
         // -----------
         // **** Check: Should not have access if it is not one of its parent after moving a node in the middle
         // -----------
         await testInit.ResourceProvider.Update(new Resource { ResourceId = app2.AppId.ToString(), ParentResourceId = app5.AppId.ToString() });
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
     }
 
     [TestMethod]

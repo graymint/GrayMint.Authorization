@@ -1,45 +1,29 @@
 using GrayMint.Authorization.PermissionAuthorizations;
-using GrayMint.Authorization.Test.WebApiSample.Models;
-using GrayMint.Authorization.Test.WebApiSample.Persistence;
+using GrayMint.Authorization.Test.ItemServices.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Services;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
-// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Route("/api/v{version:apiVersion}/apps")]
-public class AppsController : ControllerBase
+public class AppsController(
+    AppService appService)
+    : ControllerBase
 {
-    private readonly WebApiSampleDbContext _dbContext;
-    private readonly ILogger<App> _logger;
-
-    public AppsController(
-        WebApiSampleDbContext dbContext,
-        ILogger<App> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
-
     [HttpPost]
-    [AuthorizePermission(Permissions.SystemWrite)]
-    public async Task<App> CreateApp(string appName)
+    [AuthorizePermission(Permissions.AppCreate)]
+    public Task<App> CreateApp(AppCreateRequest? createRequest = null)
     {
-        _logger.LogInformation("Creating app. AppName: {appName}", appName);
-
-        var ret = await _dbContext.Apps.AddAsync(new App { AppName = appName });
-        await _dbContext.SaveChangesAsync();
-        return ret.Entity;
+        return appService.Create(createRequest);
     }
 
     [HttpGet]
-    [AuthorizePermission(Permissions.SystemRead)]
-    public async Task<App[]> List()
+    [AuthorizePermission(Permissions.AppRead)]
+    public Task<App[]> List()
     {
-        var ret = await _dbContext.Apps.ToArrayAsync();
-        await _dbContext.SaveChangesAsync();
-        return ret;
+        return appService.List();
+
     }
 }

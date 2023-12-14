@@ -1,7 +1,7 @@
-﻿using GrayMint.Authorization.Test.ItemService.Dtos;
-using GrayMint.Authorization.Test.ItemService.Models;
+﻿using GrayMint.Authorization.Test.ItemServices.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Models;
 
-namespace GrayMint.Authorization.Test.ItemService.DtoConverters;
+namespace GrayMint.Authorization.Test.ItemServices.DtoConverters;
 
 public static class ItemConverter
 {

@@ -1,20 +1,21 @@
-﻿using GrayMint.Authorization.Test.MicroserviceSample.DtoConverters;
-using GrayMint.Authorization.Test.MicroserviceSample.Dtos;
-using GrayMint.Authorization.Test.MicroserviceSample.Models;
-using GrayMint.Authorization.Test.MicroserviceSample.Persistence;
+﻿using GrayMint.Authorization.Test.ItemServices.DtoConverters;
+using GrayMint.Authorization.Test.ItemServices.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Models;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.Test.MicroserviceSample.Services;
+namespace GrayMint.Authorization.Test.ItemServices.Services;
 
 public class AppService(AppDbContext appDbContext)
 {
-
-    public async Task<App> Create(string appName)
+    public async Task<App> Create(AppCreateRequest? createRequest)
     {
+        createRequest ??= new AppCreateRequest { AppName = Guid.NewGuid().ToString() };
+
         // Create App
         var app = await appDbContext.Apps.AddAsync(new AppModel
         {
-            AppName = appName
+            AppName = createRequest.AppName
         });
 
         await appDbContext.SaveChangesAsync();
@@ -30,6 +31,23 @@ public class AppService(AppDbContext appDbContext)
         return app;
     }
 
+    public async Task<App[]> Get(IEnumerable<int> appIds)
+    {
+        var apps = await appDbContext.Apps
+            .Where(x => appIds.Contains(x.AppId))
+            .ToArrayAsync();
+
+        return apps.Select(x => x.ToDto()).ToArray();
+    }
+
+    public async Task<App[]> List()
+    {
+        var apps = await appDbContext.Apps
+            .ToArrayAsync();
+
+        return apps.Select(x => x.ToDto()).ToArray();
+    }
+
     public async Task UpdateAuthorizationCode(int appId, string authorizationCode)
     {
         // get max token id
@@ -43,4 +61,5 @@ public class AppService(AppDbContext appDbContext)
         var app = await appDbContext.Apps.SingleAsync(x => x.AppId == appId);
         return app.AuthorizationCode;
     }
+
 }

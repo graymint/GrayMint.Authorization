@@ -1,4 +1,4 @@
-﻿namespace GrayMint.Authorization.Test.ItemService.Models;
+﻿namespace GrayMint.Authorization.Test.ItemServices.Models;
 
 public class AppModel
 {

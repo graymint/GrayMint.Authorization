@@ -1,7 +1,7 @@
 using GrayMint.Authorization.PermissionAuthorizations;
-using GrayMint.Authorization.Test.MicroserviceSample.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Services;
 using GrayMint.Authorization.Test.MicroserviceSample.Security;
-using GrayMint.Authorization.Test.MicroserviceSample.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrayMint.Authorization.Test.MicroserviceSample.Controllers;

@@ -18,6 +18,7 @@ public class AuthenticationTest
     public async Task Foo()
     {
         await Task.Delay(1000);
+        await Task.Delay(1000);
     }
 
     [TestMethod]
@@ -27,13 +28,13 @@ public class AuthenticationTest
         var apiKey = await testInit.AddNewBot(Roles.AppWriter);
 
         // make sure the current token is working
-        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
 
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         await userProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()),
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId),
             "make sure the current token is not working anymore");
     }
 
@@ -46,13 +47,13 @@ public class AuthenticationTest
 
         // call api buy retrieved token
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         //reset token
         await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
         await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()));
+            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
 
     [TestMethod]
@@ -64,13 +65,13 @@ public class AuthenticationTest
         // call api buy retrieved token
         var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString());
+        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AppsClient.CreateAppAsync(Guid.NewGuid().ToString()));
+            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
 
     [TestMethod]
@@ -86,13 +87,13 @@ public class AuthenticationTest
         // call api buy retrieved token
         apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString());
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, Guid.NewGuid().ToString()));
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId));
     }
 
     [TestMethod]

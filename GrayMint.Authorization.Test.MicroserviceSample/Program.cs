@@ -1,6 +1,5 @@
-
 using GrayMint.Authorization.MicroserviceAuthorization;
-using GrayMint.Authorization.Test.MicroserviceSample.Persistence;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.MicroserviceSample.Services;
 using GrayMint.Common.AspNetCore;
 using GrayMint.Common.Swagger;
@@ -16,7 +15,6 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             var services = builder.Services;
 
             // options
-            var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? throw new Exception("Could not load AppOptions.");
             services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
             // common services

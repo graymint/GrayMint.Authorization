@@ -49,18 +49,18 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(string appName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(AppCreateRequest? createRequest = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (appName == null)
-                throw new System.ArgumentNullException("appName");
-
             var client_ = _httpClient;
             var disposeClient_ = false;
             try
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(createRequest, _settings.Value);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
@@ -71,9 +71,6 @@ namespace GrayMint.Common.Test.Api
                     urlBuilder_.Append("v1");
                     urlBuilder_.Append('/');
                     urlBuilder_.Append("apps");
-            urlBuilder_.Append('?');
-            urlBuilder_.Append(System.Uri.EscapeDataString("appName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(appName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -533,13 +530,10 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> CreateByRoleAsync(int appId, string itemName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> CreateByRoleAsync(int appId, ItemCreateRequest? createRequest = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
-
-            if (itemName == null)
-                throw new System.ArgumentNullException("itemName");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -547,7 +541,10 @@ namespace GrayMint.Common.Test.Api
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(createRequest, _settings.Value);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
@@ -564,9 +561,6 @@ namespace GrayMint.Common.Test.Api
                     urlBuilder_.Append("items");
                     urlBuilder_.Append('/');
                     urlBuilder_.Append("by-role");
-            urlBuilder_.Append('?');
-            urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -708,13 +702,10 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> CreateByPermissionAsync(int appId, string itemName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> CreateByPermissionAsync(int appId, ItemCreateRequest? createRequest = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
-
-            if (itemName == null)
-                throw new System.ArgumentNullException("itemName");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -722,7 +713,10 @@ namespace GrayMint.Common.Test.Api
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(createRequest, _settings.Value);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
@@ -739,9 +733,6 @@ namespace GrayMint.Common.Test.Api
                     urlBuilder_.Append("items");
                     urlBuilder_.Append('/');
                     urlBuilder_.Append("by-permission");
-            urlBuilder_.Append('?');
-            urlBuilder_.Append(System.Uri.EscapeDataString("itemName") + "=").Append(System.Uri.EscapeDataString(ConvertToString(itemName, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2994,6 +2985,17 @@ namespace GrayMint.Common.Test.Api
 
         [System.Text.Json.Serialization.JsonPropertyName("appName")]
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]   
+        public string? AppName { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.0.0.0 (NJsonSchema v11.0.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AppCreateRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("appName")]
+
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]   
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string AppName { get; set; } = default!;
@@ -3009,10 +3011,17 @@ namespace GrayMint.Common.Test.Api
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]   
         public int ItemId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("appId")]
+        [System.Text.Json.Serialization.JsonPropertyName("itemName")]
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]   
-        public int AppId { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ItemName { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.0.0.0 (NJsonSchema v11.0.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ItemCreateRequest
+    {
 
         [System.Text.Json.Serialization.JsonPropertyName("itemName")]
 

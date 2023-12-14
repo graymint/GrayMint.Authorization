@@ -1,16 +1,18 @@
-using GrayMint.Authorization.Test.MicroserviceSample.DtoConverters;
-using GrayMint.Authorization.Test.MicroserviceSample.Dtos;
-using GrayMint.Authorization.Test.MicroserviceSample.Models;
-using GrayMint.Authorization.Test.MicroserviceSample.Persistence;
+using GrayMint.Authorization.Test.ItemServices.DtoConverters;
+using GrayMint.Authorization.Test.ItemServices.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Models;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrayMint.Authorization.Test.MicroserviceSample.Services;
+namespace GrayMint.Authorization.Test.ItemServices.Services;
 
 public class ItemService(AppDbContext appDbContext)
 {
 
-    public async Task<Item> Create(int appId, ItemCreateRequest createRequest)
+    public async Task<Item> Create(int appId, ItemCreateRequest? createRequest = null)
     {
+        createRequest ??= new ItemCreateRequest { ItemName = Guid.NewGuid().ToString() };
+
         // Create App
         var itemEntry = await appDbContext.Items.AddAsync(new ItemModel
         {

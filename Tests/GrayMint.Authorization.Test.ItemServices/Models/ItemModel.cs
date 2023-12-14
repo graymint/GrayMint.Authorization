@@ -1,4 +1,4 @@
-namespace GrayMint.Authorization.Test.MicroserviceSample.Models;
+namespace GrayMint.Authorization.Test.ItemServices.Models;
 
 public class ItemModel
 {
