@@ -1,5 +1,6 @@
 ﻿using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.PermissionAuthorizations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +23,6 @@ public static class MicroserviceAuthorizationExtension
                 authenticationOptions);
     }
 
-
     public static WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
         this WebApplicationBuilder builder,
         GrayMintAuthenticationOptions authenticationOptions) 
@@ -34,6 +34,9 @@ public static class MicroserviceAuthorizationExtension
         builder.Services
             .AddAuthentication()
             .AddGrayMintAuthentication(authenticationOptions, builder.Environment.IsProduction());
+
+        // support permission authorization
+        builder.Services.AddGrayMintPermissionAuthorization();
 
         // add Authorization
         builder.Services.AddAuthorization(options =>

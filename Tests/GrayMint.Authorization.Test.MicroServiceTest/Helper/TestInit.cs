@@ -61,7 +61,7 @@ public class TestInit : IDisposable
         Dictionary<string, string?>? appSettings = null,
         string environment = "Development")
     {
-        appSettings ??= new Dictionary<string, string?>();
+        appSettings ??= [];
         var testInit = new TestInit(appSettings, environment);
         await testInit.Init();
 

@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>GrayMint Authorization for microservices</Description>
 		<TargetFramework>net8.0</TargetFramework>
-		<OutputType>Library</OutputType>
-		<IsPackable>true</IsPackable>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -21,21 +20,24 @@
 		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<Version>3.0.90</Version>
+		<Version>3.0.91</Version>
 		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj" />
-	  <ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj" />
-	  <ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\GrayMint.Authorization.png" Link="Resources\GrayMint.Authorization.png">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GrayMint.Authorization.Test.MicroserviceSample\GrayMint.Authorization.Test.MicroserviceSample.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Tests\" />
+  </ItemGroup>
 
 </Project>

@@ -49,11 +49,8 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(AppCreateRequest createRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<App> CreateAppAsync(AppCreateRequest? createRequest = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (createRequest == null)
-                throw new System.ArgumentNullException("createRequest");
-
             var client_ = _httpClient;
             var disposeClient_ = false;
             try
@@ -324,13 +321,10 @@ namespace GrayMint.Common.Test.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="GrayMint.Common.Client.ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Item> CreateAsync(int appId, ItemCreateRequest createRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<Item> CreateAsync(int appId, ItemCreateRequest? createRequest = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (appId == null)
                 throw new System.ArgumentNullException("appId");
-
-            if (createRequest == null)
-                throw new System.ArgumentNullException("createRequest");
 
             var client_ = _httpClient;
             var disposeClient_ = false;

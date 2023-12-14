@@ -12,7 +12,7 @@ public class ItemsController(ItemService itemService) : ControllerBase
 {
     [HttpPost]
     [AuthorizeAppIdPermission(Permissions.AppWrite)]
-    public Task<Item> Create(int appId, ItemCreateRequest createRequest)
+    public Task<Item> Create(int appId, ItemCreateRequest? createRequest = null)
     {
         return itemService.Create(appId, createRequest);
     }
