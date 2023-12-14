@@ -15,6 +15,12 @@ namespace GrayMint.Authorization.Test.Tests;
 public class AuthenticationTest
 {
     [TestMethod]
+    public async Task Foo()
+    {
+        await Task.Delay(1000);
+    }
+
+    [TestMethod]
     public async Task LockUser()
     {
         var testInit = await TestInit.Create();

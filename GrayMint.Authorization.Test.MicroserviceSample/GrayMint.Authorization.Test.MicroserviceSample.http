@@ -1,0 +1,6 @@
+@GrayMint.Authorization.Test.MicroserviceSample_HostAddress = http://localhost:5114
+
+GET {{GrayMint.Authorization.Test.MicroserviceSample_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
