@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>GrayMint</Authors>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Copyright>GrayMint. All rights reserved.</Copyright>
+		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
+		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+		<Version>3.0.91</Version>
+		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.177" />
+    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.177" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\GrayMint.Authorization.MicroserviceAuthorization\GrayMint.Authorization.MicroserviceAuthorization.csproj" />
+    <ProjectReference Include="..\..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
+    <ProjectReference Include="..\..\Tests\GrayMint.Authorization.Test.ItemServices\GrayMint.Authorization.Test.ItemServices.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -24,15 +25,15 @@
 	</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.177" />
-    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.177" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GrayMint.Authorization.MicroserviceAuthorization\GrayMint.Authorization.MicroserviceAuthorization.csproj" />
-    <ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
-    <ProjectReference Include="..\Tests\GrayMint.Authorization.Test.ItemServices\GrayMint.Authorization.Test.ItemServices.csproj" />
+    <ProjectReference Include="..\GrayMint.Authorization.Test.MicroserviceSample\GrayMint.Authorization.Test.MicroserviceSample.csproj" />
   </ItemGroup>
 
 </Project>

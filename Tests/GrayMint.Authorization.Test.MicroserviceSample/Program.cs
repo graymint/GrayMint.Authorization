@@ -1,4 +1,5 @@
 using GrayMint.Authorization.MicroserviceAuthorization;
+using GrayMint.Authorization.Test.ItemServices;
 using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.MicroserviceSample.Services;
 using GrayMint.Common.AspNetCore;
@@ -28,6 +29,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
 
             // Database
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            services.AddItemServices();
 
             // Add services to the container.
             var webApp = builder.Build();
