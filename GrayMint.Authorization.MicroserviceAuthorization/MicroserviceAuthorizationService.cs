@@ -10,6 +10,7 @@ namespace GrayMint.Authorization.MicroserviceAuthorization;
 public class MicroserviceAuthorizationService(
     GrayMintAuthentication grayMintAuthentication,
     IAuthorizationProvider authorizationProvider,
+    UserAuthorizationCache userAuthorizationCache,
     IOptions<GrayMintAuthenticationOptions> authenticationOptions)
 {
     private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
@@ -22,6 +23,9 @@ public class MicroserviceAuthorizationService(
         // reset authorization code
         await authorizationProvider.RestAuthorizationCode(claimsPrincipal);
         var authorizationCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+
+        // clear user cache
+        userAuthorizationCache.ClearUserItems(userId);
 
         // create ClaimsIdentity
         var claimsIdentity = new ClaimsIdentity();
