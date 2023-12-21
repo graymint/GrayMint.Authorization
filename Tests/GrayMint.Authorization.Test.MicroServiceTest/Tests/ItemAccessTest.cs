@@ -19,6 +19,25 @@ public class ItemAccessTest
     }
 
     [TestMethod]
+    public async Task Fail_unauthenticated()
+    {
+        using var testInit = await TestInit.Create();
+        testInit.SetApiKey(new Common.Test.Api.ApiKey()
+        {
+            AccessToken = new Common.Test.Api.Token
+            {
+                Scheme = "Bearer",
+                Value = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+            }
+        });
+
+        await TestUtil.AssertApiException(
+            HttpStatusCode.Unauthorized, 
+            testInit.ItemsClient.CreateAsync(testInit.AppId));
+    }
+
+
+    [TestMethod]
     public async Task Fail_create_an_item_by_wrong_App_writer()
     {
         using var testInit = await TestInit.Create();

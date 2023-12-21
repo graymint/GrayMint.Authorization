@@ -25,7 +25,7 @@ public static class MicroserviceAuthorizationExtension
 
     public static WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
         this WebApplicationBuilder builder,
-        GrayMintAuthenticationOptions authenticationOptions) 
+        GrayMintAuthenticationOptions authenticationOptions)
         where TAuthorizationProvider : class, IAuthorizationProvider
     {
         var services = builder.Services;
@@ -57,6 +57,13 @@ public static class MicroserviceAuthorizationExtension
             .AddScoped<MicroserviceAuthorizationService>();
 
         return builder;
+    }
+
+    public static Task UseGrayMinCommonAuthorizationForMicroservice(this WebApplication webApplication)
+    {
+        webApplication.UseAuthentication();
+        webApplication.UseAuthorization();
+        return Task.CompletedTask;
     }
 
 }

@@ -81,6 +81,8 @@ public static class AuthorizationExtension
 
     public static async Task UseGrayMinCommonAuthorizationForApp(this WebApplication webApplication)
     {
+        webApplication.UseAuthentication();
+        webApplication.UseAuthorization();
         await webApplication.Services.UseGrayMintUserProvider();
         await webApplication.Services.UseGrayMintRoleProvider();
     }

@@ -26,7 +26,6 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // authentication & its controller
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
 
-
             // Database
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
             services.AddItemServices();
@@ -35,6 +34,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             var webApp = builder.Build();
             webApp.UseGrayMintCommonServices(new UseServicesOptions());
             webApp.UseGrayMintSwagger(true);
+            await webApp.UseGrayMinCommonAuthorizationForMicroservice();
             await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
 
             await GrayMintApp.RunAsync(webApp, args);
