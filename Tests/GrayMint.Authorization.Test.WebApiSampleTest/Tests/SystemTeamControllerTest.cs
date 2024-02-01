@@ -1,5 +1,5 @@
-using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Test.Api;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

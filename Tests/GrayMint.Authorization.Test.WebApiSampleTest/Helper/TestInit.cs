@@ -16,7 +16,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using ApiKey = GrayMint.Common.Test.Api.ApiKey;
 using RefreshTokenType = GrayMint.Common.Test.Api.RefreshTokenType;
 
-namespace GrayMint.Authorization.Test.Helper;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 
 public class TestInit : IDisposable
 {
