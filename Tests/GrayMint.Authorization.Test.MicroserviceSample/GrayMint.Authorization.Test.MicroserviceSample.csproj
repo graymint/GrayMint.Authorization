@@ -19,13 +19,13 @@
 		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<Version>3.0.99</Version>
+		<Version>3.0.101</Version>
 		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.0.181" />
-    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.181" />
+    <PackageReference Include="GrayMint.Common.Swagger" Version="2.0.182" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
   </ItemGroup>
 

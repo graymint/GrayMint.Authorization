@@ -20,7 +20,7 @@
 		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<Version>3.0.99</Version>
+		<Version>3.0.101</Version>
 		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
 
@@ -32,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.181" />
+		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.0.182" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
 	</ItemGroup>
 
