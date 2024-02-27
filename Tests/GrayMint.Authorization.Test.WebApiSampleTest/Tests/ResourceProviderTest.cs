@@ -1,5 +1,4 @@
 using GrayMint.Authorization.RoleManagement.Abstractions;
-using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
@@ -8,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
+using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 
 namespace GrayMint.Authorization.Test.Tests;
 

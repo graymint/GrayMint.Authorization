@@ -1,8 +1,8 @@
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
-using GrayMint.Authorization.Test.Helper;
 using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Client;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
