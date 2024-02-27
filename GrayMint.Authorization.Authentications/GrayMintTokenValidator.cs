@@ -40,7 +40,7 @@ public class GrayMintTokenValidator
 
         // translate name-identifier to userId
         var sub = claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Sub);
-        if (!string.IsNullOrEmpty(sub) && claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!=null)
+        if (!string.IsNullOrEmpty(sub) && claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier) != null)
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, sub);
 
         // get token version
@@ -91,8 +91,16 @@ public class GrayMintTokenValidator
         await _authorizationProvider.OnAuthenticated(claimsPrincipal);
     }
 
+    private static string EnsureHttps(string url)
+    {
+        if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            url = "https://" + url;
+        return url;
+    }
+
     private Task<OpenIdConnectConfiguration> GetOpenIdConnectConfigurationByIssuer(string issuer)
     {
+        issuer = EnsureHttps(issuer);
         return GetOpenIdConnectConfiguration($"{issuer}/.well-known/openid-configuration");
     }
 
@@ -115,7 +123,7 @@ public class GrayMintTokenValidator
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = openIdConfig.Issuer,
+            ValidIssuers = [openIdProvider.Issuer, openIdConfig.Issuer], // check with https and without https
             ValidateAudience = true,
             ValidAudience = openIdProvider.Audience,
             ValidateLifetime = true,
