@@ -10,38 +10,24 @@ using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace GrayMint.Authorization.Authentications.Controllers.Services;
 
-public class AuthenticationService
+public class AuthenticationService(
+    IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+    GrayMintAuthentication grayMintAuthentication,
+    IUserProvider userProvider,
+    IAuthorizationProvider authorizationProvider,
+    GrayMintTokenValidator grayMintIdTokenValidator)
 {
-    private readonly GrayMintAuthentication _grayMintAuthentication;
-    private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly IUserProvider _userProvider;
-    private readonly GrayMintTokenValidator _grayMintIdTokenValidator;
-    public AuthenticationService(
-        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        GrayMintAuthentication grayMintAuthentication,
-        IUserProvider userProvider,
-        IAuthorizationProvider authorizationProvider,
-        GrayMintTokenValidator grayMintIdTokenValidator)
-    {
-        _authenticationOptions = authenticationOptions.Value;
-        _grayMintAuthentication = grayMintAuthentication;
-        _userProvider = userProvider;
-        _authorizationProvider = authorizationProvider;
-        _grayMintIdTokenValidator = grayMintIdTokenValidator;
-    }
-
-    public Uri? SignInRedirectUrl => _authenticationOptions.SignInRedirectUrl;
+    public Uri? SignInRedirectUrl => authenticationOptions.Value.SignInRedirectUrl;
 
     public async Task<string> GetUserId(ClaimsPrincipal user)
     {
-        var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
+        var userId = await authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
         return userId;
     }
 
     public async Task<User> GetUser(string userId)
     {
-        var user = await _userProvider.Get(userId);
+        var user = await userProvider.Get(userId);
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
         user.AccessedTime = null;
@@ -50,26 +36,26 @@ public class AuthenticationService
 
     public async Task<User> ResetAuthorizationCode(string userId)
     {
-        var user = await _userProvider.Get(userId);
-        await _userProvider.ResetAuthorizationCode(user.UserId);
+        var user = await userProvider.Get(userId);
+        await userProvider.ResetAuthorizationCode(user.UserId);
         return user;
     }
 
     public async Task<ApiKey> ResetApiKey(string userId)
     {
-        var user = await _userProvider.Get(userId);
+        var user = await userProvider.Get(userId);
 
         // check AllowUserApiKey for user
-        if (!_authenticationOptions.AllowUserApiKey)
+        if (!authenticationOptions.Value.AllowUserApiKey)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
-        await _userProvider.ResetAuthorizationCode(user.UserId);
+        await userProvider.ResetAuthorizationCode(user.UserId);
 
         // create new api key
         var claimIdentity = new ClaimsIdentity();
         claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
-        var apiKey = await _grayMintAuthentication
+        var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13),
@@ -106,12 +92,12 @@ public class AuthenticationService
         if (isEmailVerified != null && user.IsEmailVerified != bool.Parse(isEmailVerified)) { updateRequest.IsEmailVerified = bool.Parse(isEmailVerified); isUpdated = true; }
 
         if (isUpdated)
-            await _userProvider.Update(user.UserId, updateRequest);
+            await userProvider.Update(user.UserId, updateRequest);
     }
 
     public async Task<ApiKey> SignIn(SignInRequest signInRequest)
     {
-        var apiKey = await _grayMintAuthentication
+        var apiKey = await grayMintAuthentication
             .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType);
 
         // make sure userId is not null 
@@ -121,7 +107,7 @@ public class AuthenticationService
         // update user profile by claims
         if (apiKey.AccessToken.ClaimsPrincipal is not null)
         {
-            var user = await _userProvider.Get(apiKey.UserId);
+            var user = await userProvider.Get(apiKey.UserId);
             await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal);
         }
 
@@ -130,20 +116,20 @@ public class AuthenticationService
 
     public async Task<ApiKey> SignUp(SignUpRequest signUpRequest)
     {
-        if (!_authenticationOptions.AllowUserSelfRegister)
+        if (!authenticationOptions.Value.AllowUserSelfRegister)
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
-        var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(signUpRequest.IdToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(signUpRequest.IdToken);
         var claimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity);
 
         var email =
             claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
             ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
 
-        var user = await _userProvider.Create(new UserCreateRequest { Email = email });
+        var user = await userProvider.Create(new UserCreateRequest { Email = email });
         await UpdateUserByClaims(user, claimsPrincipal);
 
-        var apiKey = await _grayMintAuthentication.SignIn(
+        var apiKey = await grayMintAuthentication.SignIn(
             signUpRequest.IdToken, signUpRequest.RefreshTokenType);
 
         return apiKey;

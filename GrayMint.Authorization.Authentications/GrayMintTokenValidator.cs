@@ -123,7 +123,8 @@ public class GrayMintTokenValidator
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuers = [openIdProvider.Issuer, openIdConfig.Issuer], // check with https and without https
+            ValidIssuer = openIdProvider.Issuer,
+            ValidIssuers = openIdProvider.Issuers,
             ValidateAudience = true,
             ValidAudience = openIdProvider.Audience,
             ValidateLifetime = true,
@@ -164,7 +165,9 @@ public class GrayMintTokenValidator
             var securityToken = tokenHandler.ReadToken(idToken);
 
             ClaimsIdentity claimsIdentity;
-            var openIdProvider = _authenticationOptions.OpenIdProviders.SingleOrDefault(x => x.Issuer == securityToken.Issuer);
+            var openIdProvider = _authenticationOptions.OpenIdProviders
+                .SingleOrDefault(x => x.Issuer == securityToken.Issuer || x.Issuers.Contains(securityToken.Issuer));
+
             if (openIdProvider != null)
                 claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
 

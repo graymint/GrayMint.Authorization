@@ -29,7 +29,7 @@ public class GrayMintAuthenticationOptions
     public bool AllowUserApiKey { get; init; }
     public Uri? SignInRedirectUrl { get; init; }
     public bool AllowRefreshToken { get; init; }
-    public OpenIdProvider[] OpenIdProviders { get; init; } = Array.Empty<OpenIdProvider>();
+    public OpenIdProvider[] OpenIdProviders { get; init; } = [];
 
     public void Validate(bool isProduction)
     {

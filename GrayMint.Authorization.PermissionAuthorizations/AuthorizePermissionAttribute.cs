@@ -4,19 +4,13 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace GrayMint.Authorization.PermissionAuthorizations;
 
-public class AuthorizePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizationFilter
+public class AuthorizePermissionAttribute(string permission) 
+    : AuthorizeAttribute, IAsyncAuthorizationFilter
 {
-    private readonly string _permission;
-
     /// <summary>
     /// Eg: *, {appId}, appId:{appId}
     /// </summary>
     public string? ResourceRoute { get; init; }
-
-    public AuthorizePermissionAttribute(string permission)
-    {
-        _permission = permission;
-    }
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
@@ -24,7 +18,7 @@ public class AuthorizePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizat
         var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
         var requirement = new PermissionAuthorizationRequirement
         {
-            Permission = _permission,
+            Permission = permission,
             ResourceRoute = ResourceRoute
         };
 

@@ -15,21 +15,12 @@ using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegiste
 
 namespace GrayMint.Authorization.Authentications;
 
-public class GrayMintAuthentication
+public class GrayMintAuthentication(
+    IAuthorizationProvider authorizationProvider,
+    IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+    GrayMintTokenValidator grayMintIdTokenValidator)
 {
-    private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly GrayMintTokenValidator _grayMintIdTokenValidator;
-
-    public GrayMintAuthentication(
-        IAuthorizationProvider authorizationProvider,
-        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        GrayMintTokenValidator grayMintIdTokenValidator)
-    {
-        _authorizationProvider = authorizationProvider;
-        _authenticationOptions = authenticationOptions.Value;
-        _grayMintIdTokenValidator = grayMintIdTokenValidator;
-    }
+    private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
 
     internal static TokenValidationParameters GetTokenValidationParameters(GrayMintAuthenticationOptions options)
     {
@@ -125,7 +116,7 @@ public class GrayMintAuthentication
         // try to add subject if not set
         if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null)
         {
-            var userId = await _authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+            var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
             if (userId != null)
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
         }
@@ -133,7 +124,7 @@ public class GrayMintAuthentication
         // AuthCode. try to retrieve it from authorization Provider if not set
         if (claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null)
         {
-            var authCode = await _authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+            var authCode = await authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
             if (!string.IsNullOrEmpty(authCode))
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AuthCode, authCode));
         }
@@ -173,7 +164,7 @@ public class GrayMintAuthentication
         if (tokenOptions.ValidateAuthCode)
         {
             var authCode = claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
-            if (string.IsNullOrEmpty(authCode) || await _authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal) != authCode)
+            if (string.IsNullOrEmpty(authCode) || await authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal) != authCode)
                 throw new AuthenticationException("Could not validate AuthorizationCode.");
         }
 
@@ -181,7 +172,7 @@ public class GrayMintAuthentication
         if (tokenOptions.ValidateSubject)
         {
             var subject = claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
-            if (string.IsNullOrEmpty(subject) || await _authorizationProvider.GetUserId(token.ClaimsPrincipal) != subject)
+            if (string.IsNullOrEmpty(subject) || await authorizationProvider.GetUserId(token.ClaimsPrincipal) != subject)
                 throw new AuthenticationException("Could not validate UserId.");
         }
 
@@ -191,7 +182,7 @@ public class GrayMintAuthentication
     public async Task<ApiKey> RefreshToken(string refreshToken)
     {
         // validate token
-        var claimsIdentity = await _grayMintIdTokenValidator.ValidateGrayMintToken(refreshToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateGrayMintToken(refreshToken);
         if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Refresh))
             throw new AuthenticationException("This is not a refresh token.");
 
@@ -238,7 +229,7 @@ public class GrayMintAuthentication
 
     public async Task<ApiKey> SignIn(string idToken, RefreshTokenType refreshTokenType)
     {
-        var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
 
         if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
             throw new AuthenticationException("This is not an id token.");
@@ -247,7 +238,7 @@ public class GrayMintAuthentication
             throw new AuthenticationException("Email has not been verified.");
 
         // check user existence
-        var userId = await _authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
+        var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
             ?? throw new UnregisteredUserException();
 
         // update userId in claims
@@ -277,7 +268,7 @@ public class GrayMintAuthentication
         if (_authenticationOptions.SignInRedirectUrl == null)
             throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
 
-        var claimsIdentity = await _grayMintIdTokenValidator.ValidateIdToken(idToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
         var token = await CreateIdToken(claimsIdentity);
 
         // Adding a parameter

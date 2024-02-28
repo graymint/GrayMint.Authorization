@@ -2,16 +2,11 @@
 
 namespace GrayMint.Authorization.Abstractions;
 
-public class UserAuthorizationCache
+public class UserAuthorizationCache(IMemoryCache memoryCache)
 {
     private readonly object _lockObject = new();
-    private readonly IMemoryCache _memoryCache;
     private static TimeSpan CacheTimeout => AuthorizationConstants.CacheTimeout;
 
-    public UserAuthorizationCache(IMemoryCache memoryCache)
-    {
-        _memoryCache = memoryCache;
-    }
     private static string BuildUserCacheKey(string userId)
     {
         return $"graymint:auth:userid:{userId}";
@@ -28,7 +23,7 @@ public class UserAuthorizationCache
     {
         // get list of current users keys
         var userCacheKey = BuildUserCacheKey(userId);
-        var keys = _memoryCache.GetOrCreate(userCacheKey, entry =>
+        var keys = memoryCache.GetOrCreate(userCacheKey, entry =>
             {
                 entry.SetAbsoluteExpiration(CacheTimeout);
                 return new HashSet<string>();
@@ -43,13 +38,13 @@ public class UserAuthorizationCache
             keys?.Add(itemCacheKey);
 
         // add the key
-        var res = await _memoryCache.GetOrCreateAsync(itemCacheKey, factory);
+        var res = await memoryCache.GetOrCreateAsync(itemCacheKey, factory);
         return res;
     }
 
     public void AddUserItem(string userId, string itemKey)
     {
-        var keys = _memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry =>
+        var keys = memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry =>
             {
                 entry.SetAbsoluteExpiration(CacheTimeout);
                 return new HashSet<string>();
@@ -63,15 +58,15 @@ public class UserAuthorizationCache
     public void ClearUserItems(string userId)
     {
         var userCacheKey = BuildUserCacheKey(userId);
-        var keys = _memoryCache.Get<HashSet<string>>(userCacheKey);
+        var keys = memoryCache.Get<HashSet<string>>(userCacheKey);
         if (keys == null) 
             return;
 
         foreach (var key in keys)
             if (keys.TryGetValue(key, out var actualKey))
-                _memoryCache.Remove(actualKey);
+                memoryCache.Remove(actualKey);
 
         // remove key itself
-        _memoryCache.Remove(userCacheKey);
+        memoryCache.Remove(userCacheKey);
     }
 }
