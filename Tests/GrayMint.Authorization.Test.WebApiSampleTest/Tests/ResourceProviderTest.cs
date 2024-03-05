@@ -1,15 +1,15 @@
+using System.Net;
 using GrayMint.Authorization.RoleManagement.Abstractions;
+using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.Test.WebApiSample.Security;
+using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Net;
-using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
-using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 
-namespace GrayMint.Authorization.Test.Tests;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
 public class ResourceProviderTest
