@@ -4,6 +4,7 @@ using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
+using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -27,7 +28,7 @@ public class CustomerAccessTest
         // ------
         // **** Check: success
         // ------
-        var apiKey = GmUtil.JsonClone<Common.Test.Api.ApiKey>(apiKeyDto,
+        var apiKey = GmUtil.JsonClone<ApiKey>(apiKeyDto,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         testInit.SetApiKey(apiKey);

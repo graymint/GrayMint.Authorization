@@ -10,7 +10,7 @@ public static class Roles
         RoleName = nameof(AppReader),
         RoleId = "{C7383857-4513-4FE5-BC0D-6DEC069FCF1E}",
         IsRoot = false,
-        Permissions = [nameof(Permissions.AppRead)],
+        Permissions = [nameof(Permissions.AppRead)]
     };
 
     public static GmRole AppWriter { get; } = new()

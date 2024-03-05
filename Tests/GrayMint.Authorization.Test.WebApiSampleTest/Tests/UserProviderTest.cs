@@ -61,7 +61,7 @@ public class UserProviderTest
         Assert.AreEqual(user.FirstName, user3.FirstName);
 
         // Update
-        var updateRequest = new UserUpdateRequest()
+        var updateRequest = new UserUpdateRequest
         {
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
@@ -73,8 +73,8 @@ public class UserProviderTest
             IsEmailVerified = false,
             IsPhoneVerified = false,
             IsDisabled = false,
-            ExData = Guid.NewGuid().ToString(),
-            
+            ExData = Guid.NewGuid().ToString()
+
         };
         await userProvider.Update(user.UserId, updateRequest);
 

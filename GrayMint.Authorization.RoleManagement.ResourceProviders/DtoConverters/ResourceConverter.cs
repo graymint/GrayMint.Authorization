@@ -10,7 +10,7 @@ internal static class ResourceConverter
         return new Resource
         {
             ResourceId = model.ResourceId,
-            ParentResourceId = model.ParentResourceId,
+            ParentResourceId = model.ParentResourceId
         };
     }
 
@@ -19,7 +19,7 @@ internal static class ResourceConverter
         return new ResourceModel
         {
             ResourceId = model.ResourceId,
-            ParentResourceId = model.ParentResourceId,
+            ParentResourceId = model.ParentResourceId
         };
     }
 }

@@ -17,7 +17,7 @@ internal static class UserRoleConverter
                 {
                     RoleId = modelRoleId.ToLower(),
                     RoleName = $"<{modelRoleId}>",
-                    Description = string.Empty,
+                    Description = string.Empty
                 }
         };
         return userRole;

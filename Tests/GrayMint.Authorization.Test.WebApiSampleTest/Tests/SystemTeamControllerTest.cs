@@ -15,7 +15,7 @@ public class SystemTeamControllerTest
 
         var apiKey = await testInit.TeamClient.AddNewBotAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, new TeamAddBotParam
         {
-            Name = Guid.NewGuid().ToString(),
+            Name = Guid.NewGuid().ToString()
         });
 
         testInit.SetApiKey(apiKey);

@@ -1,6 +1,6 @@
-﻿using GrayMint.Authorization.Abstractions;
+﻿using System.Text.RegularExpressions;
+using GrayMint.Authorization.Abstractions;
 using Microsoft.AspNetCore.Authorization;
-using System.Text.RegularExpressions;
 
 namespace GrayMint.Authorization.PermissionAuthorizations;
 

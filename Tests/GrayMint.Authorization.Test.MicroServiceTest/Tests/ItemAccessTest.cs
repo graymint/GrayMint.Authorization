@@ -1,6 +1,7 @@
-using GrayMint.Authorization.Test.MicroServiceTest.Helper;
-using GrayMint.Common.Utils;
 using System.Net;
+using GrayMint.Authorization.Test.MicroServiceTest.Helper;
+using GrayMint.Common.Test.Api;
+using GrayMint.Common.Utils;
 
 namespace GrayMint.Authorization.Test.MicroServiceTest.Tests;
 
@@ -22,9 +23,9 @@ public class ItemAccessTest
     public async Task Fail_unauthenticated()
     {
         using var testInit = await TestInit.Create();
-        testInit.SetApiKey(new Common.Test.Api.ApiKey()
+        testInit.SetApiKey(new ApiKey
         {
-            AccessToken = new Common.Test.Api.Token
+            AccessToken = new Token
             {
                 Scheme = "Bearer",
                 Value = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="

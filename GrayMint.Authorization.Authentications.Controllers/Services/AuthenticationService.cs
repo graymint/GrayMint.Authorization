@@ -59,7 +59,7 @@ public class AuthenticationService(
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13),
-                RefreshTokenType = RefreshTokenType.None,
+                RefreshTokenType = RefreshTokenType.None
             });
 
         return apiKey;

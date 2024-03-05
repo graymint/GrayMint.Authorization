@@ -59,7 +59,7 @@ public class TeamService
     {
         var user = await _userProvider.Update(userId, new UserUpdateRequest
         {
-            FirstName = updateParam.Name,
+            FirstName = updateParam.Name
         });
 
         return user;
@@ -90,7 +90,7 @@ public class TeamService
                 ValidateOptions = new ValidateOptions
                 {
                     ValidateSubject = true,
-                    ValidateAuthCode = true,
+                    ValidateAuthCode = true
                 },
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
             });

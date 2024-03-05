@@ -1,14 +1,14 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications.Dtos;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using GrayMint.Authorization.Authentications.Dtos;
-using GrayMint.Authorization.Abstractions;
 
 namespace GrayMint.Authorization.Authentications;
 

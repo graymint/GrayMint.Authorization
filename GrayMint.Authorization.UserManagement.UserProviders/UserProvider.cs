@@ -49,7 +49,7 @@ public class UserProvider : IUserProvider
             PictureUrl = request.PictureUrl,
             Phone = request.Phone,
             IsBot = request.IsBot,
-            ExData = request.ExData,
+            ExData = request.ExData
         });
         await _userDbContext.SaveChangesAsync();
 

@@ -25,7 +25,7 @@ public class AwsArn
 
     public override string ToString()
     {
-        StringBuilder stringBuilder = new StringBuilder();
+        var stringBuilder = new StringBuilder();
         stringBuilder.Append("arn:");
         stringBuilder.Append(Partition);
         stringBuilder.Append(":");
