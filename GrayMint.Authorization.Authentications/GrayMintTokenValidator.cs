@@ -119,7 +119,8 @@ public class GrayMintTokenValidator
     public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider)
     {
         // Set the parameters for token validation
-        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(openIdProvider.Issuer);
+        var issuer = openIdProvider.Issuer ?? openIdProvider.Issuers.FirstOrDefault() ?? throw new Exception($"Could not find any issuer for {openIdProvider.Name}");
+        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -127,6 +128,7 @@ public class GrayMintTokenValidator
             ValidIssuers = openIdProvider.Issuers,
             ValidateAudience = true,
             ValidAudience = openIdProvider.Audience,
+            ValidAudiences = openIdProvider.Audiences,
             ValidateLifetime = true,
             IssuerSigningKeys = openIdConfig.SigningKeys,
             ValidateIssuerSigningKey = true
