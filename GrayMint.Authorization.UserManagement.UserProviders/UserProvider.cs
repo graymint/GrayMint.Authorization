@@ -11,34 +11,22 @@ using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.UserManagement.UserProviders;
 
-public class UserProvider : IUserProvider
+public class UserProvider(
+    UserDbContext userDbContext,
+    UserAuthorizationCache userAuthorizationCache,
+    IOptions<UserProviderOptions> userProviderOptions,
+    IMemoryCache memoryCache)
+    : IUserProvider
 {
-    private readonly UserDbContext _userDbContext;
-    private readonly UserAuthorizationCache _userAuthorizationCache;
-    private readonly UserProviderOptions _userProviderOptions;
-    private readonly IMemoryCache _memoryCache;
-
-    public UserProvider(
-        UserDbContext userDbContext,
-        UserAuthorizationCache userAuthorizationCache,
-        IOptions<UserProviderOptions> userProviderOptions,
-        IMemoryCache memoryCache)
-    {
-        _userDbContext = userDbContext;
-        _userAuthorizationCache = userAuthorizationCache;
-        _userProviderOptions = userProviderOptions.Value;
-        _memoryCache = memoryCache;
-    }
-
     public async Task<User> Create(UserCreateRequest request)
     {
-        var res = await _userDbContext.Users.AddAsync(new UserModel
+        var res = await userDbContext.Users.AddAsync(new UserModel
         {
             UserId = Guid.NewGuid(), 
-            Email = request.Email,
-            Name = request.Name,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            Email = request.Email.Trim(),
+            Name = request.Name?.Trim(),
+            FirstName = request.FirstName?.Trim(),
+            LastName = request.LastName?.Trim(),
             CreatedTime = DateTime.UtcNow,
             AccessedTime = null,
             Description = request.Description,
@@ -47,33 +35,33 @@ public class UserProvider : IUserProvider
             IsEmailVerified = request.IsEmailVerified,
             IsPhoneVerified = request.IsPhoneVerified,
             PictureUrl = request.PictureUrl,
-            Phone = request.Phone,
+            Phone = request.Phone?.Trim(),
             IsBot = request.IsBot,
             ExData = request.ExData
         });
-        await _userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync();
 
-        _memoryCache.Remove(GetCacheKeyForEmail(request.Email));
+        memoryCache.Remove(GetCacheKeyForEmail(request.Email));
         return res.Entity.ToDto();
     }
 
     public async Task<User> Update(string userId, UserUpdateRequest request)
     {
-        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
-        if (request.Name != null) user.Name = request.Name;
-        if (request.FirstName != null) user.FirstName = request.FirstName;
-        if (request.LastName != null) user.LastName = request.LastName;
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        if (request.Name != null) user.Name = request.Name?.Value?.Trim();
+        if (request.FirstName != null) user.FirstName = request.FirstName?.Value?.Trim();
+        if (request.LastName != null) user.LastName = request.LastName?.Value?.Trim();
         if (request.IsDisabled != null) user.IsDisabled = request.IsDisabled;
         if (request.IsPhoneVerified != null) user.IsPhoneVerified = request.IsPhoneVerified;
         if (request.IsEmailVerified != null) user.IsEmailVerified = request.IsEmailVerified;
-        if (request.Phone != null) user.Phone = request.Phone;
-        if (request.PictureUrl != null) user.PictureUrl = request.PictureUrl;
+        if (request.Phone != null) user.Phone = request.Phone?.Value?.Trim();
+        if (request.PictureUrl != null) user.PictureUrl = request.PictureUrl?.Value?.Trim();
         if (request.Description != null) user.Description = request.Description;
         if (request.ExData != null) user.ExData = request.ExData;
-        if (request.Email != null) user.Email = request.Email;
+        if (request.Email != null) user.Email = request.Email.Value.Trim();
 
-        await _userDbContext.SaveChangesAsync();
-        _userAuthorizationCache.ClearUserItems(userId);
+        await userDbContext.SaveChangesAsync();
+        userAuthorizationCache.ClearUserItems(userId);
         return user.ToDto();
     }
 
@@ -82,11 +70,11 @@ public class UserProvider : IUserProvider
         if (!Guid.TryParse(userId, out var uid))
             return null;
 
-        var user = await _userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
+        var user = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
             entry =>
             {
-                entry.SetAbsoluteExpiration(_userProviderOptions.CacheTimeout);
-                return _userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
+                entry.SetAbsoluteExpiration(userProviderOptions.Value.CacheTimeout);
+                return userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
             });
 
         return user?.ToDto();
@@ -100,32 +88,33 @@ public class UserProvider : IUserProvider
 
     public async Task UpdateAccessedTime(string userId)
     {
-        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AccessedTime = DateTime.UtcNow;
-        await _userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync();
     }
 
     public async Task Remove(string userId)
     {
-        _userDbContext.ChangeTracker.Clear();
+        userDbContext.ChangeTracker.Clear();
 
-        var user = _userDbContext.Users.Single(x=>x.UserId == Guid.Parse(userId));
-        _userDbContext.Users.Remove(user);
-        await _userDbContext.SaveChangesAsync();
-        _userAuthorizationCache.ClearUserItems(userId);
+        var user = userDbContext.Users.Single(x=>x.UserId == Guid.Parse(userId));
+        userDbContext.Users.Remove(user);
+        await userDbContext.SaveChangesAsync();
+        userAuthorizationCache.ClearUserItems(userId);
     }
 
     public async Task ResetAuthorizationCode(string userId)
     {
-        var user = await _userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         user.AuthCode = Guid.NewGuid().ToString();
-        await _userDbContext.SaveChangesAsync();
-        _userAuthorizationCache.ClearUserItems(userId);
+        await userDbContext.SaveChangesAsync();
+        userAuthorizationCache.ClearUserItems(userId);
     }
 
     public async Task<User?> FindByEmail(string email)
     {
-        var user = await _userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
+        email = email.Trim();
+        var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
         return user?.ToDto();
     }
 
@@ -140,11 +129,12 @@ public class UserProvider : IUserProvider
         IEnumerable<string>? userIds = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
+        search = search?.Trim();
         recordCount ??= int.MaxValue;
         if (!Guid.TryParse(search, out var searchGuid)) searchGuid = Guid.Empty;
 
-        await using var trans = await _userDbContext.WithNoLockTransaction();
-        var query = _userDbContext.Users
+        await using var trans = await userDbContext.WithNoLockTransaction();
+        var query = userDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
                 (userIds == null || userIds.Contains(x.UserId.ToString())) &&

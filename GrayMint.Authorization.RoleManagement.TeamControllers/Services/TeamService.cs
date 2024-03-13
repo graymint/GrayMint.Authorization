@@ -123,6 +123,7 @@ public class TeamService
     public async Task<UserRole> AddUserByEmail(string resourceId, string roleId, string email)
     {
         // create user if not found
+        email = email.Trim();
         var user = await _userProvider.FindByEmail(email);
         user ??= await _userProvider.Create(new UserCreateRequest { Email = email });
         return await AddUser(resourceId, roleId, user.UserId);
@@ -154,6 +155,7 @@ public class TeamService
 
     public Task<User?> FindUserByEmail(string email)
     {
+        email = email.Trim();
         return _userProvider.FindByEmail(email);
     }
 
