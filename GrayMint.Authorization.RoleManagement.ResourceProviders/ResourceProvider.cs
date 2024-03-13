@@ -8,33 +8,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-public class ResourceProvider : IResourceProvider
+public class ResourceProvider(
+    ResourceDbContext resourceDbContext,
+    UserAuthorizationCache userAuthorizationCache,
+    IRoleProvider roleProvider)
+    : IResourceProvider
 {
-    private readonly ResourceDbContext _resourceDbContext;
-    private readonly UserAuthorizationCache _userAuthorizationCache;
-    private readonly IRoleProvider _roleProvider;
-    public string RootResourceId { get; }
-
-    public ResourceProvider(
-        ResourceDbContext resourceDbContext,
-        UserAuthorizationCache userAuthorizationCache,
-        IRoleProvider roleProvider)
-    {
-        _resourceDbContext = resourceDbContext;
-        _roleProvider = roleProvider;
-        _userAuthorizationCache = userAuthorizationCache;
-        RootResourceId = AuthorizationConstants.RootResourceId;
-    }
-
+    public string RootResourceId { get; } = AuthorizationConstants.RootResourceId;
 
     public async Task<Resource> Add(Resource resource)
     {
-        _resourceDbContext.ChangeTracker.Clear();
+        resourceDbContext.ChangeTracker.Clear();
         resource.ParentResourceId ??= RootResourceId; // set default parent
         var effectedResourceIds = await ValidateResourceParent(resource);
 
-        var entry = await _resourceDbContext.Resources.AddAsync(resource.ToModel());
-        await _resourceDbContext.SaveChangesAsync();
+        var entry = await resourceDbContext.Resources.AddAsync(resource.ToModel());
+        await resourceDbContext.SaveChangesAsync();
 
         await ClearResourceCache(effectedResourceIds);
         return entry.Entity.ToDto();
@@ -42,7 +31,7 @@ public class ResourceProvider : IResourceProvider
 
     public async Task<Resource> Update(Resource resource)
     {
-        _resourceDbContext.ChangeTracker.Clear();
+        resourceDbContext.ChangeTracker.Clear();
         resource.ParentResourceId ??= RootResourceId; // set default parent
         if (resource.ResourceId == RootResourceId)
             throw new InvalidOperationException("Root resource cannot be updated.");
@@ -52,8 +41,8 @@ public class ResourceProvider : IResourceProvider
         var effectedResourceIdsDes = await ValidateResourceParent(resource);
 
         // update database
-        var entry = _resourceDbContext.Resources.Update(resource.ToModel());
-        await _resourceDbContext.SaveChangesAsync();
+        var entry = resourceDbContext.Resources.Update(resource.ToModel());
+        await resourceDbContext.SaveChangesAsync();
 
         // invalidate users in parent sources and destination
         await ClearResourceCache(effectedResourceIdsDes);
@@ -64,7 +53,7 @@ public class ResourceProvider : IResourceProvider
 
     public async Task<Resource> Get(string resourceId)
     {
-        var resource = await _resourceDbContext.Resources
+        var resource = await resourceDbContext.Resources
             .AsNoTracking()
             .SingleAsync(x => x.ResourceId == resourceId);
 
@@ -73,12 +62,12 @@ public class ResourceProvider : IResourceProvider
 
     public async Task Remove(string resourceId)
     {
-        _resourceDbContext.ChangeTracker.Clear();
+        resourceDbContext.ChangeTracker.Clear();
         if (resourceId == AuthorizationConstants.RootResourceId)
             throw new InvalidOperationException("Root resource cannot be deleted.");
 
         // get model
-        var resource = await _resourceDbContext.Resources
+        var resource = await resourceDbContext.Resources
             .SingleAsync(x => x.ResourceId == resourceId);
 
         // get effected resource ids
@@ -87,16 +76,16 @@ public class ResourceProvider : IResourceProvider
         // delete from database
         var deletedItems = new List<ResourceModel>();
         await DeleteRecursive(resource, deletedItems);
-        await _resourceDbContext.SaveChangesAsync();
+        await resourceDbContext.SaveChangesAsync();
 
         // clean user roles
-        await _roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId });
+        await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId });
         await ClearResourceCache(effectedResourceIds);
     }
 
     private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
     {
-        var children = await _resourceDbContext.Resources
+        var children = await resourceDbContext.Resources
             .AsNoTracking()
             .Where(x => x.ParentResourceId == resource.ResourceId)
             .ToArrayAsync();
@@ -105,7 +94,7 @@ public class ResourceProvider : IResourceProvider
             await DeleteRecursive(child, resources);
 
         resources.Add(resource);
-        _resourceDbContext.Resources.Remove(resource);
+        resourceDbContext.Resources.Remove(resource);
     }
 
     // return this resource and parent resource ids
@@ -131,9 +120,9 @@ public class ResourceProvider : IResourceProvider
     {
         foreach (var resourceId in resourceIds)
         {
-            var userRoles = await _roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId });
+            var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId });
             foreach (var userRole in userRoles)
-                _userAuthorizationCache.ClearUserItems(userRole.UserId);
+                userAuthorizationCache.ClearUserItems(userRole.UserId);
         }
     }
 

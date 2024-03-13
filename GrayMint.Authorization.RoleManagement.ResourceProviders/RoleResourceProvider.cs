@@ -5,21 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
-internal class RoleResourceProvider : IRoleResourceProvider
+internal class RoleResourceProvider(ResourceDbContext resourceDbContext) : IRoleResourceProvider
 {
-    private readonly ResourceDbContext _resourceDbContext;
-
-    public RoleResourceProvider(ResourceDbContext resourceDbContext)
-    {
-        _resourceDbContext = resourceDbContext;
-    }
-
     public async Task<string?> GetParentResourceId(string resourceId)
     {
         if (resourceId == AuthorizationConstants.RootResourceId)
             return null;
 
-        var resource =  await _resourceDbContext.Resources
+        var resource =  await resourceDbContext.Resources
             .SingleAsync(x => x.ResourceId == resourceId);
 
         return resource.ParentResourceId;
