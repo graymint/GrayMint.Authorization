@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
-using GrayMint.Common.Client;
+using GrayMint.Common.ApiClients;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
