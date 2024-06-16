@@ -12,25 +12,12 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace GrayMint.Authorization.Authentications;
 
-public class GrayMintTokenValidator
+public class GrayMintTokenValidator(
+    IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+    IMemoryCache memoryCache,
+    IAuthorizationProvider authorizationProvider,
+    UserAuthorizationCache userAuthorizationCache)
 {
-    private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly IMemoryCache _memoryCache;
-    private readonly UserAuthorizationCache _userAuthorizationCache;
-    private readonly GrayMintAuthenticationOptions _authenticationOptions;
-
-    public GrayMintTokenValidator(
-        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        IMemoryCache memoryCache,
-        IAuthorizationProvider authorizationProvider,
-        UserAuthorizationCache userAuthorizationCache)
-    {
-        _memoryCache = memoryCache;
-        _authorizationProvider = authorizationProvider;
-        _userAuthorizationCache = userAuthorizationCache;
-        _authenticationOptions = authenticationOptions.Value;
-    }
-
     /// <param name="claimsPrincipal">Must have been already been validated</param>
     /// <param name="tokenUsage">the tokenUsage claim must be this value if it is not null</param>
     public async Task PostValidate(ClaimsPrincipal claimsPrincipal, string? tokenUsage = null)
@@ -60,10 +47,10 @@ public class GrayMintTokenValidator
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");
 
             // get authCode and manage cache
-            var authCode = await _memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
+            var authCode = await memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
             {
-                entry.SetAbsoluteExpiration(_authenticationOptions.CacheTimeout);
-                return _authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+                entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
+                return authorizationProvider.GetAuthorizationCode(claimsPrincipal);
             });
 
             if (string.IsNullOrEmpty(authCode))
@@ -75,20 +62,20 @@ public class GrayMintTokenValidator
 
         // update name-identifier
         var userIdCacheKey = $"graymint:auth:token:userid:jti={tokenId}";
-        var userId = await _memoryCache.GetOrCreateAsync(userIdCacheKey, entry =>
+        var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, entry =>
         {
-            entry.SetAbsoluteExpiration(_authenticationOptions.CacheTimeout);
-            return _authorizationProvider.GetUserId(claimsPrincipal);
+            entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
+            return authorizationProvider.GetUserId(claimsPrincipal);
         });
 
         if (userId != null)
         {
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, userId);
-            _userAuthorizationCache.AddUserItem(userId, userIdCacheKey);
-            _userAuthorizationCache.AddUserItem(userId, authCodeCacheKey);
+            userAuthorizationCache.AddUserItem(userId, userIdCacheKey);
+            userAuthorizationCache.AddUserItem(userId, authCodeCacheKey);
         }
 
-        await _authorizationProvider.OnAuthenticated(claimsPrincipal);
+        await authorizationProvider.OnAuthenticated(claimsPrincipal);
     }
 
     private static string EnsureHttps(string url)
@@ -106,10 +93,10 @@ public class GrayMintTokenValidator
 
     private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
     {
-        var openIdConfig = await _memoryCache.GetOrCreateAsync(url, entry =>
+        var openIdConfig = await memoryCache.GetOrCreateAsync(url, entry =>
         {
             var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
-            entry.SetAbsoluteExpiration(_authenticationOptions.OpenIdConfigTimeout);
+            entry.SetAbsoluteExpiration(authenticationOptions.Value.OpenIdConfigTimeout);
             return configurationManager.GetConfigurationAsync();
         }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
 
@@ -151,7 +138,7 @@ public class GrayMintTokenValidator
     {
         // Set the parameters for token validation
         var tokenHandler = new JwtSecurityTokenHandler();
-        var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(_authenticationOptions);
+        var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
         var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
         await PostValidate(claimsPrincipal);
 
@@ -167,13 +154,13 @@ public class GrayMintTokenValidator
             var securityToken = tokenHandler.ReadToken(idToken);
 
             ClaimsIdentity claimsIdentity;
-            var openIdProvider = _authenticationOptions.OpenIdProviders
+            var openIdProvider = authenticationOptions.Value.OpenIdProviders
                 .SingleOrDefault(x => x.Issuer == securityToken.Issuer || x.Issuers.Contains(securityToken.Issuer));
 
             if (openIdProvider != null)
                 claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
 
-            else if (securityToken.Issuer == _authenticationOptions.Issuer)
+            else if (securityToken.Issuer == authenticationOptions.Value.Issuer)
                 claimsIdentity = await ValidateGrayMintToken(idToken);
 
             else
