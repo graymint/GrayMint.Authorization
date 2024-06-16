@@ -5,28 +5,20 @@ using Microsoft.AspNetCore.Authentication;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
-internal class RoleAuthorizationClaimsTransformation : IClaimsTransformation
+internal class RoleAuthorizationClaimsTransformation(
+    IRoleAuthorizationProvider roleAuthorizationProvider,
+    IAuthorizationProvider authorizationProvider)
+    : IClaimsTransformation
 {
-    private readonly IRoleAuthorizationProvider _roleAuthorizationProvider;
-    private readonly IAuthorizationProvider _authorizationProvider;
-
-    public RoleAuthorizationClaimsTransformation(
-        IRoleAuthorizationProvider roleAuthorizationProvider,
-        IAuthorizationProvider authorizationProvider)
-    {
-        _roleAuthorizationProvider = roleAuthorizationProvider;
-        _authorizationProvider = authorizationProvider;
-    }
-
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         // add roles to app-role claims
-        var userId = await _authorizationProvider.GetUserId(principal);
+        var userId = await authorizationProvider.GetUserId(principal);
         if (userId == null)
             return principal;
 
         //get userRoles
-        var userRoles = await _roleAuthorizationProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
+        var userRoles = await roleAuthorizationProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
 
         // Add the following claims
         // /resources/*/RoleName

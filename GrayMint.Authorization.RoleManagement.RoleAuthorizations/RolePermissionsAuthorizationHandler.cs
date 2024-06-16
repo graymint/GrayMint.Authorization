@@ -8,16 +8,9 @@ namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 /// <summary>
 /// Just add permission claims to user. It doesn't fail the authorization if user doesn't have permission.
 /// </summary>
-internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<PermissionAuthorizationRequirement>
+internal class RolePermissionsAuthorizationHandler(IRoleAuthorizationProvider roleAuthorizationProvider)
+    : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
-    private readonly IRoleAuthorizationProvider _roleAuthorizationProvider;
-
-    public RolePermissionsAuthorizationHandler(
-        IRoleAuthorizationProvider roleAuthorizationProvider)
-    {
-        _roleAuthorizationProvider = roleAuthorizationProvider;
-    }
-
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, 
         PermissionAuthorizationRequirement requirement)
@@ -34,7 +27,7 @@ internal class RolePermissionsAuthorizationHandler : AuthorizationHandler<Permis
 
             // Add UserPermissions to claims
             var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
-            var userPermissions = await _roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+            var userPermissions = await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
             var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
             var identity = new ClaimsIdentity(claims);
             context.User.AddIdentity(identity);

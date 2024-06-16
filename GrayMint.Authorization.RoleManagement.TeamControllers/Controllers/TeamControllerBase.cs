@@ -13,25 +13,19 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/v{version:apiVersion}/team")]
-public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBase
+public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService teamService) 
+    : ControllerBase
 {
-    private readonly TeamService _teamService;
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
-
-    protected TeamControllerBase(
-        TeamService teamService)
-    {
-        _teamService = teamService;
-    }
 
     [Authorize]
     [HttpGet("users/current/resources")]
     public async Task<IEnumerable<string>> ListCurrentUserResources()
     {
-        var userId = await _teamService.GetUserId(User);
-        var userRoles = await _teamService.GetUserRoles(userId: userId);
+        var userId = await teamService.GetUserId(User);
+        var userRoles = await teamService.GetUserRoles(userId: userId);
         var resourceIds = userRoles.Items
             .Select(x => x.ResourceId)
             .Distinct();
@@ -43,8 +37,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     [HttpGet("users/current/resources/{resourceId}/permissions")]
     public async Task<IEnumerable<string>> ListCurrentUserPermissions(string resourceId)
     {
-        var userId = await _teamService.GetUserId(User);
-        var permissions = await _teamService.GetUserPermissions(resourceId, userId);
+        var userId = await teamService.GetUserId(User);
+        var permissions = await teamService.GetUserPermissions(resourceId, userId);
         return permissions;
     }
 
@@ -52,7 +46,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<ApiKey> ResetBotApiKey(string userId)
     {
         await VerifyWritePermissionOnBot(userId);
-        var res = await _teamService.ResetBotApiKey(userId);
+        var res = await teamService.ResetBotApiKey(userId);
         return res;
     }
 
@@ -60,7 +54,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<TUser> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
         await VerifyWritePermissionOnBot(userId);
-        var user = await _teamService.UpdateBot(userId, updateParam);
+        var user = await teamService.UpdateBot(userId, updateParam);
         return ToDto(user);
 
     }
@@ -70,7 +64,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<IEnumerable<TRole>> ListRoles(string resourceId)
     {
         await VerifyReadPermissionOnRole(resourceId);
-        var roles = await _teamService.GetRoles(ToResourceId(resourceId));
+        var roles = await teamService.GetRoles(ToResourceId(resourceId));
         return roles.Select(ToDto);
     }
 
@@ -81,7 +75,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         int recordIndex = 0, int? recordCount = null)
     {
         await VerifyReadPermissionOnRole(resourceId);
-        var userRoles = await _teamService.GetUserRoles(resourceId: ToResourceId(resourceId),
+        var userRoles = await teamService.GetUserRoles(resourceId: ToResourceId(resourceId),
             roleId: roleId, userId: userId,
             search: search, isBot: isBot,
             recordIndex: recordIndex, recordCount: recordCount);
@@ -98,7 +92,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        var res = await _teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam);
+        var res = await teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam);
         return res;
     }
 
@@ -107,12 +101,12 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
     {
         _ = addParam; //reserved
 
-        var user = await _teamService.FindUserByEmail(email);
+        var user = await teamService.FindUserByEmail(email);
         if (user != null)
             return await AddUser(resourceId, roleId, user.UserId);
 
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        var res = await _teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email);
+        var res = await teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email);
         return ToDto(res);
     }
 
@@ -125,11 +119,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
 
         // check write permission on bot
-        var user = await _teamService.GetUser(userId);
+        var user = await teamService.GetUser(userId);
         if (user.IsBot)
             await VerifyWritePermissionOnBot(userId: userId);
 
-        var res = await _teamService.AddUser(ToResourceId(resourceId), roleId, userId);
+        var res = await teamService.AddUser(ToResourceId(resourceId), roleId, userId);
         return ToDto(res);
     }
 
@@ -139,21 +133,21 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         await VerifyWritePermissionOnRole(resourceId, roleId);
         await VerifyWritePermissionOnUser(resourceId, userId);
         await VerifyAppOwnerPolicy(resourceId, userId, roleId, false);
-        await _teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
+        await teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
     [HttpPost("system/api-key")]
     [AllowAnonymous]
     public async Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
     {
-        var res = await _teamService.CreateSystemApiKey(secret);
+        var res = await teamService.CreateSystemApiKey(secret);
         return res;
     }
 
     // ReSharper disable once UnusedMethodReturnValue.Local
     private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(string userId)
     {
-        var userRoles = await _teamService.GetUserRoles(userId: userId);
+        var userRoles = await teamService.GetUserRoles(userId: userId);
 
         // find user
         var user = userRoles.Items.FirstOrDefault()?.User;
@@ -167,7 +161,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
         // check is the caller has permission over all resources that the bot belong to
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
-            await _teamService.VerifyWritePermissionOnUser(User, resId, userId);
+            await teamService.VerifyWritePermissionOnUser(User, resId, userId);
 
         return userRoles.Items;
     }
@@ -179,27 +173,27 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole> : ControllerBa
 
     protected Task VerifyReadPermissionOnRole(string resourceId)
     {
-        return _teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
+        return teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
     protected Task<UserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
     {
-        return _teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
+        return teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
 
     protected Task VerifyWritePermissionOnRole(string resourceId, string roleId)
     {
-        return _teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
+        return teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
     }
 
     protected Task VerifyAppOwnerPolicy(string resourceId, string userId, string targetRoleId, bool isAdding)
     {
-        return _teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
+        return teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
     }
 
     protected string GetRootResourceId()
     {
-        return _teamService.GetRootResourceId();
+        return teamService.GetRootResourceId();
     }
 }
 

@@ -38,7 +38,7 @@ public class GrayMintAuthentication(
             ValidateIssuerSigningKey = true,
             ValidateIssuer = true,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(TokenValidationParameters.DefaultClockSkew.TotalSeconds)
+            ClockSkew = TokenValidationParameters.DefaultClockSkew
         };
 
         return tokenValidation;
