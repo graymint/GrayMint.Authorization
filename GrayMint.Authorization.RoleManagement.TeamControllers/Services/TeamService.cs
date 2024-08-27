@@ -18,33 +18,17 @@ using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.User
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Services;
 
-public class TeamService
+public class TeamService(
+    IRoleProvider roleProvider,
+    IUserProvider userProvider,
+    IAuthorizationProvider authorizationProvider,
+    IOptions<TeamControllerOptions> teamControllersOptions,
+    IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+    GrayMintAuthentication grayMintAuthentication,
+    IAuthorizationService authorizationService)
 {
-    private readonly IRoleProvider _roleProvider;
-    private readonly IUserProvider _userProvider;
-    private readonly IAuthorizationProvider _authorizationProvider;
-    private readonly GrayMintAuthenticationOptions _authenticationOptions;
-    private readonly IAuthorizationService _authorizationService;
-    private readonly GrayMintAuthentication _grayMintAuthentication;
-    private readonly TeamControllerOptions _teamControllersOptions;
-
-    public TeamService(
-        IRoleProvider roleProvider,
-        IUserProvider userProvider,
-        IAuthorizationProvider authorizationProvider,
-        IOptions<TeamControllerOptions> teamControllersOptions,
-        IOptions<GrayMintAuthenticationOptions> authenticationOptions,
-        GrayMintAuthentication grayMintAuthentication,
-        IAuthorizationService authorizationService)
-    {
-        _roleProvider = roleProvider;
-        _userProvider = userProvider;
-        _authorizationProvider = authorizationProvider;
-        _authenticationOptions = authenticationOptions.Value;
-        _grayMintAuthentication = grayMintAuthentication;
-        _authorizationService = authorizationService;
-        _teamControllersOptions = teamControllersOptions.Value;
-    }
+    private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
+    private readonly TeamControllerOptions _teamControllersOptions = teamControllersOptions.Value;
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, string roleId)
     {
@@ -52,12 +36,12 @@ public class TeamService
         if (resourceId == GetRootResourceId())
             return false;
 
-        var permissions = await _roleProvider.GetRolePermissions(resourceId, roleId);
+        var permissions = await roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
     public async Task<User> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
-        var user = await _userProvider.Update(userId, new UserUpdateRequest
+        var user = await userProvider.Update(userId, new UserUpdateRequest
         {
             FirstName = updateParam.Name
         });
@@ -73,18 +57,18 @@ public class TeamService
 
         // create
         var email = $"{Guid.NewGuid()}@bot.local";
-        var user = await _userProvider.Create(new UserCreateRequest
+        var user = await userProvider.Create(new UserCreateRequest
         {
             Email = email,
             FirstName = addParam.Name,
             IsBot = true
         });
 
-        await _roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
+        await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
 
         // create the access token
         var claimIdentity = new ClaimsIdentity(new Claim[] { new (JwtRegisteredClaimNames.Sub, user.UserId)});
-        var apiKey = await _grayMintAuthentication
+        var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
                 ValidateOptions = new ValidateOptions
@@ -100,18 +84,18 @@ public class TeamService
 
     public async Task<ApiKey> ResetBotApiKey(string userId)
     {
-        var user = await _userProvider.Get(userId);
+        var user = await userProvider.Get(userId);
 
         // check AllowUserApiKey for user
         if (!user.IsBot)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
         // reset the api key
-        await _userProvider.ResetAuthorizationCode(user.UserId);
+        await userProvider.ResetAuthorizationCode(user.UserId);
         
         // Create a new api key
         var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
-        var apiKey = await _grayMintAuthentication
+        var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
@@ -124,25 +108,25 @@ public class TeamService
     {
         // create user if not found
         email = email.Trim();
-        var user = await _userProvider.FindByEmail(email);
-        user ??= await _userProvider.Create(new UserCreateRequest { Email = email });
+        var user = await userProvider.FindByEmail(email);
+        user ??= await userProvider.Create(new UserCreateRequest { Email = email });
         return await AddUser(resourceId, roleId, user.UserId);
     }
 
     public async Task<UserRole> AddUser(string resourceId, string roleId, string userId)
     {
         // check bot policy
-        var user = await _userProvider.Get(userId);
+        var user = await userProvider.Get(userId);
         if (user.IsBot && !_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // check is already exists
-        var userRoles = await _roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
         if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
         // add to role
-        await _roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
+        await roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
 
         // remove from other roles if MultipleRoles is not allowed
         if (!_teamControllersOptions.AllowUserMultiRole)
@@ -156,18 +140,18 @@ public class TeamService
     public Task<User?> FindUserByEmail(string email)
     {
         email = email.Trim();
-        return _userProvider.FindByEmail(email);
+        return userProvider.FindByEmail(email);
     }
 
     public async Task<string> GetUserId(ClaimsPrincipal user)
     {
-        var userId = await _authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
+        var userId = await authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
         return userId;
     }
 
     public async Task<User> GetUser(string userId)
     {
-        var user = await _userProvider.Get(userId);
+        var user = await userProvider.Get(userId);
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
         user.AccessedTime = null;
@@ -176,7 +160,7 @@ public class TeamService
 
     public Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
-        return _roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+        return roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
     }
 
     public async Task<ListResult<UserRole>> GetUserRoles(
@@ -185,11 +169,11 @@ public class TeamService
         int recordIndex = 0, int? recordCount = null)
     {
         // get userRoles
-        var userRoleList = await _roleProvider.GetUserRoles(
+        var userRoleList = await roleProvider.GetUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
         // get users of userRoles
-        var userList = await _userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
+        var userList = await userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
             userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
 
         // attach user to UserRoles
@@ -219,7 +203,7 @@ public class TeamService
 
     public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
-        await _roleProvider.RemoveUserRoles(
+        await roleProvider.RemoveUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
         // delete if user does not have any more roles in the system
@@ -230,12 +214,12 @@ public class TeamService
 
     public Task DeleteUser(string userId)
     {
-        return _userProvider.Remove(userId);
+        return userProvider.Remove(userId);
     }
 
     public async Task<IEnumerable<Role>> GetRoles(string resourceId)
     {
-        var roles = await _roleProvider.GetRoles(resourceId);
+        var roles = await roleProvider.GetRoles(resourceId);
         return roles;
     }
 
@@ -245,13 +229,13 @@ public class TeamService
             throw new UnauthorizedAccessException("Bad secret.");
 
         var rootResourceId = GetRootResourceId();
-        var systemRoles = await _roleProvider.GetRoles(rootResourceId);
+        var systemRoles = await roleProvider.GetRoles(rootResourceId);
         if (!systemRoles.Any())
             throw new NotExistsException("Could not find any system roles.");
 
         foreach (var systemRole in systemRoles)
         {
-            var permissions = await _roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
+            var permissions = await roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
             if (permissions.Contains(RolePermissions.RoleWrite))
             {
                 var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
@@ -267,7 +251,7 @@ public class TeamService
         if (caller.Identity?.IsAuthenticated == false)
             return false;
 
-        var ret = await _authorizationService.AuthorizeAsync(caller, resourceId,
+        var ret = await authorizationService.AuthorizeAsync(caller, resourceId,
             new PermissionAuthorizationRequirement { Permission = permission });
 
         return ret.Succeeded;
@@ -313,7 +297,7 @@ public class TeamService
             return;
 
         // check is caller changing himself
-        var callerUserId = await _authorizationProvider.GetUserId(caller);
+        var callerUserId = await authorizationProvider.GetUserId(caller);
         if (callerUserId != userId)
             return;
 

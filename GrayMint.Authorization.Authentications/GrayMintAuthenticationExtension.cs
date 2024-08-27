@@ -27,6 +27,16 @@ public static class GrayMintAuthenticationExtension
                 options.TokenValidationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions);
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        // read access_token from query string if Authorization is not exists and access_token is exist
+                        if (!context.Request.Headers.TryGetValue("Authorization", out _) && 
+                            context.Request.Query.TryGetValue("authorization", out var token))
+                            context.Token = token;
+
+                        return Task.CompletedTask;
+                    },
+                    
                     OnTokenValidated = async context =>
                     {
                         await using var scope = context.HttpContext.RequestServices.CreateAsyncScope();
