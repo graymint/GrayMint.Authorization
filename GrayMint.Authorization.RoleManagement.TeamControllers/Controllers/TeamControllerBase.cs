@@ -19,6 +19,12 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
+    public class TeamUser
+    {
+        public required TUser User { get; init; }
+        public required TRole[] Roles { get; init; }
+    }
+
 
     [Authorize]
     [HttpGet("users/current/resources")]
@@ -87,6 +93,33 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         };
         return ret;
     }
+
+    [HttpGet("resources/{resourceId}/users/{userId}")]
+    public async Task<TeamUser> GetUser(string resourceId, string userId)
+    {
+        await VerifyReadPermissionOnRole(resourceId);
+        var userByEmail = await teamService.GetUser(resourceId, userId);
+        var ret = new TeamUser
+        {
+            User = ToDto(userByEmail.User),
+            Roles = userByEmail.Roles.Select(ToDto).ToArray(),
+        };
+        return ret;
+    }
+
+    [HttpGet("resources/{resourceId}/users/email:{email}")]
+    public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
+    {
+        await VerifyReadPermissionOnRole(resourceId);
+        var userByEmail = await teamService.GetUserByEmail(resourceId, email);
+        var ret = new TeamUser
+        {
+            User = ToDto(userByEmail.User),
+            Roles = userByEmail.Roles.Select(ToDto).ToArray(),
+        };
+        return ret;
+    }
+
 
     [HttpPost("resources/{resourceId}/roles/{roleId}/bots")]
     public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
@@ -197,13 +230,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 }
 
-public abstract class TeamControllerBase
-    : TeamControllerBase<User, UserRole, Role>
+public abstract class TeamControllerBase(TeamService teamService)
+    : TeamControllerBase<User, UserRole, Role>(teamService)
 {
-    protected TeamControllerBase(TeamService teamService) : base(teamService)
-    {
-    }
-
     protected override User ToDto(User user) => user;
     protected override Role ToDto(Role role) => role;
     protected override UserRole ToDto(UserRole userRole) => userRole;

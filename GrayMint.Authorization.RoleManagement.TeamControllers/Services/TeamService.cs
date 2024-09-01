@@ -67,7 +67,7 @@ public class TeamService(
         await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
 
         // create the access token
-        var claimIdentity = new ClaimsIdentity(new Claim[] { new (JwtRegisteredClaimNames.Sub, user.UserId)});
+        var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
@@ -92,7 +92,7 @@ public class TeamService(
 
         // reset the api key
         await userProvider.ResetAuthorizationCode(user.UserId);
-        
+
         // Create a new api key
         var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
         var apiKey = await grayMintAuthentication
@@ -199,6 +199,30 @@ public class TeamService(
             TotalCount = userRoles.Length
         };
         return ret;
+    }
+
+    public async Task<TeamUser> GetUser(string resourceId, string userId)
+    {
+        var user = await userProvider.Get(userId);
+        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId });
+        var teamUser = new TeamUser
+        {
+            User = user,
+            Roles = userRoleList.Select(x => x.Role).ToArray()
+        };
+        return teamUser;
+    }
+
+    public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
+    {
+        var user = await userProvider.GetByEmail(email);
+        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId });
+        var teamUser = new TeamUser
+        {
+            User = user,
+            Roles = userRoleList.Select(x => x.Role).ToArray()
+        };
+        return teamUser;
     }
 
     public async Task RemoveUser(string resourceId, string roleId, string userId)

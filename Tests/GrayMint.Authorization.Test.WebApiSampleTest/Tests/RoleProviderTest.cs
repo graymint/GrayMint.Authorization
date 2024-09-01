@@ -7,7 +7,7 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace GrayMint.Authorization.Test.Tests;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
 public class RoleProviderTest

@@ -3,7 +3,7 @@
 
 using System.Text;
 
-namespace GrayMint.Authorization.Test.Api;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Api;
 
 public class BaseApiClient
 {

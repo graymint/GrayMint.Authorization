@@ -3,7 +3,7 @@ using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Test.Api;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace GrayMint.Authorization.Test.Tests;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
 public class SystemTeamControllerTest
@@ -70,6 +70,19 @@ public class SystemTeamControllerTest
         userRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.RootResourceId, userId: userRole1.User.UserId);
         userRole = userRoles.Items.Single();
         Assert.AreEqual(Roles.SystemReader.RoleId, userRole.Role.RoleId);
+
+
+        // ---------
+        // Get By Id
+        // ---------
+        var teamUser = await testInit.TeamClient.GetUserAsync(resourceId: testInit.RootResourceId, userRole1.User.UserId);
+        Assert.AreEqual(userRoles.Items.Count, teamUser.Roles.Count);
+
+        // ---------
+        // Get By Email
+        // ---------
+        teamUser = await testInit.TeamClient.GetUserByEmailAsync(resourceId: testInit.RootResourceId, userRole1.User.Email!);
+        Assert.AreEqual(userRoles.Items.Count, teamUser.Roles.Count);
 
         // ---------
         // List Users

@@ -4,7 +4,7 @@ using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace GrayMint.Authorization.Test.Tests;
+namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
 public class ItemAccessTest
