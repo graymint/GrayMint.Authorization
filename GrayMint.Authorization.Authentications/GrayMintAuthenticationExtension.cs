@@ -29,9 +29,9 @@ public static class GrayMintAuthenticationExtension
                 {
                     OnMessageReceived = context =>
                     {
-                        // read access_token from query string if Authorization is not exists and access_token is exist
+                        // read access_token from query string if Authorization is not exists and authorization exists
                         if (!context.Request.Headers.TryGetValue("Authorization", out _) && 
-                            context.Request.Query.TryGetValue("authorization", out var token))
+                            context.Request.Query.TryGetValue("bearer_token", out var token))
                             context.Token = token;
 
                         return Task.CompletedTask;
