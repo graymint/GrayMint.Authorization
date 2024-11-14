@@ -41,6 +41,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test.MicroServiceTest", "Tests\GrayMint.Authorization.Test.MicroServiceTest\GrayMint.Authorization.Test.MicroServiceTest.csproj", "{DED331DF-5E74-4A59-B8AC-35BEC55EE370}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{91B2758E-543E-4B78-A08D-D14E1A8F808B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2D304C3F-02A4-44D8-A01B-D7B19D5E0DDF}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\nuget.yml = .github\workflows\nuget.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +136,7 @@ Global
 		{C2CE4F65-53ED-49BA-A2C8-C4389C7B7506} = {CE787F94-2BCB-4BD4-8719-D5BEBF689408}
 		{C46EFD99-A036-4606-A479-AD4DE073B773} = {CE787F94-2BCB-4BD4-8719-D5BEBF689408}
 		{DED331DF-5E74-4A59-B8AC-35BEC55EE370} = {CE787F94-2BCB-4BD4-8719-D5BEBF689408}
+		{2D304C3F-02A4-44D8-A01B-D7B19D5E0DDF} = {91B2758E-543E-4B78-A08D-D14E1A8F808B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93F5DE27-8196-45BB-87A3-53188E62811E}

@@ -67,7 +67,7 @@ public class TeamService(
         await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
 
         // create the access token
-        var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
+        var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {

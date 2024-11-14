@@ -15,25 +15,17 @@ namespace GrayMint.Authorization.Authentications.Controllers.Controllers;
 [ApiController]
 [Authorize]
 [Route("/api/v{version:apiVersion}/authentication")]
-public class AuthenticationController : ControllerBase
+public class AuthenticationController(
+    AuthenticationService authenticationService,
+    GrayMintAuthentication grayMintAuthentication)
+    : ControllerBase
 {
-    private readonly AuthenticationService _authenticationService;
-    private readonly GrayMintAuthentication _grayMintAuthentication;
-
-    public AuthenticationController(
-        AuthenticationService authenticationService, 
-        GrayMintAuthentication grayMintAuthentication)
-    {
-        _authenticationService = authenticationService;
-        _grayMintAuthentication = grayMintAuthentication;
-    }
-
     [HttpGet("current")]
     [Authorize]
     public virtual async Task<User> GetCurrentUser()
     {
-        var userId = await _authenticationService.GetUserId(User);
-        var ret = await _authenticationService.GetUser(userId);
+        var userId = await authenticationService.GetUserId(User);
+        var ret = await authenticationService.GetUser(userId);
         return ret;
     }
 
@@ -41,16 +33,16 @@ public class AuthenticationController : ControllerBase
     [Authorize]
     public virtual async Task SignOutAll()
     {
-        var userId = await _authenticationService.GetUserId(User);
-        await _authenticationService.ResetAuthorizationCode(userId);
+        var userId = await authenticationService.GetUserId(User);
+        await authenticationService.ResetAuthorizationCode(userId);
     }
 
     [HttpPost("current/reset-api-key")]
     [Authorize]
     public virtual async Task<ApiKey> ResetCurrentUserApiKey()
     {
-        var userId = await _authenticationService.GetUserId(User);
-        var res = await _authenticationService.ResetApiKey(userId);
+        var userId = await authenticationService.GetUserId(User);
+        var res = await authenticationService.ResetApiKey(userId);
         return res;
     }
 
@@ -58,7 +50,7 @@ public class AuthenticationController : ControllerBase
     [AllowAnonymous]
     public virtual async Task<ApiKey> SignIn(SignInRequest request)
     {
-        var apiKey = await _authenticationService.SignIn(request);
+        var apiKey = await authenticationService.SignIn(request);
         return apiKey;
     }
 
@@ -66,7 +58,7 @@ public class AuthenticationController : ControllerBase
     [AllowAnonymous]
     public virtual async Task<ApiKey> SignUp(SignUpRequest request)
     {
-        var apiKey = await _authenticationService.SignUp(request);
+        var apiKey = await authenticationService.SignUp(request);
         return apiKey;
     }
 
@@ -74,7 +66,7 @@ public class AuthenticationController : ControllerBase
     [AllowAnonymous]
     public virtual async Task<ApiKey> RefreshToken(RefreshTokenRequest request)
     {
-        var apiKey = await _grayMintAuthentication.RefreshToken(request.RefreshToken);
+        var apiKey = await grayMintAuthentication.RefreshToken(request.RefreshToken);
         return apiKey;
     }
 
@@ -89,7 +81,7 @@ public class AuthenticationController : ControllerBase
         // read queryString to dictionary
         var queryDictionary = HttpUtility.ParseQueryString(queryString);
         var externalIdToken = queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
-        var url = await _grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"]);
+        var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"]);
         return Redirect(url.ToString());
     }
 
@@ -109,7 +101,7 @@ public class AuthenticationController : ControllerBase
             uriBuilder.Port = Request.Host.Port.Value;
 
         var redirectUrl = uriBuilder.ToString().Replace("/signin-url", "/signin-handler");
-        var url = _grayMintAuthentication.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl).ToString();
+        var url = grayMintAuthentication.GetGoogleSignInUrl(csrfToken, nonce, redirectUrl).ToString();
         return Task.FromResult(url);
     }
 }
