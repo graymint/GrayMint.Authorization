@@ -7,6 +7,6 @@ $namespace = "GrayMint.Common.Test.Api";
 $nswagFile = "$curDir/Api/Api.nswag";
 
 # run
-$nswagExe = "${Env:ProgramFiles(x86)}\Rico Suter\NSwagStudio\Net80\dotnet-nswag.exe";
+$nswagExe = "${Env:ProgramFiles(x86)}\Rico Suter\NSwagStudio\Net90\dotnet-nswag.exe";
 $variables="/variables:namespace=$namespace,apiFile=Api.cs,projectFile=$projectFile";
 & "$nswagExe" run $nswagFile $variables;
