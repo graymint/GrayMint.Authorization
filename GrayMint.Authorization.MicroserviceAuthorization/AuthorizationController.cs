@@ -9,7 +9,7 @@ namespace GrayMint.Authorization.MicroserviceAuthorization;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Authorize]
-[Route("/api/v{version:apiVersion}/authorization")]
+[Route("/api/authorization")]
 public class AuthorizationController(MicroserviceAuthorizationService microserviceAuthorizationService) : ControllerBase
 {
     [HttpPost("system/api-key")]

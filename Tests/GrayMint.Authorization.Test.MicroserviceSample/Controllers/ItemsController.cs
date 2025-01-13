@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GrayMint.Authorization.Test.MicroserviceSample.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/apps/{appId:int}/items")]
+[Route("/api/apps/{appId:int}/items")]
 public class ItemsController(ItemService itemService) : ControllerBase
 {
     [HttpPost]

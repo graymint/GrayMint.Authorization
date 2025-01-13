@@ -23,7 +23,7 @@ public class Program
         // common services
         services
             .AddGrayMintCommonServices(new RegisterServicesOptions())
-            .AddGrayMintSwagger("Test", true);
+            .AddGrayMintSwagger("Test", false);
 
         // authentication & its controller
         builder.AddGrayMintCommonAuthorizationForApp(

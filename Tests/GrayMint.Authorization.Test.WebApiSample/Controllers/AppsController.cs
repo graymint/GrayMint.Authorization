@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/apps")]
+[Route("/api/apps")]
 public class AppsController(
     AppService appService)
     : ControllerBase

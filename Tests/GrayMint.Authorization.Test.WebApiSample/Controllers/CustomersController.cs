@@ -5,7 +5,7 @@ namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
-[Route("/api/v{version:apiVersion}/apps/{appId}/customers")]
+[Route("/api/apps/{appId}/customers")]
 public class CustomersController : ControllerBase
 {
 

@@ -14,7 +14,7 @@ namespace GrayMint.Authorization.Authentications.Controllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Authorize]
-[Route("/api/v{version:apiVersion}/authentication")]
+[Route("/api/authentication")]
 public class AuthenticationController(
     AuthenticationService authenticationService,
     GrayMintAuthentication grayMintAuthentication)

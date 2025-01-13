@@ -75,8 +75,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps"
-                    urlBuilder_.Append("api/v1/apps");
+                    // Operation Path: "api/apps"
+                    urlBuilder_.Append("api/apps");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -145,8 +145,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps"
-                    urlBuilder_.Append("api/v1/apps");
+                    // Operation Path: "api/apps"
+                    urlBuilder_.Append("api/apps");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -362,8 +362,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/customers/{customerId}"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/customers/{customerId}"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/customers/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(customerId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -583,8 +583,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/items/by-role"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/items/by-role"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/items/by-role");
 
@@ -661,8 +661,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/items/itemId/by-role"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/items/itemId/by-role"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/items/itemId/by-role");
                     urlBuilder_.Append('?');
@@ -743,8 +743,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/items/by-permission"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/items/by-permission"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/items/by-permission");
 
@@ -821,8 +821,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/items/itemId/by-permission"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/items/itemId/by-permission"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/items/itemId/by-permission");
                     urlBuilder_.Append('?');
@@ -901,8 +901,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/apps/{appId}/items"
-                    urlBuilder_.Append("api/v1/apps/");
+                    // Operation Path: "api/apps/{appId}/items"
+                    urlBuilder_.Append("api/apps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(appId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/items");
                     urlBuilder_.Append('?');
@@ -1112,8 +1112,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/users/current/apps"
-                    urlBuilder_.Append("api/v1/team/users/current/apps");
+                    // Operation Path: "api/team/users/current/apps"
+                    urlBuilder_.Append("api/team/users/current/apps");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1182,8 +1182,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/users/current/resources"
-                    urlBuilder_.Append("api/v1/team/users/current/resources");
+                    // Operation Path: "api/team/users/current/resources"
+                    urlBuilder_.Append("api/team/users/current/resources");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1255,8 +1255,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/users/current/resources/{resourceId}/permissions"
-                    urlBuilder_.Append("api/v1/team/users/current/resources/");
+                    // Operation Path: "api/team/users/current/resources/{resourceId}/permissions"
+                    urlBuilder_.Append("api/team/users/current/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/permissions");
 
@@ -1331,8 +1331,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/users/{userId}/bot/reset-api-key"
-                    urlBuilder_.Append("api/v1/team/users/");
+                    // Operation Path: "api/team/users/{userId}/bot/reset-api-key"
+                    urlBuilder_.Append("api/team/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(userId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/bot/reset-api-key");
 
@@ -1413,8 +1413,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/users/{userId}/bot"
-                    urlBuilder_.Append("api/v1/team/users/");
+                    // Operation Path: "api/team/users/{userId}/bot"
+                    urlBuilder_.Append("api/team/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(userId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/bot");
 
@@ -1488,8 +1488,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/roles"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/roles"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles");
 
@@ -1563,8 +1563,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/user-roles"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/user-roles"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/user-roles");
                     urlBuilder_.Append('?');
@@ -1667,8 +1667,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/users/{userId}"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/users/{userId}"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(userId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1746,8 +1746,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/users/email:{email}"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/users/email:{email}"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/users/email:");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(email, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1832,8 +1832,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/roles/{roleId}/bots"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/roles/{roleId}/bots"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roleId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1919,8 +1919,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/roles/{roleId}/users/email:{email}"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/roles/{roleId}/users/email:{email}"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roleId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2004,8 +2004,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/roles/{roleId}/users/{userId}"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/roles/{roleId}/users/{userId}"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roleId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2087,8 +2087,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/resources/{resourceId}/roles/{roleId}/users/{userId}"
-                    urlBuilder_.Append("api/v1/team/resources/");
+                    // Operation Path: "api/team/resources/{resourceId}/roles/{roleId}/users/{userId}"
+                    urlBuilder_.Append("api/team/resources/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resourceId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roleId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2169,8 +2169,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/team/system/api-key"
-                    urlBuilder_.Append("api/v1/team/system/api-key");
+                    // Operation Path: "api/team/system/api-key"
+                    urlBuilder_.Append("api/team/system/api-key");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2380,8 +2380,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/current"
-                    urlBuilder_.Append("api/v1/authentication/current");
+                    // Operation Path: "api/authentication/current"
+                    urlBuilder_.Append("api/authentication/current");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2450,8 +2450,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/current/signout-all"
-                    urlBuilder_.Append("api/v1/authentication/current/signout-all");
+                    // Operation Path: "api/authentication/current/signout-all"
+                    urlBuilder_.Append("api/authentication/current/signout-all");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2516,8 +2516,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/current/reset-api-key"
-                    urlBuilder_.Append("api/v1/authentication/current/reset-api-key");
+                    // Operation Path: "api/authentication/current/reset-api-key"
+                    urlBuilder_.Append("api/authentication/current/reset-api-key");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2593,8 +2593,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/signin"
-                    urlBuilder_.Append("api/v1/authentication/signin");
+                    // Operation Path: "api/authentication/signin"
+                    urlBuilder_.Append("api/authentication/signin");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2670,8 +2670,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/signup"
-                    urlBuilder_.Append("api/v1/authentication/signup");
+                    // Operation Path: "api/authentication/signup"
+                    urlBuilder_.Append("api/authentication/signup");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2747,8 +2747,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/refresh-token"
-                    urlBuilder_.Append("api/v1/authentication/refresh-token");
+                    // Operation Path: "api/authentication/refresh-token"
+                    urlBuilder_.Append("api/authentication/refresh-token");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2818,8 +2818,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/external/google/signin-handler"
-                    urlBuilder_.Append("api/v1/authentication/external/google/signin-handler");
+                    // Operation Path: "api/authentication/external/google/signin-handler"
+                    urlBuilder_.Append("api/authentication/external/google/signin-handler");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2889,8 +2889,8 @@ namespace GrayMint.Common.Test.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/v1/authentication/external/google/signin-url"
-                    urlBuilder_.Append("api/v1/authentication/external/google/signin-url");
+                    // Operation Path: "api/authentication/external/google/signin-url"
+                    urlBuilder_.Append("api/authentication/external/google/signin-url");
                     urlBuilder_.Append('?');
                     urlBuilder_.Append(System.Uri.EscapeDataString("csrfToken")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(csrfToken, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     if (nonce != null)

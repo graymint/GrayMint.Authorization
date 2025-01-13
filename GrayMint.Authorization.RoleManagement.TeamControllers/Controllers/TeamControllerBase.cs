@@ -12,7 +12,7 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
-[Route("/api/v{version:apiVersion}/team")]
+[Route("/api/team")]
 public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService teamService) 
     : ControllerBase
 {

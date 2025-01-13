@@ -21,7 +21,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // common services
             services
                 .AddGrayMintCommonServices(new RegisterServicesOptions())
-                .AddGrayMintSwagger("Test", true);
+                .AddGrayMintSwagger("Test", false);
 
             // authentication & its controller
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
