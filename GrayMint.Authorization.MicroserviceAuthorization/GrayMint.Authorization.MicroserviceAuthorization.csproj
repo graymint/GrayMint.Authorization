@@ -21,7 +21,7 @@
 		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<Version>3.0.118</Version>
+		<Version>3.0.119</Version>
 		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
 
