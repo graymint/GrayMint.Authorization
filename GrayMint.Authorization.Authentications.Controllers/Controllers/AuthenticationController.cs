@@ -15,6 +15,7 @@ namespace GrayMint.Authorization.Authentications.Controllers.Controllers;
 [ApiController]
 [Authorize]
 [Route("/api/authentication")]
+[Route("/api/v1/authentication")]
 public class AuthenticationController(
     AuthenticationService authenticationService,
     GrayMintAuthentication grayMintAuthentication)
