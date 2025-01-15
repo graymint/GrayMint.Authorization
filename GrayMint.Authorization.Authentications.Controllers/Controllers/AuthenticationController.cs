@@ -46,6 +46,7 @@ public class AuthenticationController(
         return res;
     }
 
+    [HttpPost("v1/signin")]
     [HttpPost("signin")]
     [AllowAnonymous]
     public virtual async Task<ApiKey> SignIn(SignInRequest request)
