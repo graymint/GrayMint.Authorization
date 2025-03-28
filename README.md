@@ -1,7 +1,4 @@
 # GrayMint.Authorization
-B2B Authorization
-
-# GrayMint.Authorization
 
 **Modular B2B Authorization Framework for .NET Applications**
 
