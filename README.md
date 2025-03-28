@@ -30,16 +30,16 @@ dotnet add package GrayMint.Authorization
 ## 🚀 Getting Started
 
 ### 1. Configure App Settings
-```json
-{
-  "App": {
-    "UseResourceProvider": true
-  },
-  "ConnectionStrings": {
-    "AppDatabase": "Server=...;Database=...;Trusted_Connection=True;"
-  }
-}
-```
+- `Issuer`: The issuer of the tokens.
+- `Audience`: The audience of the tokens.
+- `Secret`: The secret key for token generation.
+- `Secrets`: List of additional secret keys.
+- `CacheTimeout`: The cache timeout duration.
+- `AllowUserSelfRegister`: Boolean flag to allow or disallow user self-registration.
+- `AllowUserApiKey`: Boolean flag to allow or disallow user API keys.
+- `AllowRefreshToken`: Boolean flag to allow or disallow refresh tokens.
+- `SignInRedirectUrl`: The URL to redirect to after sign-in.
+- `OpenIdProviders`: List of OpenID providers with their respective configurations.
 
 ### 2. Service Registration (from Sample Web API)
 ```csharp
