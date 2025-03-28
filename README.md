@@ -89,12 +89,19 @@ await GrayMintApp.RunAsync(webApp, args);
 ## 🧪 Permission Check Example
 
 ```csharp
-var permissionChecker = serviceProvider.GetRequiredService<IPermissionChecker>();
-var isAuthorized = await permissionChecker.CheckPermissionAsync(
-    userId: 123,
-    permission: "EditDocument",
-    resourceId: 456
-);
+    [HttpGet("itemId/by-role")]
+    [Authorize("DefaultPolicy", Roles = ["SystemAdmin", "SystemReader"])
+    public Task<Item> GetByRole(int appId, int itemId)
+    {
+        return itemService.Get(appId, itemId);
+    }
+
+    [HttpPost("by-permission")]
+    [AuthorizeAppIdPermission(Permissions.AppWrite)]
+    public Task<Item> CreateByPermission(int appId, ItemCreateRequest? createRequest = null)
+    {
+        return itemService.Create(appId, createRequest);
+    }
 ```
 
 ---
