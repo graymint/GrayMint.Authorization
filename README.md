@@ -2,7 +2,7 @@
 
 **Modular B2B Authorization Framework for .NET Applications**
 
-GrayMint.Authorization provides a flexible, multi-tenant-compatible (B2B) authorization framework for .NET apps. It enables role-based and resource-based access control, ideal for enterprise platforms, SaaS systems, and microservices.
+GrayMint.Authorization provides a flexible, multi-tenant-compatible B2B authorization framework for .NET apps. It enables role-based and resource-based access control, ideal for enterprise platforms, SaaS systems, and microservices.
 
 ---
 
