@@ -11,7 +11,7 @@ public partial class RoleDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "role";
 
-    internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = default!;
+    internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = null!;
 
     public RoleDbContext()
     {

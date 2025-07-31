@@ -13,14 +13,14 @@ public class TestInit : IDisposable
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
-    public App App { get; private set; } = default!;
+    public App App { get; private set; } = null!;
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public AuthorizationClient AuthorizationClient => new(HttpClient);
-    public ApiKey SystemAdminApiKey { get; private set; } = default!;
+    public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
 
     private TestInit(Dictionary<string, string?> appSettings, string environment)

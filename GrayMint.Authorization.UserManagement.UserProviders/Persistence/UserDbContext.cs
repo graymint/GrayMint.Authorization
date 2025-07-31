@@ -10,7 +10,7 @@ namespace GrayMint.Authorization.UserManagement.UserProviders.Persistence;
 public partial class UserDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "user";
-    internal virtual DbSet<UserModel> Users { get; set; } = default!;
+    internal virtual DbSet<UserModel> Users { get; set; } = null!;
 
     public UserDbContext()
     {

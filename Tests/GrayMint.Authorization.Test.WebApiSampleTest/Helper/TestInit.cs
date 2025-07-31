@@ -23,7 +23,7 @@ public class TestInit : IDisposable
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
-    public App App { get; private set; } = default!;
+    public App App { get; private set; } = null!;
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
@@ -35,7 +35,7 @@ public class TestInit : IDisposable
     public TeamClient TeamClient => new(HttpClient);
     public CustomersClient CustomerClient => new(HttpClient);
     public AuthenticationClient AuthenticationClient => new(HttpClient);
-    public ApiKey SystemAdminApiKey { get; private set; } = default!;
+    public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
 
     private TestInit(Dictionary<string, string?> appSettings, string environment)

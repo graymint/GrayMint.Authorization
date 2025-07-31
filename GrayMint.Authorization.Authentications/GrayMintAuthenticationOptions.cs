@@ -14,7 +14,7 @@ public class GrayMintAuthenticationOptions
     public byte[] BotKey { get => Secret; init { Secret = value; Console.WriteLine("You are using an obsoleted property. Property: BotKey"); } } 
 
     public required byte[] Secret { get; init; }
-    public IEnumerable<byte[]> Secrets { get; init; } = Array.Empty<byte[]>();
+    public IEnumerable<byte[]> Secrets { get; init; } = [];
     public required string Issuer { get; init; }
     public string? Audience { get; init; }
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);

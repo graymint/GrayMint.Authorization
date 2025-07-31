@@ -4,7 +4,7 @@ namespace GrayMint.Authorization.Abstractions;
 
 public class UserAuthorizationCache(IMemoryCache memoryCache)
 {
-    private readonly object _lockObject = new();
+    private readonly Lock _lockObject = new();
     private static TimeSpan CacheTimeout => AuthorizationConstants.CacheTimeout;
 
     private static string BuildUserCacheKey(string userId)

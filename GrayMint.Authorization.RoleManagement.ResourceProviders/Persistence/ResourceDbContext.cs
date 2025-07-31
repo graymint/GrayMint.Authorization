@@ -8,7 +8,7 @@ public class ResourceDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "reso";
 
-    internal virtual DbSet<ResourceModel> Resources { get; set; } = default!;
+    internal virtual DbSet<ResourceModel> Resources { get; set; } = null!;
 
     public ResourceDbContext()
     {

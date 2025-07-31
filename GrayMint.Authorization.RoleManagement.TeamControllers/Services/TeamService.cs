@@ -94,7 +94,7 @@ public class TeamService(
         await userProvider.ResetAuthorizationCode(user.UserId);
 
         // Create a new api key
-        var claimIdentity = new ClaimsIdentity(new Claim[] { new(JwtRegisteredClaimNames.Sub, user.UserId) });
+        var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions
             {
