@@ -1,7 +1,6 @@
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Test.Api;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 

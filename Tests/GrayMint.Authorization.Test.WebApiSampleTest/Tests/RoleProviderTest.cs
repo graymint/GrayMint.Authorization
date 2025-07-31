@@ -5,7 +5,6 @@ using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 

@@ -7,7 +7,6 @@ using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
@@ -22,7 +21,8 @@ public class CustomerAccessTest
         var customerId = 2000;
 
         var claimsIdentity = new ClaimsIdentity();
-        claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim($"apps:{testInit.AppId}:customers:{customerId}", Permissions.CustomerRead));
+        claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim($"apps:{testInit.AppId}:customers:{customerId}", 
+            Permissions.CustomerRead));
         var apiKeyDto = await grayMintAuthentication.CreateApiKey(claimsIdentity);
 
         // ------
