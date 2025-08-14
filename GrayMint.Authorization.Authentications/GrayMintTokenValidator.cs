@@ -136,14 +136,23 @@ public class GrayMintTokenValidator(
 
     public async Task<ClaimsIdentity> ValidateGrayMintToken(string token)
     {
-        // Set the parameters for token validation
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
-        var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
-        await PostValidate(claimsPrincipal);
+        try
+        {
+            // Set the parameters for token validation
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
+            var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
+            await PostValidate(claimsPrincipal);
 
-        var claimIdentity = new ClaimsIdentity(claimsPrincipal.Claims);
-        return claimIdentity;
+            var claimIdentity = new ClaimsIdentity(claimsPrincipal.Claims);
+            return claimIdentity;
+        }
+        catch (SecurityTokenException ex)
+        {
+            // Handle specific security token exceptions and
+            // convert them to AuthenticationException
+            throw new AuthenticationException(ex.Message, ex);
+        }
     }
 
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
