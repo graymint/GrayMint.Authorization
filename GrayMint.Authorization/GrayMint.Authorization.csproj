@@ -20,21 +20,21 @@
 		<PackageIcon>GrayMint.Authorization.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
-		<Version>3.0.134</Version>
+		<Version>2.0.229</Version>
 		<FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj" />
 		<ProjectReference Include="..\GrayMint.Authorization.Authentications.Controllers\GrayMint.Authorization.Authentications.Controllers.csproj" />
-		<ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.Authentications\GrayMint.Authorization.Authentications.csproj" />
 		<ProjectReference Include="..\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
-		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.Abstractions\GrayMint.Authorization.RoleManagement.Abstractions.csproj" />
 		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.ResourceProviders\GrayMint.Authorization.RoleManagement.ResourceProviders.csproj" />
-		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleAuthorizations\GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj" />
 		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.RoleProviders\GrayMint.Authorization.RoleManagement.RoleProviders.csproj" />
-		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj"/>
-		<ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj"/>
+		<ProjectReference Include="..\GrayMint.Authorization.RoleManagement.TeamControllers\GrayMint.Authorization.RoleManagement.TeamControllers.csproj" />
+		<ProjectReference Include="..\GrayMint.Authorization.UserManagement.Abstractions\GrayMint.Authorization.UserManagement.Abstractions.csproj" />
 		<ProjectReference Include="..\GrayMint.Authorization.UserManagement.UserProviders\GrayMint.Authorization.UserManagement.UserProviders.csproj" />
 	</ItemGroup>
 
