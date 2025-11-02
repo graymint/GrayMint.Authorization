@@ -81,7 +81,7 @@ public class TestInit : IDisposable
         return apiKey;
     }
 
-    public async Task<UserRole> AddNewUser(GmRole gmRole)
+    public async Task<TeamUserRole> AddNewUser(GmRole gmRole)
     {
         var resourceId = gmRole.IsRoot ? RootResourceId : AppResourceId;
         var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, gmRole.RoleId, NewEmail());
