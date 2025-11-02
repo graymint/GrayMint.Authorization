@@ -75,13 +75,13 @@ public class SystemTeamControllerTest
         // Get By Id
         // ---------
         var teamUser = await testInit.TeamClient.GetUserAsync(resourceId: testInit.RootResourceId, userRole1.User.UserId);
-        Assert.AreEqual(userRoles.Items.Count, teamUser.Roles.Count);
+        Assert.HasCount(userRoles.Items.Count, teamUser.Roles);
 
         // ---------
         // Get By Email
         // ---------
         teamUser = await testInit.TeamClient.GetUserByEmailAsync(resourceId: testInit.RootResourceId, userRole1.User.Email!);
-        Assert.AreEqual(userRoles.Items.Count, teamUser.Roles.Count);
+        Assert.HasCount(userRoles.Items.Count, teamUser.Roles);
 
         // ---------
         // List Users

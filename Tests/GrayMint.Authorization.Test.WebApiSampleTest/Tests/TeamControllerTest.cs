@@ -48,9 +48,9 @@ public class TeamControllerTest
         await testInit.AddNewBot(Roles.AppReader);
         var permissions = await testInit.TeamClient.ListCurrentUserPermissionsAsync(testInit.AppResourceId);
         foreach (var permission in Roles.AppReader.Permissions)
-            Assert.IsTrue(permissions.Contains(permission));
+            Assert.Contains(permission, permissions);
 
-        Assert.AreEqual(Roles.AppReader.Permissions.Length, permissions.Count);
+        Assert.HasCount(Roles.AppReader.Permissions.Length, permissions);
     }
 
     [TestMethod]
@@ -63,12 +63,12 @@ public class TeamControllerTest
 
         var permissions = await testInit.TeamClient.ListCurrentUserPermissionsAsync(testInit.AppResourceId);
         foreach (var permission in Roles.AppReader.Permissions)
-            Assert.IsTrue(permissions.Contains(permission));
+            Assert.Contains(permission, permissions);
 
         foreach (var permission in Roles.AppWriter.Permissions)
-            Assert.IsTrue(permissions.Contains(permission));
+            Assert.Contains(permission, permissions);
 
-        Assert.AreEqual(Roles.AppReader.Permissions.Union(Roles.AppAdmin.Permissions).Distinct().Count(), permissions.Count);
+        Assert.HasCount(Roles.AppReader.Permissions.Union(Roles.AppAdmin.Permissions).Distinct().Count(), permissions);
     }
 
 
@@ -188,7 +188,7 @@ public class TeamControllerTest
         // delete
         await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, roleId, userRole.User.UserId);
         var userRoleResult = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userRole.User.UserId);
-        Assert.AreEqual(0, userRoleResult.Items.Count);
+        Assert.IsEmpty(userRoleResult.Items);
     }
 
 
@@ -308,7 +308,7 @@ public class TeamControllerTest
         await testInit.TeamClient.AddUserAsync(resourceId: testInit.AppResourceId, roleId: Roles.AppReader.RoleId, userId: userRole1.UserId);
         var appRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: userRole1.UserId);
         Assert.AreEqual(2, appRoles.TotalCount);
-        Assert.AreEqual(2, appRoles.Items.Count);
+        Assert.HasCount(2, appRoles.Items);
         Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppAdmin.RoleId));
         Assert.IsTrue(appRoles.Items.Any(x => x.Role.RoleId == Roles.AppReader.RoleId));
     }

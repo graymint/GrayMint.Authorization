@@ -39,23 +39,23 @@ public class RoleProviderTest
 
         // Check user Roles
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
-        Assert.AreEqual(2, userRoles.Length);
+        Assert.HasCount(2, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource1 && x.Role.RoleName == role.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName));
 
         // Check user Roles
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId });
-        Assert.AreEqual(1, userRoles.Length);
+        Assert.HasCount(1, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource1 && x.Role.RoleName == role.RoleName));
 
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource2, RoleId = role.RoleId });
-        Assert.AreEqual(1, userRoles.Length);
+        Assert.HasCount(1, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName));
 
         // Remove
         await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
-        Assert.AreEqual(0, userRoles.Length);
+        Assert.HasCount(0, userRoles);
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public class RoleProviderTest
 
         // check user role
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
-        Assert.AreEqual(3, userRoles.Length);
+        Assert.HasCount(3, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role2.RoleName));

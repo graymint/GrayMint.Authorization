@@ -4,13 +4,13 @@ A sample ASP.NET Core Web API project demonstrating the GrayMint Authorization f
 
 ## Features
 
-- ?? **JWT Authentication** with support for multiple OAuth providers (Google, AWS Cognito, Firebase)
-- ?? **Role-Based Access Control (RBAC)** with customizable roles and permissions
-- ?? **Team Management** with role assignments and hierarchical access
-- ?? **Resource Providers** for nested resource authorization
-- ?? **API Key Authentication** (configurable)
-- ?? **Refresh Token Support**
-- ?? **Interactive API Documentation** with Scalar UI
+- 🔐 **JWT Authentication** with support for multiple OAuth providers (Google, AWS Cognito, Firebase)
+- 👥 **Role-Based Access Control (RBAC)** with customizable roles and permissions
+- 🏢 **Team Management** with role assignments and hierarchical access
+- 📦 **Resource Providers** for nested resource authorization
+- 🔑 **API Key Authentication** (configurable)
+- 🔄 **Refresh Token Support**
+- 📚 **Interactive API Documentation** with Scalar UI
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ Update the `appsettings.json` file with your configuration:
 }
 ```
 
-> ?? **Security Note**: Change the `Secret` to a strong, unique value in production. Use environment variables or Azure Key Vault for sensitive configuration.
+> ⚠️ **Security Note**: Change the `Secret` to a strong, unique value in production. Use environment variables or Azure Key Vault for sensitive configuration.
 
 #### OAuth Provider Configuration
 
@@ -101,11 +101,11 @@ https://localhost:5001/scalar/v1
 
 ### Scalar UI Features
 
-- ?? **Modern, Dark Theme** - Beautiful interface with Moon theme
-- ?? **Interactive API Explorer** - Test endpoints directly from the browser
-- ?? **Request/Response Examples** - Auto-generated examples for all endpoints
-- ?? **Authentication Support** - Easy token management for secured endpoints
-- ?? **Code Generation** - Generate C# HttpClient code snippets
+- 🎨 **Modern, Dark Theme** - Beautiful interface with Moon theme
+- 🔍 **Interactive API Explorer** - Test endpoints directly from the browser
+- 📝 **Request/Response Examples** - Auto-generated examples for all endpoints
+- 🔐 **Authentication Support** - Easy token management for secured endpoints
+- 💻 **Code Generation** - Generate C# HttpClient code snippets
 
 ### Alternative: Swagger UI
 
@@ -279,9 +279,9 @@ This project is licensed under the MIT License. See the [LICENSE](../../LICENSE)
 ## Support
 
 For questions or issues:
-- ?? Open an issue on [GitHub](https://github.com/graymint/GrayMint.Authorization/issues)
-- ?? Check the [documentation](https://github.com/graymint/GrayMint.Authorization)
-- ?? Join the discussion in GitHub Discussions
+- 📧 Open an issue on [GitHub](https://github.com/graymint/GrayMint.Authorization/issues)
+- 📖 Check the [documentation](https://github.com/graymint/GrayMint.Authorization)
+- 💬 Join the discussion in GitHub Discussions
 
 ## Acknowledgments
 

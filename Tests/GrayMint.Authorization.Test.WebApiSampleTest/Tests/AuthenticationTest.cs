@@ -131,7 +131,7 @@ public class AuthenticationTest
 
         // Get App Get
         var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync();
-        Assert.AreEqual(0, apps.Count);
+        Assert.HasCount(0, apps);
     }
 
     [TestMethod]
