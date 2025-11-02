@@ -7,5 +7,4 @@ public class TeamUser
 {
     public required User User { get; init; }
     public required Role[] Roles { get; init; }
-
 }

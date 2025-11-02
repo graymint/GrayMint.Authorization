@@ -6,7 +6,6 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UserRole = GrayMint.Authorization.RoleManagement.TeamControllers.Dtos.UserRole;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
@@ -18,7 +17,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
 {
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
-    protected abstract TUserRole ToDto(UserRole user);
+    protected abstract TUserRole ToDto(TeamUserRole user);
 
     [Authorize]
     [HttpGet("users/current/resources")]
@@ -172,7 +171,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
     // ReSharper disable once UnusedMethodReturnValue.Local
-    private async Task<IEnumerable<UserRole>> VerifyWritePermissionOnBot(string userId)
+    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
     {
         var userRoles = await teamService.GetUserRoles(userId: userId);
 
@@ -203,7 +202,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<UserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
+    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
     {
         return teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
     }
@@ -225,9 +224,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
 }
 
 public abstract class TeamControllerBase(TeamService teamService)
-    : TeamControllerBase<User, UserRole, Role>(teamService)
+    : TeamControllerBase<User, TeamUserRole, Role>(teamService)
 {
     protected override User ToDto(User user) => user;
     protected override Role ToDto(Role role) => role;
-    protected override UserRole ToDto(UserRole userRole) => userRole;
+    protected override TeamUserRole ToDto(TeamUserRole userRole) => userRole;
 }

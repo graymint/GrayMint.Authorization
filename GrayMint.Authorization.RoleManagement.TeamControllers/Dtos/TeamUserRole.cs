@@ -2,7 +2,7 @@
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 
-public class UserRole : Abstractions.UserRole
+public class TeamUserRole : Abstractions.UserRole
 {
     public required User? User { get; init; }
 }
