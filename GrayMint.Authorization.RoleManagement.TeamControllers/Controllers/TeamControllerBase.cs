@@ -19,12 +19,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     protected abstract TUser ToDto(User user);
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(UserRole user);
-    public class TeamUser
-    {
-        public required TUser User { get; init; }
-        public required TRole[] Roles { get; init; }
-    }
-
 
     [Authorize]
     [HttpGet("users/current/resources")]
@@ -95,11 +89,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
     [HttpGet("resources/{resourceId}/users/{userId}")]
-    public async Task<TeamUser> GetUser(string resourceId, string userId)
+    public async Task<TeamUser<TUser, TRole>> GetUser(string resourceId, string userId)
     {
         await VerifyReadPermissionOnRole(resourceId);
         var userByEmail = await teamService.GetUser(resourceId, userId);
-        var ret = new TeamUser
+        var ret = new TeamUser<TUser, TRole>
         {
             User = ToDto(userByEmail.User),
             Roles = userByEmail.Roles.Select(ToDto).ToArray(),
@@ -108,11 +102,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
     [HttpGet("resources/{resourceId}/users/email:{email}")]
-    public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
+    public async Task<TeamUser<TUser, TRole>> GetUserByEmail(string resourceId, string email)
     {
         await VerifyReadPermissionOnRole(resourceId);
         var userByEmail = await teamService.GetUserByEmail(resourceId, email);
-        var ret = new TeamUser
+        var ret = new TeamUser<TUser, TRole>
         {
             User = ToDto(userByEmail.User),
             Roles = userByEmail.Roles.Select(ToDto).ToArray(),

@@ -23,7 +23,7 @@ public class Program
         // common services
         services
             .AddGrayMintCommonServices(new RegisterServicesOptions())
-            .AddGrayMintSwagger("Test", false);
+            .AddGrayMintSwagger();
 
         // authentication & its controller
         builder.AddGrayMintCommonAuthorizationForApp(
@@ -41,7 +41,7 @@ public class Program
         // Add services to the container.
         var webApp = builder.Build();
         webApp.UseGrayMintCommonServices(new UseServicesOptions());
-        webApp.UseGrayMintSwagger(true);
+        webApp.UseGrayMintSwagger(new UseSwaggerOptions{RedirectRootToSwaggerUi = true});
         webApp.UseStaticFiles(new StaticFileOptions());
         await webApp.UseGrayMinCommonAuthorizationForApp();
         await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);

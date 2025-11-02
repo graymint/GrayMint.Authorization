@@ -15,7 +15,6 @@ namespace GrayMint.Authorization.Authentications.Controllers.Controllers;
 [ApiController]
 [Authorize]
 [Route("/api/authentication")]
-[Route("/api/v1/authentication")]
 public class AuthenticationController(
     AuthenticationService authenticationService,
     GrayMintAuthentication grayMintAuthentication)
@@ -47,7 +46,6 @@ public class AuthenticationController(
         return res;
     }
 
-    [HttpPost("v1/signin")]
     [HttpPost("signin")]
     [AllowAnonymous]
     public virtual async Task<ApiKey> SignIn(SignInRequest request)

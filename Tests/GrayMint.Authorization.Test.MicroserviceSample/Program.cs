@@ -21,7 +21,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // common services
             services
                 .AddGrayMintCommonServices(new RegisterServicesOptions())
-                .AddGrayMintSwagger("Test", false);
+                .AddGrayMintSwagger();
 
             // authentication & its controller
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
@@ -33,7 +33,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // Add services to the container.
             var webApp = builder.Build();
             webApp.UseGrayMintCommonServices(new UseServicesOptions());
-            webApp.UseGrayMintSwagger(true);
+            webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
             await webApp.UseGrayMinCommonAuthorizationForMicroservice();
             await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
 
