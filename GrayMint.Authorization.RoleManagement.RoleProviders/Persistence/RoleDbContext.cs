@@ -39,10 +39,17 @@ public partial class RoleDbContext : DbContext
             .HaveMaxLength(400);
     }
 
+    private bool IsSchemaSupported =>
+        Database.ProviderName?.Contains("Sqlite") == false &&
+        Database.ProviderName?.Contains("InMemory") == false;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema(Schema);
+
+        // add default schema only for supported databases
+        if (IsSchemaSupported)
+            modelBuilder.HasDefaultSchema(Schema);
 
         modelBuilder.Entity<UserRoleModel>(entity => {
             entity

@@ -30,7 +30,8 @@ public static class RoleProviderExtension
         return services;
     }
 
-    public static async Task<IServiceProvider> UseGrayMintRoleProvider(this IServiceProvider serviceProvider)
+    public static async Task<IServiceProvider> UseGrayMintRoleProvider(
+        this IServiceProvider serviceProvider)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<RoleDbContext>();
