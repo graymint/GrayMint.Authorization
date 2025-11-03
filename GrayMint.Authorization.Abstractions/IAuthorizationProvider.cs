@@ -8,5 +8,4 @@ public interface IAuthorizationProvider
     Task<string?> GetUserId(ClaimsPrincipal principal);
     Task OnAuthenticated(ClaimsPrincipal principal);
     Task RestAuthorizationCode(ClaimsPrincipal principal);
-
 }

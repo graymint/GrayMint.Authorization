@@ -26,8 +26,7 @@ public class AwsCognitoTest
         var provider = new AmazonCognitoIdentityProviderClient(new AnonymousAWSCredentials(), awsRegion);
         var userPool = new CognitoUserPool(cognitoArn.Resource, cognitoClientId, provider);
         var user = new CognitoUser(email, cognitoClientId, userPool, provider);
-        var authRequest = new InitiateSrpAuthRequest
-        {
+        var authRequest = new InitiateSrpAuthRequest {
             Password = password
         };
 
@@ -42,12 +41,11 @@ public class AwsCognitoTest
         using var testInit = await TestInit.Create();
 
         // add user to appCreator role
-        try
-        {
-            await testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId, "unit-tester@foo.local");
+        try {
+            await testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.SystemAdmin.RoleId,
+                "unit-tester@foo.local");
         }
-        catch (ApiException ex)
-        {
+        catch (ApiException ex) {
             Assert.AreEqual(nameof(AlreadyExistsException), ex.ExceptionTypeName);
         }
 

@@ -27,7 +27,8 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
 
             // Database
-            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
             services.AddItemServices();
 
             // Add services to the container.

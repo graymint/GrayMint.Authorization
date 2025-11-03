@@ -24,6 +24,4 @@ public class BaseApiClient
     {
         return Task.CompletedTask;
     }
-
-
 }

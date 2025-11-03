@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class UserProviderTest 
+public class UserProviderTest
 {
     [TestMethod]
     public async Task Crud()
@@ -15,8 +15,7 @@ public class UserProviderTest
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        var request = new UserCreateRequest
-        {
+        var request = new UserCreateRequest {
             Email = $"{Guid.NewGuid()}@local",
             Phone = "+1" + Random.Shared.Next(1_000_000_000, 2_000_000_000),
             IsDisabled = true,
@@ -60,8 +59,7 @@ public class UserProviderTest
         Assert.AreEqual(user.FirstName, user3.FirstName);
 
         // Update
-        var updateRequest = new UserUpdateRequest
-        {
+        var updateRequest = new UserUpdateRequest {
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
@@ -73,7 +71,6 @@ public class UserProviderTest
             IsPhoneVerified = false,
             IsDisabled = false,
             ExData = Guid.NewGuid().ToString()
-
         };
         await userProvider.Update(user.UserId, updateRequest);
 
@@ -101,8 +98,7 @@ public class UserProviderTest
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        var request = new UserCreateRequest
-        {
+        var request = new UserCreateRequest {
             Email = $"{Guid.NewGuid()}@local",
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),

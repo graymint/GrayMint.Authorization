@@ -12,13 +12,12 @@ public static class JwtUtil
         return CreateSymmetricJwt(key, issuer, audience, subject, email, null, roles);
     }
 
-    public static DateTime UtcNow
-    {
-        get
-        {
+    public static DateTime UtcNow {
+        get {
             // drop milliseconds
-            var utcNow = DateTime.UtcNow;   
-            return new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second, DateTimeKind.Utc);    
+            var utcNow = DateTime.UtcNow;
+            return new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second,
+                DateTimeKind.Utc);
         }
     }
 

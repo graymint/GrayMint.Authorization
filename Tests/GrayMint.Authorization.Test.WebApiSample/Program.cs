@@ -17,7 +17,8 @@ public class Program
         var services = builder.Services;
 
         // options
-        var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? throw new Exception("Could not load AppOptions.");
+        var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ??
+                         throw new Exception("Could not load AppOptions.");
         services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
         // common services
@@ -27,21 +28,23 @@ public class Program
 
         // authentication & its controller
         builder.AddGrayMintCommonAuthorizationForApp(
-            GmRole.GetAll(typeof(Roles)), 
+            GmRole.GetAll(typeof(Roles)),
             options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // nested resource controller. MUST be after role provider
         if (appOptions.UseResourceProvider)
-            services.AddGrayMintResourceProvider(new ResourceProviderOptions(), options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            services.AddGrayMintResourceProvider(new ResourceProviderOptions(),
+                options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
         // Database
-        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
         services.AddItemServices();
 
         // Add services to the container.
         var webApp = builder.Build();
         webApp.UseGrayMintCommonServices(new UseServicesOptions());
-        webApp.UseGrayMintSwagger(new UseSwaggerOptions{RedirectRootToSwaggerUi = true});
+        webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
         webApp.UseStaticFiles(new StaticFileOptions());
         await webApp.UseGrayMinCommonAuthorizationForApp();
         await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);

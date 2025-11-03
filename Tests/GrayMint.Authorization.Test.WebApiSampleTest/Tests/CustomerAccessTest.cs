@@ -21,7 +21,8 @@ public class CustomerAccessTest
         var customerId = 2000;
 
         var claimsIdentity = new ClaimsIdentity();
-        claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim($"apps:{testInit.AppId}:customers:{customerId}", 
+        claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(
+            $"apps:{testInit.AppId}:customers:{customerId}",
             Permissions.CustomerRead));
         var apiKeyDto = await grayMintAuthentication.CreateApiKey(claimsIdentity);
 

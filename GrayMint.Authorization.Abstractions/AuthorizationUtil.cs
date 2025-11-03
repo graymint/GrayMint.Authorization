@@ -8,8 +8,7 @@ public static class AuthorizationUtil
     public static void UpdateNameIdentifier(IPrincipal principal, string userId)
     {
         // update name-identifier
-        if (principal.Identity is ClaimsIdentity { IsAuthenticated: true } identity)
-        {
+        if (principal.Identity is ClaimsIdentity { IsAuthenticated: true } identity) {
             var nameIdentifierClaim = identity.FindFirst(ClaimTypes.NameIdentifier);
             if (nameIdentifierClaim != null)
                 identity.RemoveClaim(nameIdentifierClaim);

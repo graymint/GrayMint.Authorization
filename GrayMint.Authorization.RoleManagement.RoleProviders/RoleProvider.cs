@@ -43,12 +43,12 @@ public class RoleProvider : IRoleProvider
         // validate role
         var role = _roles.Single(x => x.RoleId == roleId);
         if (role.IsRoot && !IsRootResource(resourceId))
-            throw new InvalidOperationException($"The role of {role.RoleName} can only be added on the system resource.");
+            throw new InvalidOperationException(
+                $"The role of {role.RoleName} can only be added on the system resource.");
 
         _roleDbContext.ChangeTracker.Clear();
         var entry = await _roleDbContext.UserRoles
-            .AddAsync(new UserRoleModel
-            {
+            .AddAsync(new UserRoleModel {
                 RoleId = Guid.Parse(roleId),
                 UserId = Guid.Parse(userId),
                 ResourceId = resourceId
@@ -126,8 +126,7 @@ public class RoleProvider : IRoleProvider
             .Take(recordCount)
             .ToArrayAsync();
 
-        var ret = new ListResult<UserRole>
-        {
+        var ret = new ListResult<UserRole> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
@@ -139,8 +138,7 @@ public class RoleProvider : IRoleProvider
         string? roleId, int recordIndex, int recordCount)
     {
         var allUserRoles = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
-            async entry =>
-            {
+            async entry => {
                 await using var trans = await _roleDbContext.WithNoLockTransaction();
                 var res = await _roleDbContext.UserRoles
                     .Where(x => x.UserId == Guid.Parse(userId))
@@ -159,8 +157,7 @@ public class RoleProvider : IRoleProvider
             .Take(recordCount)
             .ToArray();
 
-        var ret = new ListResult<UserRole>
-        {
+        var ret = new ListResult<UserRole> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.LongCount(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
@@ -170,9 +167,8 @@ public class RoleProvider : IRoleProvider
 
     public async Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
-        var permissions = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, 
-            $"resources:{resourceId}:user-permissions", entry =>
-            {
+        var permissions = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId,
+            $"resources:{resourceId}:user-permissions", entry => {
                 entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
                 return GetUserPermissionsInternal(resourceId, userId);
             });

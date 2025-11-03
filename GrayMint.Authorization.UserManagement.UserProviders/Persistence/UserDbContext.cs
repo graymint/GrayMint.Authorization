@@ -43,8 +43,7 @@ public partial class UserDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
 
-        modelBuilder.Entity<UserModel>(entity =>
-        {
+        modelBuilder.Entity<UserModel>(entity => {
             entity.HasKey(x => x.UserId);
 
             entity.Property(e => e.UserId)
@@ -55,7 +54,7 @@ public partial class UserDbContext : DbContext
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();
-            
+
             entity.HasIndex(e => e.FirstName);
             entity.HasIndex(e => e.LastName);
 

@@ -26,8 +26,7 @@ public class GrayMintAuthentication(
     {
         var securityKey = new SymmetricSecurityKey(options.Secret);
         var securityKeys = options.Secrets.Select(x => new SymmetricSecurityKey(x));
-        var tokenValidation = new TokenValidationParameters
-        {
+        var tokenValidation = new TokenValidationParameters {
             NameClaimType = JwtRegisteredClaimNames.Sub,
             RequireSignedTokens = true,
             IssuerSigningKey = securityKey,
@@ -57,8 +56,7 @@ public class GrayMintAuthentication(
         if (explicitTime != null)
             return explicitTime.Value;
 
-        return refreshTokenType switch
-        {
+        return refreshTokenType switch {
             RefreshTokenType.Web => JwtUtil.UtcNow + _authenticationOptions.RefreshTokenWebTimeout,
             RefreshTokenType.App => JwtUtil.UtcNow + _authenticationOptions.RefreshTokenAppTimeout,
             _ => throw new AuthenticationException("Invalid refresh_token_type.")
@@ -78,17 +76,19 @@ public class GrayMintAuthentication(
 
         // create refresh token
         Token? refreshToken = null;
-        if (options.RefreshTokenType != RefreshTokenType.None)
-        {
+        if (options.RefreshTokenType != RefreshTokenType.None) {
             if (!_authenticationOptions.AllowRefreshToken)
                 throw new UnauthorizedAccessException("Refresh token is not available on the server.");
 
             // add refresh token clams
             claimsIdentity = claimsIdentity.Clone();
-            ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.RefreshTokenType, options.RefreshTokenType.ToString()));
+            ClaimUtil.SetClaim(claimsIdentity,
+                new Claim(GrayMintClaimTypes.RefreshTokenType, options.RefreshTokenType.ToString()));
             ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AccessToken, accessToken.Value));
             if (options.RefreshTokenMaxExpirationTime != null)
-                ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(GrayMintClaimTypes.AuthEndTime, options.RefreshTokenMaxExpirationTime.Value));
+                ClaimUtil.SetClaim(claimsIdentity,
+                    ClaimUtil.CreateClaimTime(GrayMintClaimTypes.AuthEndTime,
+                        options.RefreshTokenMaxExpirationTime.Value));
 
             refreshToken = await CreateToken(
                 claimsIdentity: claimsIdentity,
@@ -98,8 +98,7 @@ public class GrayMintAuthentication(
         }
 
         // create apiKey
-        var ret = new ApiKey
-        {
+        var ret = new ApiKey {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             UserId = accessToken.ClaimsPrincipal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty
@@ -108,23 +107,23 @@ public class GrayMintAuthentication(
     }
 
 
-    public async Task<Token> CreateToken(ClaimsIdentity claimsIdentity, ValidateOptions? tokenOptions, string tokenUse, DateTime expTime)
+    public async Task<Token> CreateToken(ClaimsIdentity claimsIdentity, ValidateOptions? tokenOptions, string tokenUse,
+        DateTime expTime)
     {
         claimsIdentity = claimsIdentity.Clone();
         tokenOptions ??= new ValidateOptions();
 
         // try to add subject if not set
-        if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null)
-        {
+        if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null) {
             var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
             if (userId != null)
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
         }
 
         // AuthCode. try to retrieve it from authorization Provider if not set
-        if (claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null)
-        {
-            var authCode = await authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+        if (claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null) {
+            var authCode =
+                await authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
             if (!string.IsNullOrEmpty(authCode))
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AuthCode, authCode));
         }
@@ -132,7 +131,8 @@ public class GrayMintAuthentication(
         // validate times
         var authTime = ClaimUtil.GetUtcTime(claimsIdentity, JwtRegisteredClaimNames.AuthTime);
         var authEndTime = ClaimUtil.GetUtcTime(claimsIdentity, GrayMintClaimTypes.AuthEndTime);
-        if (authTime == null && authEndTime != null) throw new InvalidOperationException("AuthEndTime can not be set when authTime is null.");
+        if (authTime == null && authEndTime != null)
+            throw new InvalidOperationException("AuthEndTime can not be set when authTime is null.");
         if (authTime > expTime) throw new InvalidOperationException("AuthTime can not be more than ExpTime.");
         if (authTime > authEndTime) throw new InvalidOperationException("AuthTime can not be more than AuthEndTime.");
         if (expTime > authEndTime) throw new InvalidOperationException("ExpTime can not be more than AuthEndTime.");
@@ -142,17 +142,18 @@ public class GrayMintAuthentication(
         ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.Version, "2", ClaimValueTypes.Integer));
 
         // create jwt
-        var audience = string.IsNullOrEmpty(_authenticationOptions.Audience) ? _authenticationOptions.Issuer : _authenticationOptions.Audience;
+        var audience = string.IsNullOrEmpty(_authenticationOptions.Audience)
+            ? _authenticationOptions.Issuer
+            : _authenticationOptions.Audience;
 
         var jwt = JwtUtil.CreateSymmetricJwt(
-                key: _authenticationOptions.Secret,
-                issuer: _authenticationOptions.Issuer,
-                audience: audience,
-                claims: claimsIdentity.Claims.ToArray(),
-                expirationTime: expTime);
+            key: _authenticationOptions.Secret,
+            issuer: _authenticationOptions.Issuer,
+            audience: audience,
+            claims: claimsIdentity.Claims.ToArray(),
+            expirationTime: expTime);
 
-        var token = new Token
-        {
+        var token = new Token {
             Value = jwt,
             Scheme = JwtBearerDefaults.AuthenticationScheme,
             ExpirationTime = expTime,
@@ -161,18 +162,18 @@ public class GrayMintAuthentication(
         };
 
         // ValidateAuthCode
-        if (tokenOptions.ValidateAuthCode)
-        {
+        if (tokenOptions.ValidateAuthCode) {
             var authCode = claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
-            if (string.IsNullOrEmpty(authCode) || await authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal) != authCode)
+            if (string.IsNullOrEmpty(authCode) ||
+                await authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal) != authCode)
                 throw new AuthenticationException("Could not validate AuthorizationCode.");
         }
 
         // ValidateSubject
-        if (tokenOptions.ValidateSubject)
-        {
+        if (tokenOptions.ValidateSubject) {
             var subject = claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
-            if (string.IsNullOrEmpty(subject) || await authorizationProvider.GetUserId(token.ClaimsPrincipal) != subject)
+            if (string.IsNullOrEmpty(subject) ||
+                await authorizationProvider.GetUserId(token.ClaimsPrincipal) != subject)
                 throw new AuthenticationException("Could not validate UserId.");
         }
 
@@ -187,18 +188,19 @@ public class GrayMintAuthentication(
             throw new AuthenticationException("This is not a refresh token.");
 
         // find refresh token type
-        var refreshTokenType = Enum.Parse<RefreshTokenType>(ClaimUtil.GetRequiredClaimString(claimsIdentity, GrayMintClaimTypes.RefreshTokenType), true);
+        var refreshTokenType =
+            Enum.Parse<RefreshTokenType>(
+                ClaimUtil.GetRequiredClaimString(claimsIdentity, GrayMintClaimTypes.RefreshTokenType), true);
         var issuedTime = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat);
         var expTime = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Exp);
         var authTime = ClaimUtil.GetUtcTime(claimsIdentity, JwtRegisteredClaimNames.AuthTime);
 
         // set authEndTime if not exists
         var authEndTime = ClaimUtil.GetUtcTime(claimsIdentity, GrayMintClaimTypes.AuthEndTime)
-            ?? refreshTokenType switch
-            {
-                RefreshTokenType.App => authTime + _authenticationOptions.SessionAppTimeout,
-                _ => authTime + _authenticationOptions.SessionWebTimeout
-            };
+                          ?? refreshTokenType switch {
+                              RefreshTokenType.App => authTime + _authenticationOptions.SessionAppTimeout,
+                              _ => authTime + _authenticationOptions.SessionWebTimeout
+                          };
 
         if (JwtUtil.UtcNow > authEndTime)
             throw new AuthenticationException("Can not use this refresh token anymore.");
@@ -210,7 +212,7 @@ public class GrayMintAuthentication(
 
         // extract old access token claimIdentity
         var oldAccessToken = claimsIdentity.FindFirst(GrayMintClaimTypes.AccessToken)?.Value
-            ?? throw new AuthenticationException("Could not extract access toke from refresh token.");
+                             ?? throw new AuthenticationException("Could not extract access toke from refresh token.");
         var tokenHandler = new JwtSecurityTokenHandler();
         var token = tokenHandler.ReadJwtToken(oldAccessToken);
         var accessTokenClaimIdentity = new ClaimsIdentity(token.Claims);
@@ -218,8 +220,7 @@ public class GrayMintAuthentication(
         // Create the refresh token  with new access key
         var apiKey = await CreateApiKey(
             accessTokenClaimIdentity,
-            new ApiKeyOptions
-            {
+            new ApiKeyOptions {
                 RefreshTokenType = refreshTokenType,
                 RefreshTokenExpirationTime = newExpTime
             });
@@ -239,7 +240,7 @@ public class GrayMintAuthentication(
 
         // check user existence
         var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
-            ?? throw new UnregisteredUserException();
+                     ?? throw new UnregisteredUserException();
 
         // update userId in claims
         var issuedAt = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat);
@@ -247,9 +248,8 @@ public class GrayMintAuthentication(
         ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, issuedAt));
 
         var apiKey = await CreateApiKey(claimsIdentity,
-            new ApiKeyOptions
-            {
-                ValidateOptions = new ValidateOptions {ValidateAuthCode = true, ValidateSubject = true},
+            new ApiKeyOptions {
+                ValidateOptions = new ValidateOptions { ValidateAuthCode = true, ValidateSubject = true },
                 RefreshTokenType = refreshTokenType
             });
 
@@ -266,7 +266,8 @@ public class GrayMintAuthentication(
     public async Task<Uri> GetSignInRedirectUrl(string idToken, string? csrfToken)
     {
         if (_authenticationOptions.SignInRedirectUrl == null)
-            throw new InvalidOperationException("TeamController:SignInRedirectUrl has not been configured in app settings.");
+            throw new InvalidOperationException(
+                "TeamController:SignInRedirectUrl has not been configured in app settings.");
 
         var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
         var token = await CreateIdToken(claimsIdentity);
@@ -286,8 +287,7 @@ public class GrayMintAuthentication(
         ArgumentException.ThrowIfNullOrEmpty(googleClientId);
 
         const string baseUrl = "https://accounts.google.com/gsi/select";
-        var query = new Dictionary<string, string?>
-        {
+        var query = new Dictionary<string, string?> {
             { "client_id", googleClientId },
             { "ux_mode", "redirect" },
             { "login_uri", redirectUrl },
@@ -304,4 +304,3 @@ public class GrayMintAuthentication(
         return uriBuilder.Uri;
     }
 }
-

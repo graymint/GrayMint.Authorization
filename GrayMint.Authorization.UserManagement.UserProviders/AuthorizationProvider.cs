@@ -20,16 +20,14 @@ public class AuthorizationProvider(IUserProvider userProvider) : IAuthorizationP
     public async Task<string?> GetUserId(ClaimsPrincipal principal)
     {
         var userId = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-        if (userId != null)
-        {
+        if (userId != null) {
             var user = await userProvider.FindById(userId);
             if (user != null)
                 return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
         }
 
         var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
-        if (emailClaim != null)
-        {
+        if (emailClaim != null) {
             var user = await userProvider.FindByEmail(emailClaim.Value);
             if (user != null)
                 return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
@@ -47,8 +45,7 @@ public class AuthorizationProvider(IUserProvider userProvider) : IAuthorizationP
         var user = await userProvider.Get(userId);
 
         // update access time
-        if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60))
-        {
+        if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60)) {
             if (userProvider is UserProvider userProvider2)
                 await userProvider2.UpdateAccessedTime(user.UserId);
         }

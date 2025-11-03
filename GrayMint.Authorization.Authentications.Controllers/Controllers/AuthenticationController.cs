@@ -80,7 +80,8 @@ public class AuthenticationController(
 
         // read queryString to dictionary
         var queryDictionary = HttpUtility.ParseQueryString(queryString);
-        var externalIdToken = queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
+        var externalIdToken =
+            queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
         var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"]);
         return Redirect(url.ToString());
     }
@@ -90,8 +91,7 @@ public class AuthenticationController(
     [Produces(MediaTypeNames.Application.Json)]
     public Task<string> GetGoogleSignInUrl(string csrfToken, string? nonce = null)
     {
-        var uriBuilder = new UriBuilder
-        {
+        var uriBuilder = new UriBuilder {
             Scheme = Request.Scheme,
             Host = Request.Host.Host,
             Path = Request.Path.ToString()

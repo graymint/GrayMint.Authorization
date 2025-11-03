@@ -31,6 +31,7 @@ public class SystemTest
         var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString());
         testInit.SetApiKey(apiKey);
 
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString()));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString()));
     }
 }

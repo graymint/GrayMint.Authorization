@@ -16,4 +16,3 @@ public class UserUpdateRequest
     public Patch<string?>? Description { get; set; }
     public Patch<string?>? ExData { get; set; }
 }
-

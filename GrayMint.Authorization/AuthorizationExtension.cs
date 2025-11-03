@@ -27,7 +27,7 @@ public static class AuthorizationExtension
         var authenticationOptions =
             builder.Configuration.GetSection(authenticationOptionsSectionName).Get<GrayMintAuthenticationOptions>()
             ?? throw new ArgumentException(
-                $"Could not read auth configuration from {authenticationOptionsSectionName}", 
+                $"Could not read auth configuration from {authenticationOptionsSectionName}",
                 nameof(authenticationOptionsSectionName));
 
         builder.Services.AddGrayMintCommonAuthorizationForApp(

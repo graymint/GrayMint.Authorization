@@ -18,8 +18,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
     private static string BuildResourceByRouteData(HttpContext httpContext, string resourceRoute)
     {
         var args = ExtractRouteResourceArgs(resourceRoute);
-        foreach (var arg in args)
-        {
+        foreach (var arg in args) {
             var argValue = httpContext.GetRouteValue(arg) as string;
             if (string.IsNullOrEmpty(argValue)) argValue = AuthorizationConstants.RootResourceId;
             resourceRoute = resourceRoute.Replace("{" + arg + "}", argValue);
@@ -27,6 +26,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
 
         return resourceRoute;
     }
+
     public static string GetResourceId(object? resource, string? resourceRoute)
     {
         if (resource is string permissionResource)
@@ -42,12 +42,13 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
         AuthorizationHandlerContext context,
         PermissionAuthorizationRequirement requirement)
     {
-        try
-        {
+        try {
             // get resource id 
             var resourceId = GetResourceId(context.Resource, requirement.ResourceRoute);
             var requiredClaim = PermissionAuthorization.BuildPermissionClaim(resourceId, requirement.Permission);
-            var requiredRootClaim = PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId, requirement.Permission);
+            var requiredRootClaim =
+                PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
+                    requirement.Permission);
 
             // check user has requiredClaim
             var succeeded =
@@ -62,8 +63,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
 
             return Task.CompletedTask;
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             context.Fail(new AuthorizationFailureReason(this, ex.Message));
             return Task.CompletedTask;
         }

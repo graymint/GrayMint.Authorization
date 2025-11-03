@@ -10,6 +10,5 @@ public class Token
     public required string Scheme { get; init; }
     public required DateTime IssuedTime { get; init; }
 
-    [JsonIgnore]
-    public ClaimsPrincipal? ClaimsPrincipal { get; init; }
+    [JsonIgnore] public ClaimsPrincipal? ClaimsPrincipal { get; init; }
 }

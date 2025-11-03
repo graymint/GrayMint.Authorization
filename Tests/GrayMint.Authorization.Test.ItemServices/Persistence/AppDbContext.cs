@@ -22,17 +22,13 @@ public partial class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<AppModel>(entity =>
-        {
+        modelBuilder.Entity<AppModel>(entity => {
             entity.HasKey(e => e.AppId);
             entity.HasIndex(e => e.AppName)
                 .IsUnique();
         });
 
-        modelBuilder.Entity<ItemModel>(entity =>
-        {
-            entity.HasKey(e => e.ItemId);
-        });
+        modelBuilder.Entity<ItemModel>(entity => { entity.HasKey(e => e.ItemId); });
 
         // ReSharper disable once InvocationIsSkipped
         OnModelCreatingPartial(modelBuilder);

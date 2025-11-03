@@ -12,19 +12,20 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         return $"graymint:auth:userid:{userId}";
     }
 
-    public async Task<TItem> GetOrCreateRequiredUserItemAsync<TItem>(string userId, string itemKey, Func<ICacheEntry, Task<TItem>> factory)
+    public async Task<TItem> GetOrCreateRequiredUserItemAsync<TItem>(string userId, string itemKey,
+        Func<ICacheEntry, Task<TItem>> factory)
     {
         var res = await GetOrCreateUserItemAsync(userId, itemKey, factory)
                   ?? throw new KeyNotFoundException($"The required {itemKey} does not exist in UserAuthorizationCache");
         return res;
     }
 
-    public async Task<TItem?> GetOrCreateUserItemAsync<TItem>(string userId, string itemKey, Func<ICacheEntry, Task<TItem>> factory)
+    public async Task<TItem?> GetOrCreateUserItemAsync<TItem>(string userId, string itemKey,
+        Func<ICacheEntry, Task<TItem>> factory)
     {
         // get list of current users keys
         var userCacheKey = BuildUserCacheKey(userId);
-        var keys = memoryCache.GetOrCreate(userCacheKey, entry =>
-            {
+        var keys = memoryCache.GetOrCreate(userCacheKey, entry => {
                 entry.SetAbsoluteExpiration(CacheTimeout);
                 return new HashSet<string>();
             }
@@ -44,8 +45,7 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
 
     public void AddUserItem(string userId, string itemKey)
     {
-        var keys = memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry =>
-            {
+        var keys = memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
                 entry.SetAbsoluteExpiration(CacheTimeout);
                 return new HashSet<string>();
             }
@@ -59,7 +59,7 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
     {
         var userCacheKey = BuildUserCacheKey(userId);
         var keys = memoryCache.Get<HashSet<string>>(userCacheKey);
-        if (keys == null) 
+        if (keys == null)
             return;
 
         foreach (var key in keys)

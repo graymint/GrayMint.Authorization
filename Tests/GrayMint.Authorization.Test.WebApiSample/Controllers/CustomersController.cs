@@ -8,7 +8,6 @@ namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 [Route("/api/apps/{appId}/customers")]
 public class CustomersController : ControllerBase
 {
-
     [HttpGet("{customerId:int}")]
     [AuthorizeCustomerIdPermission(Permissions.CustomerRead)]
     public Task<string> GetByCustomerId(int appId, int customerId)

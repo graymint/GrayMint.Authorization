@@ -104,8 +104,7 @@ public class ResourceProvider(
         if (resource is { ResourceId: AuthorizationConstants.RootResourceId, ParentResourceId: not null })
             throw new InvalidOperationException("Parent of the root resource must be null.");
 
-        while (resource.ParentResourceId != null)
-        {
+        while (resource.ParentResourceId != null) {
             parentIds.Add(resource.ResourceId);
             if (parentIds.Contains(resource.ParentResourceId))
                 throw new InvalidOperationException("Loop detected in resource hierarchy.");
@@ -118,12 +117,10 @@ public class ResourceProvider(
 
     private async Task ClearResourceCache(IEnumerable<string> resourceIds)
     {
-        foreach (var resourceId in resourceIds)
-        {
+        foreach (var resourceId in resourceIds) {
             var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId });
             foreach (var userRole in userRoles)
                 userAuthorizationCache.ClearUserItems(userRole.UserId);
         }
     }
-
 }

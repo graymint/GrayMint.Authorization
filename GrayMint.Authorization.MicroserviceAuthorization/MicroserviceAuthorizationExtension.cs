@@ -16,11 +16,14 @@ public static class MicroserviceAuthorizationExtension
         string authenticationOptionsSectionName = "Auth")
         where TAuthorizationProvider : class, IAuthorizationProvider
     {
-        var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName).Get<GrayMintAuthenticationOptions>()
-            ?? throw new ArgumentException($"Could not read auth configuration from {authenticationOptionsSectionName}", nameof(authenticationOptionsSectionName));
+        var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName)
+                                        .Get<GrayMintAuthenticationOptions>()
+                                    ?? throw new ArgumentException(
+                                        $"Could not read auth configuration from {authenticationOptionsSectionName}",
+                                        nameof(authenticationOptionsSectionName));
 
         return builder.AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
-                authenticationOptions);
+            authenticationOptions);
     }
 
     public static WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
@@ -39,8 +42,7 @@ public static class MicroserviceAuthorizationExtension
         builder.Services.AddGrayMintPermissionAuthorization();
 
         // add Authorization
-        builder.Services.AddAuthorization(options =>
-        {
+        builder.Services.AddAuthorization(options => {
             // create default policy
             var policyBuilder = new AuthorizationPolicyBuilder();
             policyBuilder.RequireAuthenticatedUser();
@@ -65,5 +67,4 @@ public static class MicroserviceAuthorizationExtension
         webApplication.UseAuthorization();
         return Task.CompletedTask;
     }
-
 }

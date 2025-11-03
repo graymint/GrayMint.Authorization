@@ -8,14 +8,12 @@ namespace GrayMint.Authorization.Test.ItemServices.Services;
 
 public class ItemService(AppDbContext appDbContext)
 {
-
     public async Task<Item> Create(int appId, ItemCreateRequest? createRequest = null)
     {
         createRequest ??= new ItemCreateRequest { ItemName = Guid.NewGuid().ToString() };
 
         // Create App
-        var itemEntry = await appDbContext.Items.AddAsync(new ItemModel
-        {
+        var itemEntry = await appDbContext.Items.AddAsync(new ItemModel {
             AppId = appId,
             ItemName = createRequest.ItemName
         });

@@ -1,5 +1,4 @@
-﻿
-namespace GrayMint.Authorization.RoleManagement.TeamControllers.Security;
+﻿namespace GrayMint.Authorization.RoleManagement.TeamControllers.Security;
 
 public static class RolePermissions
 {

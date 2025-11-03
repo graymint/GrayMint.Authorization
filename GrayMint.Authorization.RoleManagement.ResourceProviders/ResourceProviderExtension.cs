@@ -26,6 +26,7 @@ public static class ResourceProviderExtension
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ResourceDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, ResourceDbContext.Schema, nameof(ResourceDbContext.Resources));
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, ResourceDbContext.Schema,
+            nameof(ResourceDbContext.Resources));
     }
 }

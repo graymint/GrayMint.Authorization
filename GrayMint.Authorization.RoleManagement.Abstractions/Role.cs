@@ -1,5 +1,4 @@
-﻿
-namespace GrayMint.Authorization.RoleManagement.Abstractions;
+﻿namespace GrayMint.Authorization.RoleManagement.Abstractions;
 
 public class Role
 {

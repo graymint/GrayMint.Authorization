@@ -20,9 +20,8 @@ public class UserProvider(
 {
     public async Task<User> Create(UserCreateRequest request)
     {
-        var res = await userDbContext.Users.AddAsync(new UserModel
-        {
-            UserId = Guid.NewGuid(), 
+        var res = await userDbContext.Users.AddAsync(new UserModel {
+            UserId = Guid.NewGuid(),
             Email = request.Email.Trim(),
             Name = request.Name?.Trim(),
             FirstName = request.FirstName?.Trim(),
@@ -71,8 +70,7 @@ public class UserProvider(
             return null;
 
         var user = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
-            entry =>
-            {
+            entry => {
                 entry.SetAbsoluteExpiration(userProviderOptions.Value.CacheTimeout);
                 return userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
             });
@@ -97,7 +95,7 @@ public class UserProvider(
     {
         userDbContext.ChangeTracker.Clear();
 
-        var user = userDbContext.Users.Single(x=>x.UserId == Guid.Parse(userId));
+        var user = userDbContext.Users.Single(x => x.UserId == Guid.Parse(userId));
         userDbContext.Users.Remove(user);
         await userDbContext.SaveChangesAsync();
         userAuthorizationCache.ClearUserItems(userId);
@@ -153,8 +151,7 @@ public class UserProvider(
             .Take(recordCount ?? int.MaxValue)
             .ToArrayAsync();
 
-        var ret = new ListResult<User>
-        {
+        var ret = new ListResult<User> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
             Items = results.Select(x => x.ToDto()).ToArray()
         };
@@ -166,5 +163,4 @@ public class UserProvider(
     {
         return $"graymint:auth:user-provider:user-model:email={email}";
     }
-
 }

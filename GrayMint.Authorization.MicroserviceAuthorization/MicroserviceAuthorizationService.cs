@@ -30,14 +30,12 @@ public class MicroserviceAuthorizationService(
         // create ClaimsIdentity
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, userId));
-        if (authorizationCode != null) 
+        if (authorizationCode != null)
             claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.AuthCode, authorizationCode));
 
         // create api key
-        var apiKey = await grayMintAuthentication.CreateApiKey(claimsIdentity, new ApiKeyOptions
-        {
-            ValidateOptions = new ValidateOptions
-            {
+        var apiKey = await grayMintAuthentication.CreateApiKey(claimsIdentity, new ApiKeyOptions {
+            ValidateOptions = new ValidateOptions {
                 ValidateAuthCode = true,
                 ValidateSubject = false
             }
@@ -54,8 +52,8 @@ public class MicroserviceAuthorizationService(
         // get authorization code
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, AuthorizationConstants.SystemUserId));
-        var authorizationCode  = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity)) 
-            ?? throw new KeyNotFoundException("Could not find authorization code for system user.");
+        var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity))
+                                ?? throw new KeyNotFoundException("Could not find authorization code for system user.");
 
         // create ClaimsIdentity
         claimsIdentity = new ClaimsIdentity();
@@ -63,16 +61,13 @@ public class MicroserviceAuthorizationService(
         claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.AuthCode, authorizationCode));
 
         // create api key
-        var apiKey = await grayMintAuthentication.CreateApiKey(claimsIdentity, new ApiKeyOptions
-        {
-            ValidateOptions = new ValidateOptions
-            {
+        var apiKey = await grayMintAuthentication.CreateApiKey(claimsIdentity, new ApiKeyOptions {
+            ValidateOptions = new ValidateOptions {
                 ValidateAuthCode = true,
                 ValidateSubject = false
             }
         });
 
         return apiKey;
-
     }
 }

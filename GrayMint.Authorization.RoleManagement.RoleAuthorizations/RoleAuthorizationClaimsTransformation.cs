@@ -24,14 +24,14 @@ internal class RoleAuthorizationClaimsTransformation(
         // /resources/*/RoleName
         // /resources/appId/RoleName
         var claimsIdentity = new ClaimsIdentity();
-        foreach (var userRole in userRoles)
-        {
+        foreach (var userRole in userRoles) {
             // add GrayMint claim
             const string rootResourceId = AuthorizationConstants.RootResourceId;
             claimsIdentity.AddClaim(RoleAuthorization.CreateRoleClaim(userRole.ResourceId, userRole.Role.RoleName));
 
             // add standard claim role
-            if (userRole.ResourceId.Equals(rootResourceId, StringComparison.OrdinalIgnoreCase) && !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
+            if (userRole.ResourceId.Equals(rootResourceId, StringComparison.OrdinalIgnoreCase) &&
+                !claimsIdentity.HasClaim(ClaimTypes.Role, userRole.Role.RoleName))
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, userRole.Role.RoleName));
         }
 

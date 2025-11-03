@@ -7,8 +7,7 @@ public static class AppConverter
 {
     public static App ToDto(this AppModel model)
     {
-        return new App
-        {
+        return new App {
             AppId = model.AppId,
             AppName = model.AppName
         };

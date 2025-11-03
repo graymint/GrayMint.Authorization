@@ -27,8 +27,7 @@ public class TestInit : IDisposable
     {
         // Application
         WebApp = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
+            .WithWebHostBuilder(builder => {
                 foreach (var appSetting in appSettings)
                     builder.UseSetting(appSetting.Key, appSetting.Value);
 
@@ -36,8 +35,7 @@ public class TestInit : IDisposable
             });
 
         // Client
-        HttpClient = WebApp.CreateClient(new WebApplicationFactoryClientOptions
-        {
+        HttpClient = WebApp.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false
         });
 
@@ -47,14 +45,17 @@ public class TestInit : IDisposable
 
     private async Task Init()
     {
-        SystemAdminApiKey = await AuthorizationClient.CreateSystemApiKeyAsync("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
+        SystemAdminApiKey =
+            await AuthorizationClient.CreateSystemApiKeyAsync("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
         App = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
     }
 
     public void SetApiKey(ApiKey apiKey)
     {
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
     }
 
     public static async Task<TestInit> Create(

@@ -12,7 +12,7 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/team")]
-public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService teamService) 
+public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService teamService)
     : ControllerBase
 {
     protected abstract TUser ToDto(User user);
@@ -55,7 +55,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         await VerifyWritePermissionOnBot(userId);
         var user = await teamService.UpdateBot(userId, updateParam);
         return ToDto(user);
-
     }
 
 
@@ -79,8 +78,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
             search: search, isBot: isBot,
             recordIndex: recordIndex, recordCount: recordCount);
 
-        var ret = new ListResult<TUserRole>
-        {
+        var ret = new ListResult<TUserRole> {
             TotalCount = userRoles.TotalCount,
             Items = userRoles.Items.Select(ToDto)
         };
@@ -92,10 +90,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     {
         await VerifyReadPermissionOnRole(resourceId);
         var userByEmail = await teamService.GetUser(resourceId, userId);
-        var ret = new TeamUser<TUser, TRole>
-        {
+        var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = userByEmail.Roles.Select(ToDto).ToArray(),
+            Roles = userByEmail.Roles.Select(ToDto).ToArray()
         };
         return ret;
     }
@@ -105,10 +102,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     {
         await VerifyReadPermissionOnRole(resourceId);
         var userByEmail = await teamService.GetUserByEmail(resourceId, email);
-        var ret = new TeamUser<TUser, TRole>
-        {
+        var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = userByEmail.Roles.Select(ToDto).ToArray(),
+            Roles = userByEmail.Roles.Select(ToDto).ToArray()
         };
         return ret;
     }
@@ -123,7 +119,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
     [HttpPost("resources/{resourceId}/roles/{roleId}/users/email:{email}")]
-    public async Task<TUserRole> AddUserByEmail(string resourceId, string roleId, string email, TeamAddEmailParam? addParam = null)
+    public async Task<TUserRole> AddUserByEmail(string resourceId, string roleId, string email,
+        TeamAddEmailParam? addParam = null)
     {
         _ = addParam; //reserved
 

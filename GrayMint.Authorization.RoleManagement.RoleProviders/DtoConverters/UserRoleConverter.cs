@@ -8,17 +8,15 @@ internal static class UserRoleConverter
     public static UserRole ToDto(this UserRoleModel model, IEnumerable<Role> roles)
     {
         var modelRoleId = model.RoleId.ToString().ToLower();
-        var userRole = new UserRole
-        {
+        var userRole = new UserRole {
             ResourceId = model.ResourceId,
             UserId = model.UserId.ToString().ToLower(),
             Role = roles.SingleOrDefault(x => Guid.TryParse(x.RoleId, out var roleId) && roleId == model.RoleId)
-                ?? new Role
-                {
-                    RoleId = modelRoleId.ToLower(),
-                    RoleName = $"<{modelRoleId}>",
-                    Description = string.Empty
-                }
+                   ?? new Role {
+                       RoleId = modelRoleId.ToLower(),
+                       RoleName = $"<{modelRoleId}>",
+                       Description = string.Empty
+                   }
         };
         return userRole;
     }

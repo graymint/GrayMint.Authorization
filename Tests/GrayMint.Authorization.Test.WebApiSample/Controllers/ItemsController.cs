@@ -10,18 +10,22 @@ namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Route("/api/apps/{appId}/items")]
-public class ItemsController(ItemService itemService) 
+public class ItemsController(ItemService itemService)
     : ControllerBase
 {
     [HttpPost("by-role")]
-    [Authorize(Policy = "DefaultPolicy", Roles = $"{nameof(Roles.SystemAdmin)},{nameof(Roles.AppOwner)},{nameof(Roles.AppAdmin)},{nameof(Roles.AppWriter)}")]
+    [Authorize(Policy = "DefaultPolicy",
+        Roles =
+            $"{nameof(Roles.SystemAdmin)},{nameof(Roles.AppOwner)},{nameof(Roles.AppAdmin)},{nameof(Roles.AppWriter)}")]
     public Task<Item> CreateByRole(int appId, ItemCreateRequest? createRequest = null)
     {
         return itemService.Create(appId, createRequest);
     }
 
     [HttpGet("itemId/by-role")]
-    [Authorize("DefaultPolicy", Roles = $"{nameof(Roles.SystemAdmin)},{nameof(Roles.SystemReader)},{nameof(Roles.AppAdmin)},{nameof(Roles.AppWriter)},{nameof(Roles.AppReader)}")]
+    [Authorize("DefaultPolicy",
+        Roles =
+            $"{nameof(Roles.SystemAdmin)},{nameof(Roles.SystemReader)},{nameof(Roles.AppAdmin)},{nameof(Roles.AppWriter)},{nameof(Roles.AppReader)}")]
     public Task<Item> GetByRole(int appId, int itemId)
     {
         return itemService.Get(appId, itemId);

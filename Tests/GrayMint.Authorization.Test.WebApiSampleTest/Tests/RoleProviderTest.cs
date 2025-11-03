@@ -11,15 +11,13 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 [TestClass]
 public class RoleProviderTest
 {
-
     [TestMethod]
     public async Task Add_remove_user()
     {
         using var testInit = await TestInit.Create();
 
         // create a user
-        var userCreateRequest = new UserCreateRequest
-        {
+        var userCreateRequest = new UserCreateRequest {
             Email = $"{Guid.NewGuid()}@local",
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
@@ -44,17 +42,21 @@ public class RoleProviderTest
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName));
 
         // Check user Roles
-        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId });
+        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resource1, RoleId = role.RoleId });
         Assert.HasCount(1, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource1 && x.Role.RoleName == role.RoleName));
 
-        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource2, RoleId = role.RoleId });
+        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resource2, RoleId = role.RoleId });
         Assert.HasCount(1, userRoles);
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName));
 
         // Remove
-        await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
-        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
+        await roleProvider.RemoveUserRoles(new UserRoleCriteria
+            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
+        userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
         Assert.HasCount(0, userRoles);
     }
 
@@ -64,8 +66,7 @@ public class RoleProviderTest
         using var testInit = await TestInit.Create();
 
         // create a user
-        var user = await testInit.UserProvider.Create(new UserCreateRequest
-        {
+        var user = await testInit.UserProvider.Create(new UserCreateRequest {
             Email = $"{Guid.NewGuid()}@local",
             IsEmailVerified = true,
             IsPhoneVerified = true,
@@ -87,7 +88,7 @@ public class RoleProviderTest
 
         // check authorization code
         var identity = new ClaimsIdentity();
-        if (user.Email!=null)
+        if (user.Email != null)
             identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         var authorizationProvider = testInit.Scope.ServiceProvider.GetRequiredService<IAuthorizationProvider>();
         var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity));
@@ -99,7 +100,8 @@ public class RoleProviderTest
         // check user role
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
         Assert.HasCount(3, userRoles);
-        Assert.IsTrue(userRoles.Any(x => x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == role1.RoleName));
+        Assert.IsTrue(userRoles.Any(x =>
+            x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role2.RoleName));
     }

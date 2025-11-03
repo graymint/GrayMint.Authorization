@@ -35,20 +35,20 @@ public class GrayMintTokenValidator(
         var tokenVersion = tokenVersionStr != null ? int.Parse(tokenVersionStr) : 1;
 
         // check token usage
-        if (tokenVersion > 1 && tokenUsage != null && !claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, tokenUsage))
-            throw new AuthenticationException($"Can not authenticated by this token usage. RequiredToken: {tokenUsage}");
+        if (tokenVersion > 1 && tokenUsage != null &&
+            !claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, tokenUsage))
+            throw new AuthenticationException(
+                $"Can not authenticated by this token usage. RequiredToken: {tokenUsage}");
 
         // check authCode
         var tokenAuthCode = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
         var authCodeCacheKey = $"graymint:auth:token:auth-code:jti={tokenId}";
-        if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode)
-        {
+        if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode) {
             if (string.IsNullOrEmpty(tokenAuthCode))
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");
 
             // get authCode and manage cache
-            var authCode = await memoryCache.GetOrCreateAsync(authCodeCacheKey, entry =>
-            {
+            var authCode = await memoryCache.GetOrCreateAsync(authCodeCacheKey, entry => {
                 entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
                 return authorizationProvider.GetAuthorizationCode(claimsPrincipal);
             });
@@ -62,14 +62,12 @@ public class GrayMintTokenValidator(
 
         // update name-identifier
         var userIdCacheKey = $"graymint:auth:token:userid:jti={tokenId}";
-        var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, entry =>
-        {
+        var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, entry => {
             entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
             return authorizationProvider.GetUserId(claimsPrincipal);
         });
 
-        if (userId != null)
-        {
+        if (userId != null) {
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, userId);
             userAuthorizationCache.AddUserItem(userId, userIdCacheKey);
             userAuthorizationCache.AddUserItem(userId, authCodeCacheKey);
@@ -93,9 +91,9 @@ public class GrayMintTokenValidator(
 
     private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
     {
-        var openIdConfig = await memoryCache.GetOrCreateAsync(url, entry =>
-        {
-            var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
+        var openIdConfig = await memoryCache.GetOrCreateAsync(url, entry => {
+            var configurationManager =
+                new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
             entry.SetAbsoluteExpiration(authenticationOptions.Value.OpenIdConfigTimeout);
             return configurationManager.GetConfigurationAsync();
         }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
@@ -106,10 +104,10 @@ public class GrayMintTokenValidator(
     public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider)
     {
         // Set the parameters for token validation
-        var issuer = openIdProvider.Issuer ?? openIdProvider.Issuers.FirstOrDefault() ?? throw new Exception($"Could not find any issuer for {openIdProvider.Name}");
+        var issuer = openIdProvider.Issuer ?? openIdProvider.Issuers.FirstOrDefault() ??
+            throw new Exception($"Could not find any issuer for {openIdProvider.Name}");
         var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
-        var validationParameters = new TokenValidationParameters
-        {
+        var validationParameters = new TokenValidationParameters {
             ValidateIssuer = true,
             ValidIssuer = openIdProvider.Issuer,
             ValidIssuers = openIdProvider.Issuers,
@@ -131,13 +129,11 @@ public class GrayMintTokenValidator(
             ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Id));
 
         return claimsIdentity;
-
     }
 
     public async Task<ClaimsIdentity> ValidateGrayMintToken(string token)
     {
-        try
-        {
+        try {
             // Set the parameters for token validation
             var tokenHandler = new JwtSecurityTokenHandler();
             var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
@@ -147,8 +143,7 @@ public class GrayMintTokenValidator(
             var claimIdentity = new ClaimsIdentity(claimsPrincipal.Claims);
             return claimIdentity;
         }
-        catch (SecurityTokenException ex)
-        {
+        catch (SecurityTokenException ex) {
             // Handle specific security token exceptions and
             // convert them to AuthenticationException
             throw new AuthenticationException(ex.Message, ex);
@@ -157,8 +152,7 @@ public class GrayMintTokenValidator(
 
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
     {
-        try
-        {
+        try {
             var tokenHandler = new JwtSecurityTokenHandler();
             var securityToken = tokenHandler.ReadToken(idToken);
 
@@ -173,7 +167,8 @@ public class GrayMintTokenValidator(
                 claimsIdentity = await ValidateGrayMintToken(idToken);
 
             else
-                throw new AuthenticationException($"Could not find any provider for this issuer. {securityToken.Issuer}");
+                throw new AuthenticationException(
+                    $"Could not find any provider for this issuer. {securityToken.Issuer}");
 
             // check if this token is an id token
             if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
@@ -181,8 +176,7 @@ public class GrayMintTokenValidator(
 
             return claimsIdentity;
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             throw new AuthenticationException(ex.Message);
         }
     }

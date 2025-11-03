@@ -15,7 +15,7 @@ internal class UserModel
     public bool IsEmailVerified { get; set; }
     public bool IsPhoneVerified { get; set; }
     public bool IsBot { get; set; }
-    public required string AuthCode { get; set; } 
+    public required string AuthCode { get; set; }
     public string? Description { get; set; }
     public string? ExData { get; set; }
 }

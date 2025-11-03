@@ -34,8 +34,7 @@ public class ResourceDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
 
-        modelBuilder.Entity<ResourceModel>(entity =>
-        {
+        modelBuilder.Entity<ResourceModel>(entity => {
             entity.HasKey(e => new { AppId = e.ResourceId });
             entity.HasIndex(e => e.ParentResourceId);
 
@@ -45,8 +44,7 @@ public class ResourceDbContext : DbContext
             entity.Property(x => x.ParentResourceId)
                 .HasMaxLength(100);
 
-            entity.HasData(new ResourceModel
-            {
+            entity.HasData(new ResourceModel {
                 ResourceId = AuthorizationConstants.RootResourceId,
                 ParentResourceId = null
             });

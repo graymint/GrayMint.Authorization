@@ -24,9 +24,8 @@ public partial class RoleDbContext : DbContext
 
     public async Task<IDbContextTransaction?> WithNoLockTransaction()
     {
-
         return Database.CurrentTransaction == null && Database.IsRelational()
-            ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted) 
+            ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted)
             : null;
     }
 
@@ -45,8 +44,7 @@ public partial class RoleDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
 
-        modelBuilder.Entity<UserRoleModel>(entity =>
-        {
+        modelBuilder.Entity<UserRoleModel>(entity => {
             entity
                 .HasKey(e => e.UserRoleId);
 

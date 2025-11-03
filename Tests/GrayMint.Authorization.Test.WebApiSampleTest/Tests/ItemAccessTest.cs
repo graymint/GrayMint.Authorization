@@ -8,7 +8,6 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 [TestClass]
 public class ItemAccessTest
 {
-
     [TestMethod]
     public Task Foo()
     {
@@ -72,7 +71,7 @@ public class ItemAccessTest
 
         // **** Check:
         testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppReader));
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, 
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId),
             "refuse if caller does not have write permission.");
     }

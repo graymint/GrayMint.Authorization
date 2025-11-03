@@ -29,7 +29,10 @@ public class TestInit : IDisposable
     public string RootResourceId => "*";
     public IResourceProvider ResourceProvider => Scope.ServiceProvider.GetRequiredService<IResourceProvider>();
     public IUserProvider UserProvider => Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-    public GrayMintAuthenticationOptions AuthenticationOptions => WebApp.Services.GetRequiredService<IOptions<GrayMintAuthenticationOptions>>().Value;
+
+    public GrayMintAuthenticationOptions AuthenticationOptions =>
+        WebApp.Services.GetRequiredService<IOptions<GrayMintAuthenticationOptions>>().Value;
+
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public TeamClient TeamClient => new(HttpClient);
@@ -42,8 +45,7 @@ public class TestInit : IDisposable
     {
         // Application
         WebApp = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
+            .WithWebHostBuilder(builder => {
                 foreach (var appSetting in appSettings)
                     builder.UseSetting(appSetting.Key, appSetting.Value);
 
@@ -51,8 +53,7 @@ public class TestInit : IDisposable
             });
 
         // Client
-        HttpClient = WebApp.CreateClient(new WebApplicationFactoryClientOptions
-        {
+        HttpClient = WebApp.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false
         });
 
@@ -62,21 +63,26 @@ public class TestInit : IDisposable
 
     private async Task Init()
     {
-        SystemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(AuthenticationOptions.Secret));
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
+        SystemAdminApiKey =
+            await TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(AuthenticationOptions.Secret));
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
         App = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
     }
 
     public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, object? resourceId = null)
     {
         var oldAuthorization = HttpClient.DefaultRequestHeaders.Authorization;
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
 
         resourceId ??= gmRole.IsRoot ? RootResourceId : AppResourceId;
-        var apiKey = await TeamClient.AddNewBotAsync(resourceId.ToString()!, gmRole.RoleId, new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
+        var apiKey = await TeamClient.AddNewBotAsync(resourceId.ToString()!, gmRole.RoleId,
+            new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
-            ? new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value) : oldAuthorization;
+            ? new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value)
+            : oldAuthorization;
 
         return apiKey;
     }
@@ -116,7 +122,8 @@ public class TestInit : IDisposable
 
     public void SetApiKey(ApiKey apiKey)
     {
-        HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
     }
 
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,

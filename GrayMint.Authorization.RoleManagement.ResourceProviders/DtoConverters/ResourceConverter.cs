@@ -7,8 +7,7 @@ internal static class ResourceConverter
 {
     public static Resource ToDto(this ResourceModel model)
     {
-        return new Resource
-        {
+        return new Resource {
             ResourceId = model.ResourceId,
             ParentResourceId = model.ParentResourceId
         };
@@ -16,8 +15,7 @@ internal static class ResourceConverter
 
     public static ResourceModel ToModel(this Resource model)
     {
-        return new ResourceModel
-        {
+        return new ResourceModel {
             ResourceId = model.ResourceId,
             ParentResourceId = model.ParentResourceId
         };

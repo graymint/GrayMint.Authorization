@@ -10,7 +10,7 @@ namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 [ApiController]
 public class TeamController(
     TeamService teamService,
-    AppService appService) 
+    AppService appService)
     : TeamControllerBase(teamService)
 {
     [Authorize]

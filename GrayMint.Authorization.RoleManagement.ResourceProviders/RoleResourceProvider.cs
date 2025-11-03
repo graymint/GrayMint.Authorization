@@ -12,7 +12,7 @@ internal class RoleResourceProvider(ResourceDbContext resourceDbContext) : IRole
         if (resourceId == AuthorizationConstants.RootResourceId)
             return null;
 
-        var resource =  await resourceDbContext.Resources
+        var resource = await resourceDbContext.Resources
             .SingleAsync(x => x.ResourceId == resourceId);
 
         return resource.ParentResourceId;

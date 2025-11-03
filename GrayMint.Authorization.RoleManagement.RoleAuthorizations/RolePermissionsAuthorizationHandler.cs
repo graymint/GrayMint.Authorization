@@ -12,11 +12,10 @@ internal class RolePermissionsAuthorizationHandler(IRoleAuthorizationProvider ro
     : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
     protected override async Task HandleRequirementAsync(
-        AuthorizationHandlerContext context, 
+        AuthorizationHandlerContext context,
         PermissionAuthorizationRequirement requirement)
     {
-        try
-        {
+        try {
             if (context.User.Identity?.IsAuthenticated == false)
                 return;
 
@@ -27,13 +26,14 @@ internal class RolePermissionsAuthorizationHandler(IRoleAuthorizationProvider ro
 
             // Add UserPermissions to claims
             var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
-            var userPermissions = await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
-            var claims = userPermissions.Select(permission => PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
+            var userPermissions =
+                await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+            var claims = userPermissions.Select(permission =>
+                PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
             var identity = new ClaimsIdentity(claims);
             context.User.AddIdentity(identity);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             context.Fail(new AuthorizationFailureReason(this, ex.Message));
         }
     }

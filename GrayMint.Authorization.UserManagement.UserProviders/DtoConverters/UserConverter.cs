@@ -7,8 +7,7 @@ internal static class UserConverter
 {
     public static User ToDto(this UserModel model)
     {
-        var user = new User
-        {
+        var user = new User {
             UserId = model.UserId.ToString().ToLower(),
             Email = model.Email,
             IsDisabled = model.IsDisabled,

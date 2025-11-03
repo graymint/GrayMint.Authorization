@@ -56,8 +56,7 @@ public class AuthenticationService(
         var claimIdentity = new ClaimsIdentity();
         claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
         var apiKey = await grayMintAuthentication
-            .CreateApiKey(claimIdentity, new ApiKeyOptions
-            {
+            .CreateApiKey(claimIdentity, new ApiKeyOptions {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13),
                 RefreshTokenType = RefreshTokenType.None
             });
@@ -71,25 +70,46 @@ public class AuthenticationService(
         var isUpdated = false;
 
         var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email);
-        if (email != null && user.Email != email) { updateRequest.Email = email; isUpdated = true; }
+        if (email != null && user.Email != email) {
+            updateRequest.Email = email;
+            isUpdated = true;
+        }
 
         var name = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
-        if (name != null && user.Name != name) { updateRequest.Name = name; isUpdated = true; }
+        if (name != null && user.Name != name) {
+            updateRequest.Name = name;
+            isUpdated = true;
+        }
 
         var firstName = claimsPrincipal.FindFirstValue(ClaimTypes.GivenName);
-        if (firstName != null && user.FirstName != firstName) { updateRequest.FirstName = firstName; isUpdated = true; }
+        if (firstName != null && user.FirstName != firstName) {
+            updateRequest.FirstName = firstName;
+            isUpdated = true;
+        }
 
         var lastName = claimsPrincipal.FindFirstValue(ClaimTypes.Surname);
-        if (lastName != null && user.LastName != lastName) { updateRequest.LastName = lastName; isUpdated = true; }
+        if (lastName != null && user.LastName != lastName) {
+            updateRequest.LastName = lastName;
+            isUpdated = true;
+        }
 
         var phone = claimsPrincipal.FindFirstValue(ClaimTypes.MobilePhone);
-        if (phone != null && user.Name != phone) { updateRequest.Phone = phone; isUpdated = true; }
+        if (phone != null && user.Name != phone) {
+            updateRequest.Phone = phone;
+            isUpdated = true;
+        }
 
         var pictureUrl = claimsPrincipal.FindFirstValue(GrayMintClaimTypes.Picture);
-        if (pictureUrl != null && user.PictureUrl != pictureUrl) { updateRequest.PictureUrl = pictureUrl; isUpdated = true; }
+        if (pictureUrl != null && user.PictureUrl != pictureUrl) {
+            updateRequest.PictureUrl = pictureUrl;
+            isUpdated = true;
+        }
 
         var isEmailVerified = claimsPrincipal.FindFirstValue(GrayMintClaimTypes.EmailVerified);
-        if (isEmailVerified != null && user.IsEmailVerified != bool.Parse(isEmailVerified)) { updateRequest.IsEmailVerified = bool.Parse(isEmailVerified); isUpdated = true; }
+        if (isEmailVerified != null && user.IsEmailVerified != bool.Parse(isEmailVerified)) {
+            updateRequest.IsEmailVerified = bool.Parse(isEmailVerified);
+            isUpdated = true;
+        }
 
         if (isUpdated)
             await userProvider.Update(user.UserId, updateRequest);
@@ -105,8 +125,7 @@ public class AuthenticationService(
             throw new Exception("SignIn should not return null UserId.");
 
         // update user profile by claims
-        if (apiKey.AccessToken.ClaimsPrincipal is not null)
-        {
+        if (apiKey.AccessToken.ClaimsPrincipal is not null) {
             var user = await userProvider.Get(apiKey.UserId);
             await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal);
         }
@@ -135,4 +154,3 @@ public class AuthenticationService(
         return apiKey;
     }
 }
-

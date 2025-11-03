@@ -11,7 +11,8 @@ public static class ClaimUtil
         string? destinationType = null, string? destinationValueType = null, bool replace = true)
     {
         foreach (var claim in source.Claims.Where(x => x.Type == sourceType))
-            destination.AddClaim(new Claim(destinationType ?? sourceType, claim.Value, destinationValueType ?? claim.ValueType));
+            destination.AddClaim(new Claim(destinationType ?? sourceType, claim.Value,
+                destinationValueType ?? claim.ValueType));
 
         if (replace)
             RemoveClaims(destination, sourceType);
@@ -41,13 +42,13 @@ public static class ClaimUtil
     public static DateTime GetRequiredUtcTime(ClaimsIdentity claimsIdentity, string type)
     {
         return GetUtcTime(claimsIdentity, type)
-            ?? throw new AuthenticationException($"Could not find {type} claim.");
+               ?? throw new AuthenticationException($"Could not find {type} claim.");
     }
 
     public static string GetRequiredClaimString(ClaimsIdentity claimsIdentity, string type)
     {
         return claimsIdentity.FindFirst(GrayMintClaimTypes.RefreshTokenType)?.Value
-            ?? throw new AuthenticationException($"Could not find {type} claim.");
+               ?? throw new AuthenticationException($"Could not find {type} claim.");
     }
 
     public static Claim CreateClaimTime(string type, DateTime value)

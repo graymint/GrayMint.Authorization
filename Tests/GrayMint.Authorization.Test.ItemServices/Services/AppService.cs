@@ -13,8 +13,7 @@ public class AppService(AppDbContext appDbContext)
         createRequest ??= new AppCreateRequest { AppName = Guid.NewGuid().ToString() };
 
         // Create App
-        var app = await appDbContext.Apps.AddAsync(new AppModel
-        {
+        var app = await appDbContext.Apps.AddAsync(new AppModel {
             AppName = createRequest.AppName
         });
 
@@ -61,5 +60,4 @@ public class AppService(AppDbContext appDbContext)
         var app = await appDbContext.Apps.SingleAsync(x => x.AppId == appId);
         return app.AuthorizationCode;
     }
-
 }

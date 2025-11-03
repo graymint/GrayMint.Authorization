@@ -36,14 +36,15 @@ public class AuthorizationProvider(
         var userId = await GetUserId(principal) ?? throw new NotExistsException("Could not find userId.");
         var claimsIdentity = principal.Identities.First();
 
-        if (userId == AuthorizationConstants.SystemUserId)
-        {
-            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId, Permissions.AppCreate));
-            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId, Permissions.AppRead));
-            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId, Permissions.AppWrite));
+        if (userId == AuthorizationConstants.SystemUserId) {
+            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
+                Permissions.AppCreate));
+            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
+                Permissions.AppRead));
+            claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
+                Permissions.AppWrite));
         }
-        else
-        {
+        else {
             claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(userId, Permissions.AppRead));
             claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(userId, Permissions.AppWrite));
         }
@@ -58,6 +59,4 @@ public class AuthorizationProvider(
         var appId = int.Parse(userId);
         await appService.UpdateAuthorizationCode(appId, Guid.NewGuid().ToString());
     }
-
-
 }

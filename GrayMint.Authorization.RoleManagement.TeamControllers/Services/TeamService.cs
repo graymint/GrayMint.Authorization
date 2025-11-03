@@ -38,10 +38,10 @@ public class TeamService(
         var permissions = await roleProvider.GetRolePermissions(resourceId, roleId);
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
+
     public async Task<User> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
-        var user = await userProvider.Update(userId, new UserUpdateRequest
-        {
+        var user = await userProvider.Update(userId, new UserUpdateRequest {
             FirstName = updateParam.Name
         });
 
@@ -56,8 +56,7 @@ public class TeamService(
 
         // create
         var email = $"{Guid.NewGuid()}@bot.local";
-        var user = await userProvider.Create(new UserCreateRequest
-        {
+        var user = await userProvider.Create(new UserCreateRequest {
             Email = email,
             FirstName = addParam.Name,
             IsBot = true
@@ -68,10 +67,8 @@ public class TeamService(
         // create the access token
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
-            .CreateApiKey(claimIdentity, new ApiKeyOptions
-            {
-                ValidateOptions = new ValidateOptions
-                {
+            .CreateApiKey(claimIdentity, new ApiKeyOptions {
+                ValidateOptions = new ValidateOptions {
                     ValidateSubject = true,
                     ValidateAuthCode = true
                 },
@@ -95,8 +92,7 @@ public class TeamService(
         // Create a new api key
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
-            .CreateApiKey(claimIdentity, new ApiKeyOptions
-            {
+            .CreateApiKey(claimIdentity, new ApiKeyOptions {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
             });
 
@@ -120,7 +116,8 @@ public class TeamService(
             throw new InvalidOperationException("Bot can not be an owner.");
 
         // check is already exists
-        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resourceId, UserId = userId });
         if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
@@ -177,8 +174,7 @@ public class TeamService(
 
         // attach user to UserRoles
         var userRoles = userRoleList
-            .Select(x => new TeamUserRole
-            {
+            .Select(x => new TeamUserRole {
                 ResourceId = x.ResourceId,
                 Role = x.Role,
                 UserId = x.UserId,
@@ -192,8 +188,7 @@ public class TeamService(
             userRoles = userRoles.Where(x => x.User != null).ToArray();
 
         // create the result
-        var ret = new ListResult<TeamUserRole>
-        {
+        var ret = new ListResult<TeamUserRole> {
             Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue),
             TotalCount = userRoles.Length
         };
@@ -203,9 +198,9 @@ public class TeamService(
     public async Task<TeamUser> GetUser(string resourceId, string userId)
     {
         var user = await userProvider.Get(userId);
-        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId });
-        var teamUser = new TeamUser
-        {
+        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resourceId, UserId = user.UserId });
+        var teamUser = new TeamUser {
             User = user,
             Roles = userRoleList.Select(x => x.Role).ToArray()
         };
@@ -215,9 +210,9 @@ public class TeamService(
     public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
     {
         var user = await userProvider.GetByEmail(email);
-        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId });
-        var teamUser = new TeamUser
-        {
+        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria
+            { ResourceId = resourceId, UserId = user.UserId });
+        var teamUser = new TeamUser {
             User = user,
             Roles = userRoleList.Select(x => x.Role).ToArray()
         };
@@ -256,12 +251,12 @@ public class TeamService(
         if (!systemRoles.Any())
             throw new NotExistsException("Could not find any system roles.");
 
-        foreach (var systemRole in systemRoles)
-        {
-            var permissions = await roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
-            if (permissions.Contains(RolePermissions.RoleWrite))
-            {
-                var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId, new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
+        foreach (var systemRole in systemRoles) {
+            var permissions =
+                await roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
+            if (permissions.Contains(RolePermissions.RoleWrite)) {
+                var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId,
+                    new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
                 return apiKey;
             }
         }
@@ -286,7 +281,8 @@ public class TeamService(
             throw new UnauthorizedAccessException();
     }
 
-    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId, string userId)
+    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId,
+        string userId)
     {
         // check user permission over all the user roles on this resource
         var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
@@ -312,9 +308,9 @@ public class TeamService(
 
 
     // can not change its own owner role unless it has global TeamWrite permission
-    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, string userId, string targetRoleId, bool isAdding)
+    public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, string userId,
+        string targetRoleId, bool isAdding)
     {
-
         // check is AllowOwnerSelfRemove allowed
         if (_teamControllersOptions.AllowOwnerSelfRemove)
             return;
@@ -332,13 +328,14 @@ public class TeamService(
         if (!isCallerOwner)
             return;
 
-        var exception = new InvalidOperationException("You are an owner and can not remove yourself. Ask other owners or delete the project.");
+        var exception =
+            new InvalidOperationException(
+                "You are an owner and can not remove yourself. Ask other owners or delete the project.");
         var targetRoleIsOwner = await IsResourceOwnerRole(resourceId, targetRoleId);
 
         // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
         // the old roles won't be changed
-        if (_teamControllersOptions.AllowUserMultiRole)
-        {
+        if (_teamControllersOptions.AllowUserMultiRole) {
             if (!isAdding && targetRoleIsOwner)
                 throw exception;
             return;
@@ -346,8 +343,9 @@ public class TeamService(
 
         // MultiRole is not enable 
         if ((isAdding && !targetRoleIsOwner) || // Owners can't change his role to any other non owner role
-            (!isAdding && targetRoleIsOwner))   // Owners can't remove hos owner role
-            throw new InvalidOperationException("You are an owner and can not remove yourself. Ask other owners or delete the project.");
+            (!isAdding && targetRoleIsOwner)) // Owners can't remove hos owner role
+            throw new InvalidOperationException(
+                "You are an owner and can not remove yourself. Ask other owners or delete the project.");
     }
 
     public string GetRootResourceId()

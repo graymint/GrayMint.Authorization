@@ -14,5 +14,4 @@ public class UserCreateRequest
     public string? PictureUrl { get; set; }
     public string? Description { get; init; }
     public string? ExData { get; init; }
-
 }

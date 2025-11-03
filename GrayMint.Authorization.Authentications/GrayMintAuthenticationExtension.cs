@@ -22,33 +22,29 @@ public static class GrayMintAuthenticationExtension
         authenticationOptions.Validate(isProduction);
 
         builder
-            .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options =>
-            {
-                options.TokenValidationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions);
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
+            .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options => {
+                options.TokenValidationParameters =
+                    GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions);
+                options.Events = new JwtBearerEvents {
+                    OnMessageReceived = context => {
                         // read access_token from query string if Authorization is not exists and authorization exists
-                        if (!context.Request.Headers.TryGetValue("Authorization", out _) && 
+                        if (!context.Request.Headers.TryGetValue("Authorization", out _) &&
                             context.Request.Query.TryGetValue("bearer_token", out var token))
                             context.Token = token;
 
                         return Task.CompletedTask;
                     },
-                    
-                    OnTokenValidated = async context =>
-                    {
+
+                    OnTokenValidated = async context => {
                         await using var scope = context.HttpContext.RequestServices.CreateAsyncScope();
                         var tokenValidator = scope.ServiceProvider.GetRequiredService<GrayMintTokenValidator>();
                         AddTokenIdIfNotExists(context);
-                        try
-                        {
-                            var principal = context.Principal ?? throw new AuthenticationException("Principal has not been validated.");
+                        try {
+                            var principal = context.Principal ??
+                                            throw new AuthenticationException("Principal has not been validated.");
                             await tokenValidator.PostValidate(principal, TokenUse.Access);
                         }
-                        catch (Exception ex)
-                        {
+                        catch (Exception ex) {
                             context.Fail(ex.Message);
                         }
                     }
@@ -71,10 +67,9 @@ public static class GrayMintAuthenticationExtension
         var tokenRawData = ((JwtSecurityToken)context.SecurityToken).RawData;
         var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(tokenRawData));
         var tokenId = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-        
+
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Jti, tokenId));
         context.Principal.AddIdentity(claimsIdentity);
     }
-
 }

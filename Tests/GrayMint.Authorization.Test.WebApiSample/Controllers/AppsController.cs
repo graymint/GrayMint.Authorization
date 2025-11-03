@@ -24,6 +24,5 @@ public class AppsController(
     public Task<App[]> List()
     {
         return appService.List();
-
     }
 }

@@ -7,8 +7,7 @@ public static class ItemConverter
 {
     public static Item ToDto(this ItemModel model)
     {
-        return new Item
-        {
+        return new Item {
             ItemId = model.ItemId,
             ItemName = model.ItemName
         };

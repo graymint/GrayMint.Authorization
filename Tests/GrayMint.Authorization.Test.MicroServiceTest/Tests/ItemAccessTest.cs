@@ -8,7 +8,6 @@ namespace GrayMint.Authorization.Test.MicroServiceTest.Tests;
 [TestClass]
 public class ItemAccessTest
 {
-
     [TestMethod]
     public async Task Create_an_item_by_App_writer()
     {
@@ -23,17 +22,15 @@ public class ItemAccessTest
     public async Task Fail_unauthenticated()
     {
         using var testInit = await TestInit.Create();
-        testInit.SetApiKey(new ApiKey
-        {
-            AccessToken = new Token
-            {
+        testInit.SetApiKey(new ApiKey {
+            AccessToken = new Token {
                 Scheme = "Bearer",
                 Value = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
             }
         });
 
         await TestUtil.AssertApiException(
-            HttpStatusCode.Unauthorized, 
+            HttpStatusCode.Unauthorized,
             testInit.ItemsClient.CreateAsync(testInit.AppId));
     }
 
@@ -52,8 +49,8 @@ public class ItemAccessTest
 
         // try with an app write belong to other app
         testInit.SetApiKey(apiKey2);
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId));
-
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId));
     }
 
     [TestMethod]
@@ -68,8 +65,7 @@ public class ItemAccessTest
         await testInit.AuthorizationClient.ResetCurrentUserApiKeyAsync();
 
         // try with an app write belong to other app
-        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized, testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId));
-
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId));
     }
 }
-
