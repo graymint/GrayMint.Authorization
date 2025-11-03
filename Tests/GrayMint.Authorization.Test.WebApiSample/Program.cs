@@ -28,17 +28,27 @@ public class Program
 
         // authentication & its controller
         builder.AddGrayMintCommonAuthorizationForApp(
-            GmRole.GetAll(typeof(Roles)),
-            options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            GmRole.GetAll(typeof(Roles)));
 
         // nested resource controller. MUST be after role provider
         if (appOptions.UseResourceProvider)
-            services.AddGrayMintResourceProvider(new ResourceProviderOptions(),
+            services.AddGrayMintResourceProvider(new ResourceProviderOptions(), dbOptionsAction : null);
+
+        if (builder.Configuration["IgnoreDb"] != "1") {
+            // Authentication DbContext
+            builder.Services.AddGrayMintCommonProviderDb(
                 options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
-        // Database
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            // Resource Provider DbContext
+            if (appOptions.UseResourceProvider)
+                services.AddGrayMintResourceProviderDb(
+                    options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+
+            // Database
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+        }
+
         services.AddItemServices();
 
         // Add services to the container.

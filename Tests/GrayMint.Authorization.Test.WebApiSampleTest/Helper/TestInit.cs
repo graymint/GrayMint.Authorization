@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
@@ -10,9 +8,13 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Test.Api;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using ApiKey = GrayMint.Common.Test.Api.ApiKey;
 using RefreshTokenType = GrayMint.Common.Test.Api.RefreshTokenType;
 
@@ -20,6 +22,7 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 
 public class TestInit : IDisposable
 {
+    private SqliteConnection? _sqliteConnection;
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
@@ -50,6 +53,15 @@ public class TestInit : IDisposable
                     builder.UseSetting(appSetting.Key, appSetting.Value);
 
                 builder.UseEnvironment(environment);
+                builder.ConfigureServices(services => {
+                    const bool useSqlLite = false;
+                    if (useSqlLite) {
+                        appSettings.Add("IgnoreDb", "1");
+                        _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+                        _sqliteConnection.Open();
+                        services.AddGrayMintCommonProviderDb(options => options.UseSqlite(_sqliteConnection));
+                    }
+                });
             });
 
         // Client
@@ -153,5 +165,6 @@ public class TestInit : IDisposable
         Scope.Dispose();
         HttpClient.Dispose();
         WebApp.Dispose();
+        _sqliteConnection?.Dispose();
     }
 }

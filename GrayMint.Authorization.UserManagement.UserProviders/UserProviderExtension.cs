@@ -33,7 +33,7 @@ public static class UserProviderExtension
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, UserDbContext.Schema, nameof(UserDbContext.Users));
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
         return serviceProvider;
     }
 }

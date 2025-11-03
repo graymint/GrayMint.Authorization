@@ -10,23 +10,34 @@ namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
 public static class ResourceProviderExtension
 {
-    public static void AddGrayMintResourceProvider(
+    public static IServiceCollection AddGrayMintResourceProvider(
         this IServiceCollection services,
         ResourceProviderOptions options,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
+        Action<DbContextOptionsBuilder>? dbOptionsAction)
     {
         services.AddSingleton<UserAuthorizationCache>();
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
         services.AddScoped<IResourceProvider, ResourceProvider>();
-        services.AddDbContext<ResourceDbContext>(dbOptionsAction);
+        if (dbOptionsAction != null)
+            services.AddGrayMintResourceProviderDb(dbOptionsAction);
+
+        return services;
     }
 
-    public static async Task UseGrayMintResourceProvider(this IServiceProvider serviceProvider)
+    public static IServiceCollection AddGrayMintResourceProviderDb(
+        this IServiceCollection services,
+        Action<DbContextOptionsBuilder> dbOptionsAction)
+    {
+        services.AddDbContext<ResourceDbContext>(dbOptionsAction);
+        return services;
+    }
+
+    public static async Task<IServiceProvider> UseGrayMintResourceProvider(this IServiceProvider serviceProvider)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ResourceDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, ResourceDbContext.Schema,
-            nameof(ResourceDbContext.Resources));
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
+        return serviceProvider;
     }
 }

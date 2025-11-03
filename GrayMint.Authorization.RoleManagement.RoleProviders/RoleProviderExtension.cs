@@ -35,7 +35,7 @@ public static class RoleProviderExtension
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<RoleDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, RoleDbContext.Schema, nameof(RoleDbContext.UserRoles));
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
         return serviceProvider;
     }
 }
