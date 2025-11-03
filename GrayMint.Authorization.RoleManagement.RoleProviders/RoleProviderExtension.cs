@@ -10,23 +10,31 @@ namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 public static class RoleProviderExtension
 {
-    public static void AddGrayMintRoleProvider(
+    public static IServiceCollection AddGrayMintRoleProvider(
         this IServiceCollection services,
-        RoleProviderOptions options,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
+        RoleProviderOptions options)
     {
         services.AddSingleton<UserAuthorizationCache>();
         services.AddSingleton(Options.Create(options));
         services.AddScoped<IRoleProvider, RoleProvider>();
         services.AddScoped<IRoleAuthorizationProvider, RoleProvider>();
         services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
-        services.AddDbContext<RoleDbContext>(dbOptionsAction);
+        return services;
     }
 
-    public static async Task UseGrayMintRoleProvider(this IServiceProvider serviceProvider)
+    public static IServiceCollection AddGrayMintRoleProviderDb(
+        this IServiceCollection services,
+        Action<DbContextOptionsBuilder> dbOptionsAction)
+    {
+        services.AddDbContext<RoleDbContext>(dbOptionsAction);
+        return services;
+    }
+
+    public static async Task<IServiceProvider> UseGrayMintRoleProvider(this IServiceProvider serviceProvider)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<RoleDbContext>();
         await EfCoreUtil.EnsureTablesCreated(dbContext.Database, RoleDbContext.Schema, nameof(RoleDbContext.UserRoles));
+        return serviceProvider;
     }
 }
