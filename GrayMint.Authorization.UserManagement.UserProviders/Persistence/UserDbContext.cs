@@ -23,7 +23,9 @@ public partial class UserDbContext : DbContext
 
     public async Task<IDbContextTransaction?> WithNoLockTransaction()
     {
-        return Database.CurrentTransaction == null ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted) : null;
+        return Database.CurrentTransaction == null && Database.IsRelational()
+            ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted)
+            : null;
     }
 
     protected override void ConfigureConventions(
