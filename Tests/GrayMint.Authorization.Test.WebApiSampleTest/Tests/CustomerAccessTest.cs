@@ -29,7 +29,7 @@ public class CustomerAccessTest
         // ------
         // **** Check: success
         // ------
-        var apiKey = GmUtil.JsonClone<ApiKey>(apiKeyDto,
+        var apiKey = GmUtils.JsonClone<ApiKey>(apiKeyDto,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         testInit.SetApiKey(apiKey);

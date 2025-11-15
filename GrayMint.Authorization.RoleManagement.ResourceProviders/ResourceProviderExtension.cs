@@ -10,27 +10,26 @@ namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
 public static class ResourceProviderExtension
 {
-    public static IServiceCollection AddGrayMintResourceProvider(
-        this IServiceCollection services,
-        ResourceProviderOptions options,
-        Action<DbContextOptionsBuilder>? dbOptionsAction)
+    extension(IServiceCollection services)
     {
-        services.AddSingleton<UserAuthorizationCache>();
-        services.AddSingleton(Options.Create(options));
-        services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
-        services.AddScoped<IResourceProvider, ResourceProvider>();
-        if (dbOptionsAction != null)
-            services.AddGrayMintResourceProviderDb(dbOptionsAction);
+        public IServiceCollection AddGrayMintResourceProvider(ResourceProviderOptions options,
+            Action<DbContextOptionsBuilder>? dbOptionsAction)
+        {
+            services.AddSingleton<UserAuthorizationCache>();
+            services.AddSingleton(Options.Create(options));
+            services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
+            services.AddScoped<IResourceProvider, ResourceProvider>();
+            if (dbOptionsAction != null)
+                services.AddGrayMintResourceProviderDb(dbOptionsAction);
 
-        return services;
-    }
+            return services;
+        }
 
-    public static IServiceCollection AddGrayMintResourceProviderDb(
-        this IServiceCollection services,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
-    {
-        services.AddDbContext<ResourceDbContext>(dbOptionsAction);
-        return services;
+        public IServiceCollection AddGrayMintResourceProviderDb(Action<DbContextOptionsBuilder> dbOptionsAction)
+        {
+            services.AddDbContext<ResourceDbContext>(dbOptionsAction);
+            return services;
+        }
     }
 
     public static async Task<IServiceProvider> UseGrayMintResourceProvider(this IServiceProvider serviceProvider)

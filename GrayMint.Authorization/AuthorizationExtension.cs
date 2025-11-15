@@ -16,112 +16,108 @@ namespace GrayMint.Authorization;
 
 public static class AuthorizationExtension
 {
-    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(
-        this WebApplicationBuilder builder,
-        GmRole[] roles,
-        string authenticationOptionsSectionName = "Auth",
-        string teamControllerOptionsSectionName = "TeamController",
-        bool? isProduction = null)
+    extension(WebApplicationBuilder builder)
     {
-        isProduction ??= builder.Environment.IsProduction();
-        var authenticationOptions =
-            builder.Configuration.GetSection(authenticationOptionsSectionName).Get<GrayMintAuthenticationOptions>()
-            ?? throw new ArgumentException(
-                $"Could not read auth configuration from {authenticationOptionsSectionName}",
-                nameof(authenticationOptionsSectionName));
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+            string authenticationOptionsSectionName = "Auth",
+            string teamControllerOptionsSectionName = "TeamController",
+            bool? isProduction = null)
+        {
+            isProduction ??= builder.Environment.IsProduction();
+            var authenticationOptions =
+                builder.Configuration.GetSection(authenticationOptionsSectionName).Get<GrayMintAuthenticationOptions>()
+                ?? throw new ArgumentException(
+                    $"Could not read auth configuration from {authenticationOptionsSectionName}",
+                    nameof(authenticationOptionsSectionName));
 
-        builder.Services.AddGrayMintCommonAuthorizationForApp(
-            roles,
-            authenticationOptions,
-            builder.Configuration.GetSection(teamControllerOptionsSectionName).Get<TeamControllerOptions>(),
-            isProduction.Value);
+            builder.Services.AddGrayMintCommonAuthorizationForApp(
+                roles,
+                authenticationOptions,
+                builder.Configuration.GetSection(teamControllerOptionsSectionName).Get<TeamControllerOptions>(),
+                isProduction.Value);
 
-        return builder;
+            return builder;
+        }
+
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+            Action<DbContextOptionsBuilder> dbOptionsAction,
+            string authenticationOptionsSectionName = "Auth",
+            string teamControllerOptionsSectionName = "TeamController",
+            bool? isProduction = null)
+        {
+            builder.AddGrayMintCommonAuthorizationForApp(
+                roles: roles,
+                authenticationOptionsSectionName: authenticationOptionsSectionName,
+                teamControllerOptionsSectionName: teamControllerOptionsSectionName,
+                isProduction: isProduction);
+
+            builder.Services.AddGrayMintCommonProviderDb(dbOptionsAction);
+            return builder;
+        }
     }
 
-    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(
-        this WebApplicationBuilder builder,
-        GmRole[] roles,
-        Action<DbContextOptionsBuilder> dbOptionsAction,
-        string authenticationOptionsSectionName = "Auth",
-        string teamControllerOptionsSectionName = "TeamController",
-        bool? isProduction = null)
+    extension(IServiceCollection services)
     {
-        builder.AddGrayMintCommonAuthorizationForApp(
-            roles: roles,
-            authenticationOptionsSectionName: authenticationOptionsSectionName,
-            teamControllerOptionsSectionName: teamControllerOptionsSectionName,
-            isProduction: isProduction);
+        public IServiceCollection AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+            Action<DbContextOptionsBuilder> dbOptionsAction,
+            GrayMintAuthenticationOptions authenticationOptions,
+            TeamControllerOptions? teamControllerOptions,
+            bool isProduction)
+        {
+            return services
+                .AddGrayMintCommonAuthorizationForApp(roles, authenticationOptions, teamControllerOptions, isProduction)
+                .AddGrayMintCommonProviderDb(dbOptionsAction);
+        }
 
-        builder.Services.AddGrayMintCommonProviderDb(dbOptionsAction);
-        return builder;
-    }
+        public IServiceCollection AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+            GrayMintAuthenticationOptions authenticationOptions,
+            TeamControllerOptions? teamControllerOptions,
+            bool isProduction)
+        {
+            // authentication & its controller
+            services
+                .AddGrayMintAuthenticationController()
+                .AddAuthentication()
+                .AddGrayMintAuthentication(authenticationOptions, isProduction);
 
-    public static IServiceCollection AddGrayMintCommonAuthorizationForApp(
-        this IServiceCollection services,
-        GmRole[] roles,
-        Action<DbContextOptionsBuilder> dbOptionsAction,
-        GrayMintAuthenticationOptions authenticationOptions,
-        TeamControllerOptions? teamControllerOptions,
-        bool isProduction)
-    {
-        return services
-            .AddGrayMintCommonAuthorizationForApp(roles, authenticationOptions, teamControllerOptions, isProduction)
-            .AddGrayMintCommonProviderDb(dbOptionsAction);
-    }
+            // authorization & its controller
+            services
+                .AddGrayMintRoleAuthorization()
+                .AddAuthorization(options => {
+                    // create default policy
+                    var policyBuilder = new AuthorizationPolicyBuilder();
+                    policyBuilder.RequireAuthenticatedUser();
+                    policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
 
-    public static IServiceCollection AddGrayMintCommonAuthorizationForApp(
-        this IServiceCollection services,
-        GmRole[] roles,
-        GrayMintAuthenticationOptions authenticationOptions,
-        TeamControllerOptions? teamControllerOptions,
-        bool isProduction)
-    {
-        // authentication & its controller
-        services
-            .AddGrayMintAuthenticationController()
-            .AddAuthentication()
-            .AddGrayMintAuthentication(authenticationOptions, isProduction);
-
-        // authorization & its controller
-        services
-            .AddGrayMintRoleAuthorization()
-            .AddAuthorization(options => {
-                // create default policy
-                var policyBuilder = new AuthorizationPolicyBuilder();
-                policyBuilder.RequireAuthenticatedUser();
-                policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
-
-                var defaultPolicy = policyBuilder.Build();
-                options.AddPolicy("DefaultPolicy", defaultPolicy);
-                options.DefaultPolicy = defaultPolicy;
-            });
-
-        // users
-        services
-            .AddGrayMintUserProvider(new UserProviderOptions());
-
-        // roles & its controller
-        services
-            .AddGrayMintTeamController(teamControllerOptions)
-            .AddGrayMintRoleProvider(
-                new RoleProviderOptions {
-                    Roles = roles
+                    var defaultPolicy = policyBuilder.Build();
+                    options.AddPolicy("DefaultPolicy", defaultPolicy);
+                    options.DefaultPolicy = defaultPolicy;
                 });
 
-        return services;
-    }
+            // users
+            services
+                .AddGrayMintUserProvider(new UserProviderOptions());
 
-    public static IServiceCollection AddGrayMintCommonProviderDb(
-        this IServiceCollection services,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
-    {
-        // add database contexts
-        services
-            .AddGrayMintUserProviderDb(dbOptionsAction)
-            .AddGrayMintRoleProviderDb(dbOptionsAction);
+            // roles & its controller
+            services
+                .AddGrayMintTeamController(teamControllerOptions)
+                .AddGrayMintRoleProvider(
+                    new RoleProviderOptions {
+                        Roles = roles
+                    });
 
-        return services;
+            return services;
+        }
+
+        public IServiceCollection AddGrayMintCommonProviderDb(Action<DbContextOptionsBuilder> dbOptionsAction)
+        {
+            // add database contexts
+            services
+                .AddGrayMintUserProviderDb(dbOptionsAction)
+                .AddGrayMintRoleProviderDb(dbOptionsAction);
+
+            return services;
+        }
     }
 
     public static async Task UseGrayMinCommonAuthorizationForApp(this WebApplication webApplication)

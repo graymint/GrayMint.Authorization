@@ -10,23 +10,23 @@ namespace GrayMint.Authorization.UserManagement.UserProviders;
 
 public static class UserProviderExtension
 {
-    public static IServiceCollection AddGrayMintUserProvider(this IServiceCollection services,
-        UserProviderOptions? userOptions)
+    extension(IServiceCollection services)
     {
-        userOptions ??= new UserProviderOptions();
-        services.AddSingleton<UserAuthorizationCache>();
-        services.AddSingleton(Options.Create(userOptions));
-        services.AddScoped<IUserProvider, UserProvider>();
-        services.AddScoped<IAuthorizationProvider, AuthorizationProvider>();
-        return services;
-    }
+        public IServiceCollection AddGrayMintUserProvider(UserProviderOptions? userOptions)
+        {
+            userOptions ??= new UserProviderOptions();
+            services.AddSingleton<UserAuthorizationCache>();
+            services.AddSingleton(Options.Create(userOptions));
+            services.AddScoped<IUserProvider, UserProvider>();
+            services.AddScoped<IAuthorizationProvider, AuthorizationProvider>();
+            return services;
+        }
 
-    public static IServiceCollection AddGrayMintUserProviderDb(
-        this IServiceCollection services,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
-    {
-        services.AddDbContext<UserDbContext>(dbOptionsAction);
-        return services;
+        public IServiceCollection AddGrayMintUserProviderDb(Action<DbContextOptionsBuilder> dbOptionsAction)
+        {
+            services.AddDbContext<UserDbContext>(dbOptionsAction);
+            return services;
+        }
     }
 
     public static async Task<IServiceProvider> UseGrayMintUserProvider(this IServiceProvider serviceProvider)

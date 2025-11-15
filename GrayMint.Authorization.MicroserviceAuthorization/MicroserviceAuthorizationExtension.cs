@@ -11,54 +11,53 @@ namespace GrayMint.Authorization.MicroserviceAuthorization;
 
 public static class MicroserviceAuthorizationExtension
 {
-    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
-        this WebApplicationBuilder builder,
-        string authenticationOptionsSectionName = "Auth")
-        where TAuthorizationProvider : class, IAuthorizationProvider
+    extension(WebApplicationBuilder builder)
     {
-        var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName)
-                                        .Get<GrayMintAuthenticationOptions>()
-                                    ?? throw new ArgumentException(
-                                        $"Could not read auth configuration from {authenticationOptionsSectionName}",
-                                        nameof(authenticationOptionsSectionName));
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(string authenticationOptionsSectionName = "Auth")
+            where TAuthorizationProvider : class, IAuthorizationProvider
+        {
+            var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName)
+                                            .Get<GrayMintAuthenticationOptions>()
+                                        ?? throw new ArgumentException(
+                                            $"Could not read auth configuration from {authenticationOptionsSectionName}",
+                                            nameof(authenticationOptionsSectionName));
 
-        return builder.AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
-            authenticationOptions);
-    }
+            return builder.AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
+                authenticationOptions);
+        }
 
-    public static WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
-        this WebApplicationBuilder builder,
-        GrayMintAuthenticationOptions authenticationOptions)
-        where TAuthorizationProvider : class, IAuthorizationProvider
-    {
-        var services = builder.Services;
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(GrayMintAuthenticationOptions authenticationOptions)
+            where TAuthorizationProvider : class, IAuthorizationProvider
+        {
+            var services = builder.Services;
 
-        // add authentication
-        builder.Services
-            .AddAuthentication()
-            .AddGrayMintAuthentication(authenticationOptions, builder.Environment.IsProduction());
+            // add authentication
+            builder.Services
+                .AddAuthentication()
+                .AddGrayMintAuthentication(authenticationOptions, builder.Environment.IsProduction());
 
-        // support permission authorization
-        builder.Services.AddGrayMintPermissionAuthorization();
+            // support permission authorization
+            builder.Services.AddGrayMintPermissionAuthorization();
 
-        // add Authorization
-        builder.Services.AddAuthorization(options => {
-            // create default policy
-            var policyBuilder = new AuthorizationPolicyBuilder();
-            policyBuilder.RequireAuthenticatedUser();
-            policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
+            // add Authorization
+            builder.Services.AddAuthorization(options => {
+                // create default policy
+                var policyBuilder = new AuthorizationPolicyBuilder();
+                policyBuilder.RequireAuthenticatedUser();
+                policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
 
-            var defaultPolicy = policyBuilder.Build();
-            options.AddPolicy("DefaultPolicy", defaultPolicy);
-            options.DefaultPolicy = defaultPolicy;
-        });
+                var defaultPolicy = policyBuilder.Build();
+                options.AddPolicy("DefaultPolicy", defaultPolicy);
+                options.DefaultPolicy = defaultPolicy;
+            });
 
-        // users
-        services
-            .AddScoped<IAuthorizationProvider, TAuthorizationProvider>()
-            .AddScoped<MicroserviceAuthorizationService>();
+            // users
+            services
+                .AddScoped<IAuthorizationProvider, TAuthorizationProvider>()
+                .AddScoped<MicroserviceAuthorizationService>();
 
-        return builder;
+            return builder;
+        }
     }
 
     public static Task UseGrayMinCommonAuthorizationForMicroservice(this WebApplication webApplication)

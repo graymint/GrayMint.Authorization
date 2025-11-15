@@ -10,24 +10,23 @@ namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 public static class RoleProviderExtension
 {
-    public static IServiceCollection AddGrayMintRoleProvider(
-        this IServiceCollection services,
-        RoleProviderOptions options)
+    extension(IServiceCollection services)
     {
-        services.AddSingleton<UserAuthorizationCache>();
-        services.AddSingleton(Options.Create(options));
-        services.AddScoped<IRoleProvider, RoleProvider>();
-        services.AddScoped<IRoleAuthorizationProvider, RoleProvider>();
-        services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
-        return services;
-    }
+        public IServiceCollection AddGrayMintRoleProvider(RoleProviderOptions options)
+        {
+            services.AddSingleton<UserAuthorizationCache>();
+            services.AddSingleton(Options.Create(options));
+            services.AddScoped<IRoleProvider, RoleProvider>();
+            services.AddScoped<IRoleAuthorizationProvider, RoleProvider>();
+            services.AddScoped<IRoleResourceProvider, RoleResourceProvider>();
+            return services;
+        }
 
-    public static IServiceCollection AddGrayMintRoleProviderDb(
-        this IServiceCollection services,
-        Action<DbContextOptionsBuilder> dbOptionsAction)
-    {
-        services.AddDbContext<RoleDbContext>(dbOptionsAction);
-        return services;
+        public IServiceCollection AddGrayMintRoleProviderDb(Action<DbContextOptionsBuilder> dbOptionsAction)
+        {
+            services.AddDbContext<RoleDbContext>(dbOptionsAction);
+            return services;
+        }
     }
 
     public static async Task<IServiceProvider> UseGrayMintRoleProvider(

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<IsPackable>true</IsPackable>
 	</PropertyGroup>
 
@@ -25,7 +25,7 @@
 
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common" Version="2.0.232" />
+		<PackageReference Include="GrayMint.Common" Version="2.1.238" />
 	</ItemGroup>
 
 	<ItemGroup>
