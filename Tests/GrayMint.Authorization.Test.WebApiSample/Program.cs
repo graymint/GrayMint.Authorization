@@ -32,17 +32,17 @@ public class Program
 
         // nested resource controller. MUST be after role provider
         if (appOptions.UseResourceProvider)
-            services.AddGrayMintResourceProvider(new ResourceProviderOptions(), dbOptionsAction : null);
+            services.AddGrayMintResourceProvider(new ResourceProviderOptions(), dbOptionsAction: null);
 
         if (builder.Configuration["IgnoreDb"] != "1") {
             // Authentication DbContext
-            builder.Services.AddGrayMintCommonProviderDb(
-                options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            builder.Services.AddGrayMintCommonProviderDb(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
             // Resource Provider DbContext
             if (appOptions.UseResourceProvider)
-                services.AddGrayMintResourceProviderDb(
-                    options => options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+                services.AddGrayMintResourceProviderDb(options =>
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
 
             // Database
             services.AddDbContext<AppDbContext>(options =>

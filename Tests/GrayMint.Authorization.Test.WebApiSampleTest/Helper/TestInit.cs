@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
@@ -13,8 +15,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
-using System.Net.Http.Headers;
-using System.Security.Claims;
 using ApiKey = GrayMint.Common.Test.Api.ApiKey;
 using RefreshTokenType = GrayMint.Common.Test.Api.RefreshTokenType;
 

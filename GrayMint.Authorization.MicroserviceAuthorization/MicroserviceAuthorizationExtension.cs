@@ -13,7 +13,8 @@ public static class MicroserviceAuthorizationExtension
 {
     extension(WebApplicationBuilder builder)
     {
-        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(string authenticationOptionsSectionName = "Auth")
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
+            string authenticationOptionsSectionName = "Auth")
             where TAuthorizationProvider : class, IAuthorizationProvider
         {
             var authenticationOptions = builder.Configuration.GetSection(authenticationOptionsSectionName)
@@ -26,7 +27,8 @@ public static class MicroserviceAuthorizationExtension
                 authenticationOptions);
         }
 
-        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(GrayMintAuthenticationOptions authenticationOptions)
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForMicroservice<TAuthorizationProvider>(
+            GrayMintAuthenticationOptions authenticationOptions)
             where TAuthorizationProvider : class, IAuthorizationProvider
         {
             var services = builder.Services;

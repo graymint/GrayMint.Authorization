@@ -45,7 +45,7 @@ public partial class UserDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         // add default schema only for supported databases
         if (IsSchemaSupported)
             modelBuilder.HasDefaultSchema(Schema);
