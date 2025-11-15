@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.5.33516.290
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Abstractions", "GrayMint.Authorization.Abstractions\GrayMint.Authorization.Abstractions.csproj", "{B2A8C316-A9F5-465B-BB16-CB92737C9953}"
 EndProject
@@ -43,6 +43,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrayMint.Authorization.Test
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pub", "Pub", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
+		.github\workflows\nuget-main.yml = .github\workflows\nuget-main.yml
 		Pub\PubVersion.json = Pub\PubVersion.json
 	EndProjectSection
 EndProject
