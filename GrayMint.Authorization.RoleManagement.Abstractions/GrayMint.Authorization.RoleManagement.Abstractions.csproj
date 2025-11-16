@@ -25,7 +25,7 @@
 
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common" Version="2.1.240" />
+		<PackageReference Include="GrayMint.Common" Version="2.1.241" />
 	</ItemGroup>
 
 	<ItemGroup>
