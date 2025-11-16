@@ -25,7 +25,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.239" />
+		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.240" />
 	</ItemGroup>
 
 	<ItemGroup>
