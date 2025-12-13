@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Pub/">
+    <File Path=".github/workflows/nuget-main.yml" />
+    <File Path="Pub/PubVersion.json" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/GrayMint.Authorization.Test.ItemServices/GrayMint.Authorization.Test.ItemServices.csproj" />
+    <Project Path="Tests/GrayMint.Authorization.Test.MicroserviceSample/GrayMint.Authorization.Test.MicroserviceSample.csproj" />
+    <Project Path="Tests/GrayMint.Authorization.Test.MicroServiceTest/GrayMint.Authorization.Test.MicroServiceTest.csproj" />
+    <Project Path="Tests/GrayMint.Authorization.Test.WebApiSample/GrayMint.Authorization.Test.WebApiSample.csproj" />
+    <Project Path="Tests/GrayMint.Authorization.Test.WebApiSampleTest/GrayMint.Authorization.Test.WebApiSampleTest.csproj" />
+  </Folder>
+  <Project Path="GrayMint.Authorization.Abstractions/GrayMint.Authorization.Abstractions.csproj" />
+  <Project Path="GrayMint.Authorization.Authentications.Controllers/GrayMint.Authorization.Authentications.Controllers.csproj" />
+  <Project Path="GrayMint.Authorization.Authentications/GrayMint.Authorization.Authentications.csproj" />
+  <Project Path="GrayMint.Authorization.MicroserviceAuthorization/GrayMint.Authorization.MicroserviceAuthorization.csproj" />
+  <Project Path="GrayMint.Authorization.PermissionAuthorizations/GrayMint.Authorization.PermissionAuthorizations.csproj" />
+  <Project Path="GrayMint.Authorization.RoleManagement.Abstractions/GrayMint.Authorization.RoleManagement.Abstractions.csproj" />
+  <Project Path="GrayMint.Authorization.RoleManagement.ResourceProviders/GrayMint.Authorization.RoleManagement.ResourceProviders.csproj" />
+  <Project Path="GrayMint.Authorization.RoleManagement.RoleAuthorizations/GrayMint.Authorization.RoleManagement.RoleAuthorizations.csproj" />
+  <Project Path="GrayMint.Authorization.RoleManagement.RoleProviders/GrayMint.Authorization.RoleManagement.RoleProviders.csproj" />
+  <Project Path="GrayMint.Authorization.RoleManagement.TeamControllers/GrayMint.Authorization.RoleManagement.TeamControllers.csproj" />
+  <Project Path="GrayMint.Authorization.UserManagement.Abstractions/GrayMint.Authorization.UserManagement.Abstractions.csproj" />
+  <Project Path="GrayMint.Authorization.UserManagement.UserProviders/GrayMint.Authorization.UserManagement.UserProviders.csproj" />
+  <Project Path="GrayMint.Authorization/GrayMint.Authorization.csproj" />
+</Solution>
