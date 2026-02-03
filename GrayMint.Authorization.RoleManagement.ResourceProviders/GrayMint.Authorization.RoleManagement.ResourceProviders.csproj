@@ -32,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.242" />
+		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.243" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
 	</ItemGroup>
 
