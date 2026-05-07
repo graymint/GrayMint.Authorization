@@ -59,5 +59,6 @@ public class GrayMintAuthenticationOptions
 
         if (isProduction && Secret.All(x => x == 0))
             throw new Exception($"{nameof(Secret)} value is not valid for Production..");
+
     }
 }

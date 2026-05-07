@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.UserProviders.Models;
+using GrayMint.Common.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -57,7 +58,7 @@ public partial class UserDbContext : DbContext
                 .HasMaxLength(50);
 
             entity.Property(e => e.IsDisabled)
-                .HasDefaultValue(false);
+                .HasDefaultValueWithConstraintName(false, "DF_User_IsDisabled");
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();
@@ -66,13 +67,14 @@ public partial class UserDbContext : DbContext
             entity.HasIndex(e => e.LastName);
 
             entity.Property(e => e.IsBot)
-                .HasDefaultValue(false);
+                .HasDefaultValueWithConstraintName(false, "DF_User_IsBot");
 
             entity.Property(e => e.IsEmailVerified)
-                .HasDefaultValue(false);
+                .HasDefaultValueWithConstraintName(false, "DF_User_IsEmailVerified");
 
             entity.Property(e => e.IsPhoneVerified)
-                .HasDefaultValue(false);
+                .HasDefaultValueWithConstraintName(false, "DF_User_IsPhoneVerified");
+
 
             entity.Property(e => e.ExData)
                 .HasMaxLength(int.MaxValue);
