@@ -67,14 +67,16 @@ public partial class UserDbContext : DbContext
             entity.HasIndex(e => e.LastName);
 
             entity.Property(e => e.IsBot)
-                .HasDefaultValueWithConstraintName(false, "DF_User_IsBot");
+                .HasDefaultValue(false)
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsBot");
 
             entity.Property(e => e.IsEmailVerified)
-                .HasDefaultValueWithConstraintName(false, "DF_User_IsEmailVerified");
+                    .HasDefaultValue(false)
+                    .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsEmailVerified");
 
             entity.Property(e => e.IsPhoneVerified)
-                .HasDefaultValueWithConstraintName(false, "DF_User_IsPhoneVerified");
-
+                .HasDefaultValue(false)
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsPhoneVerified");
 
             entity.Property(e => e.ExData)
                 .HasMaxLength(int.MaxValue);
