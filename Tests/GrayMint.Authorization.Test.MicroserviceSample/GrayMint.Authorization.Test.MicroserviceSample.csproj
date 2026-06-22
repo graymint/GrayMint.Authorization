@@ -24,9 +24,9 @@
 	</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.1.252" />
-    <PackageReference Include="GrayMint.Common.Swagger" Version="2.1.252" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
+    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.1.253" />
+    <PackageReference Include="GrayMint.Common.Swagger" Version="2.1.253" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>
