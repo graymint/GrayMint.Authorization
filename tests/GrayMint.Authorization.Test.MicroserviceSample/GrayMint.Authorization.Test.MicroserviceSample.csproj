@@ -12,7 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\GrayMint.Authorization.MicroserviceAuthorization\GrayMint.Authorization.MicroserviceAuthorization.csproj" />
     <ProjectReference Include="..\..\src\GrayMint.Authorization.PermissionAuthorizations\GrayMint.Authorization.PermissionAuthorizations.csproj" />
-    <ProjectReference Include="..\..\Tests\GrayMint.Authorization.Test.ItemServices\GrayMint.Authorization.Test.ItemServices.csproj" />
+    <ProjectReference Include="..\GrayMint.Authorization.Test.ItemServices\GrayMint.Authorization.Test.ItemServices.csproj" />
   </ItemGroup>
 
 </Project>
