@@ -56,8 +56,10 @@ public class Program
         webApp.UseGrayMintCommonServices(new UseServicesOptions());
         webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
         webApp.UseStaticFiles(new StaticFileOptions());
-        await webApp.UseGrayMinCommonAuthorizationForApp();
+        // Database first: EnsureCreated creates the database itself on a fresh machine, and the
+        // authorization providers below only create their own tables (they cannot create the db).
         await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
+        await webApp.UseGrayMinCommonAuthorizationForApp();
         if (appOptions.UseResourceProvider)
             await webApp.Services.UseGrayMintResourceProvider();
 

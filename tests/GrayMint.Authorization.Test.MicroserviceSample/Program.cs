@@ -35,8 +35,10 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             var webApp = builder.Build();
             webApp.UseGrayMintCommonServices(new UseServicesOptions());
             webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
-            await webApp.UseGrayMinCommonAuthorizationForMicroservice();
+            // Database first: EnsureCreated creates the database itself on a fresh machine, and the
+            // authorization providers below only create their own tables (they cannot create the db).
             await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
+            await webApp.UseGrayMinCommonAuthorizationForMicroservice();
 
             await GrayMintApp.RunAsync(webApp, args);
         }
