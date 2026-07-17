@@ -1,0 +1,18 @@
+name: Publish NuGets
+
+# Thin wrapper: the whole build->test->bump->pack->publish pipeline is the REUSABLE workflow in
+# graymint/GrayMint.Common — this repo carries no CI logic and no scripts, only pub/PubVersion.json.
+# See GrayMint.Common/docs/versioning-and-nuget-updates.md.
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the bump commit to main
+
+jobs:
+  publish-nugets:
+    uses: graymint/GrayMint.Common/.github/workflows/publish_nugets.yml@main
+    secrets: inherit

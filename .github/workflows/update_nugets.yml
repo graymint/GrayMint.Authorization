@@ -1,0 +1,20 @@
+name: Update NuGets
+
+# Thin wrapper: the daily dependency-update pipeline is the REUSABLE workflow in
+# graymint/GrayMint.Common. The schedule must live HERE (cron only fires in the repo hosting the
+# workflow file). On updates it builds + tests, commits to main, and dispatches publish_nugets.yml.
+# Any failure fails the run and GitHub notifies by email.
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # daily at 02:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the update commit to main
+  actions: write  # dispatch the publish workflow
+
+jobs:
+  update-nugets:
+    uses: graymint/GrayMint.Common/.github/workflows/update_nugets.yml@main
+    secrets: inherit

@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Settings that depend on properties defined in the csproj BODY (IsPackable, TargetFramework, ...).
+    They MUST live in Directory.Build.targets, not Directory.Build.props: .props is imported at the
+    very top of the project, BEFORE the csproj body runs, so a condition on those properties there
+    never matches. .targets is imported AFTER the csproj body, so by the time this evaluates they
+    are defined.
+  -->
+
+  <!-- Every published package ships its XML docs; missing-doc warnings stay off until members are documented. -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

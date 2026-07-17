@@ -19,7 +19,7 @@ GrayMint.Authorization provides a flexible, multi-tenant-compatible B2B authoriz
 
 ## 📦 Installation
 
-Use the repository as a Git submodule or reference projects directly in your solution.
+Install the packages from [nuget.org](https://www.nuget.org/packages?q=GrayMint.Authorization):
 
 ```ps
 dotnet add package GrayMint.Authorization
@@ -115,6 +115,24 @@ Implement custom providers:
 These interfaces allow full control over how roles, users, and resources are managed.
 
 ---
+
+## 🏗 Repo layout & CI
+
+- `src/` — the packable libraries; one shared version and package metadata via
+  `src/Directory.Build.props`. `pub/PubVersion.json` is the version source of truth.
+- `tests/` — test suites and sample hosts. Never packed.
+- `.github/workflows/` — thin wrappers over the reusable CI in
+  [GrayMint.Common](https://github.com/graymint/GrayMint.Common): every push to `main` builds,
+  tests, bumps the version, and publishes to nuget.org; a daily job (02:30 UTC, right after
+  GrayMint.Common's own update) upgrades all NuGet dependencies and republishes when tests pass.
+  Nothing ships when tests fail.
+
+Build locally:
+
+```ps
+dotnet build GrayMint.Authorization.slnx
+dotnet test GrayMint.Authorization.slnx
+```
 
 ## 📄 License
 

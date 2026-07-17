@@ -1,0 +1,47 @@
+<Project>
+
+  <!--
+    Shared build/pack settings for every library under src/. MSBuild imports the nearest
+    Directory.Build.props walking up from each csproj, so this covers all of src/ but NOT the
+    tests/ projects (tests/ has its own Directory.Build.props, which stops the upward search).
+
+    The single product version lives in pub/PubVersion.json (the source of truth the bump edits)
+    and is mirrored into <Version> below by the CI bump on every publish — so all packages always
+    share one version. Per-csproj <Version> stamping was retired; a csproj only declares what is
+    unique to it (Description, TargetFramework, references).
+  -->
+
+  <PropertyGroup>
+    <!-- One version for the whole solution. Kept in sync with pub/PubVersion.json by the bump. -->
+    <Version>3.1.149</Version>
+    <FileVersion>$([System.DateTime]::Now.ToString("yyyy.M.d.HHmm"))</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Shared language defaults. -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Shared package metadata (identical across every package; only Description stays per-project). -->
+    <Authors>GrayMint</Authors>
+    <Copyright>GrayMint. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/graymint/GrayMint.Authorization</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/graymint/GrayMint.Authorization</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>GrayMint.Authorization.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Pack the shared icon + readme (paths are relative to this file, so they are depth-independent). -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\GrayMint.Authorization.png" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>
