@@ -15,4 +15,6 @@ permissions:
 jobs:
   publish-nugets:
     uses: graymint/GrayMint.Common/.github/workflows/publish_nugets.yml@main
+    with:
+      runs-on: windows-latest # tests use SQL Server LocalDB, which is Windows-only
     secrets: inherit
