@@ -30,8 +30,4 @@
     <Project Path="tests/GrayMint.Authorization.Test.WebApiSample/GrayMint.Authorization.Test.WebApiSample.csproj" />
     <Project Path="tests/GrayMint.Authorization.Test.WebApiSampleTest/GrayMint.Authorization.Test.WebApiSampleTest.csproj" />
   </Folder>
-  <Folder Name="/workflows/">
-    <File Path=".github/workflows/publish_nugets.yml" />
-    <File Path=".github/workflows/update_nugets.yml" />
-  </Folder>
 </Solution>
