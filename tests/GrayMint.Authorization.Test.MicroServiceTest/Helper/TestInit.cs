@@ -1,8 +1,11 @@
 using System.Net.Http.Headers;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.MicroserviceSample;
 using GrayMint.Common.Test.Api;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ApiKey = GrayMint.Common.Test.Api.ApiKey;
 
@@ -10,6 +13,12 @@ namespace GrayMint.Authorization.Test.MicroServiceTest.Helper;
 
 public class TestInit : IDisposable
 {
+    // Tests default to a private in-memory SQLite database: isolated per TestInit and fully
+    // self-contained, so no SQL Server is required (CI runners have none). Developer-only
+    // override: create a gitignored testsettings.local.json next to this test project with
+    // { "UseSqlite": false } to run against the real database from appsettings.json.
+    private static readonly bool UseSqlite = TestSettings.UseSqlite;
+    private readonly SqliteConnection? _sqliteConnection;
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
@@ -25,6 +34,14 @@ public class TestInit : IDisposable
 
     private TestInit(Dictionary<string, string?> appSettings, string environment)
     {
+        // IgnoreDb tells the sample's Program to skip its SqlServer registration; the context is
+        // then re-registered below on the shared SQLite connection.
+        if (UseSqlite) {
+            appSettings["IgnoreDb"] = "1";
+            _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+            _sqliteConnection.Open();
+        }
+
         // Application
         WebApp = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder => {
@@ -32,6 +49,10 @@ public class TestInit : IDisposable
                     builder.UseSetting(appSetting.Key, appSetting.Value);
 
                 builder.UseEnvironment(environment);
+                builder.ConfigureServices(services => {
+                    if (_sqliteConnection != null)
+                        services.AddDbContext<AppDbContext>(options => options.UseSqlite(_sqliteConnection));
+                });
             });
 
         // Client
@@ -74,5 +95,6 @@ public class TestInit : IDisposable
         Scope.Dispose();
         HttpClient.Dispose();
         WebApp.Dispose();
+        _sqliteConnection?.Dispose();
     }
 }

@@ -127,7 +127,7 @@ public class RoleProvider : IRoleProvider
             .ToArrayAsync();
 
         var ret = new ListResult<UserRole> {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
+            TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
 
@@ -158,7 +158,7 @@ public class RoleProvider : IRoleProvider
             .ToArray();
 
         var ret = new ListResult<UserRole> {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.LongCount(),
+            TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.Length,
             Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
 

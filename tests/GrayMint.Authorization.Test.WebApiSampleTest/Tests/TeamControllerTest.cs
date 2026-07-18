@@ -121,21 +121,22 @@ public class TeamControllerTest
     [TestMethod]
     public async Task Bot_can_not_be_added_if_it_belong_to_alien_resource()
     {
-        using var testInit1 = await TestInit.Create();
-        var apiKey1 = await testInit1.AddNewBot(Roles.AppAdmin, false);
-        var botUserRoles = await testInit1.TeamClient.ListUserRolesAsync(resourceId: testInit1.AppResourceId,
+        using var testInit = await TestInit.Create();
+        var apiKey1 = await testInit.AddNewBot(Roles.AppAdmin, false);
+        var botUserRoles = await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId,
             userId: apiKey1.UserId, roleId: Roles.AppAdmin.RoleId);
         var botUserRole = botUserRoles.Items.FirstOrDefault();
         Assert.IsNotNull(botUserRole);
 
-        using var testInit2 = await TestInit.Create();
-        await testInit2.AddNewBot(Roles.AppAdmin);
+        // a second app in the same host; its admin must not be able to add the first app's bot
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        await testInit.AddNewBot(Roles.AppAdmin, resourceId: app2.AppId);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit2.TeamClient.AddUserByEmailAsync(testInit2.AppResourceId, Roles.AppAdmin.RoleId,
+            testInit.TeamClient.AddUserByEmailAsync(app2.AppId.ToString(), Roles.AppAdmin.RoleId,
                 botUserRole.User!.Email!));
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit2.TeamClient.AddUserAsync(testInit2.AppResourceId, Roles.AppAdmin.RoleId,
+            testInit.TeamClient.AddUserAsync(app2.AppId.ToString(), Roles.AppAdmin.RoleId,
                 botUserRole.User!.UserId));
     }
 

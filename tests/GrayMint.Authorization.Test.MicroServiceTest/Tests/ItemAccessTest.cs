@@ -39,10 +39,12 @@ public class ItemAccessTest
     public async Task Fail_create_an_item_by_wrong_App_writer()
     {
         using var testInit = await TestInit.Create();
-        using var testInit2 = await TestInit.Create();
+
+        // a second app in the same host, so its writer key is valid but belongs to the wrong app
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         var apiKey1 = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString());
-        var apiKey2 = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit2.AppId.ToString());
+        var apiKey2 = await testInit.AuthorizationClient.ResetUserApiKeyAsync(app2.AppId.ToString());
         testInit.SetApiKey(apiKey1);
         var item = await testInit.ItemsClient.CreateAsync(testInit.AppId);
         await testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId);

@@ -5,6 +5,7 @@ using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.RoleManagement.ResourceProviders;
 using GrayMint.Authorization.RoleManagement.ResourceProviders.Dtos;
 using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
+using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Test.Api;
@@ -22,7 +23,12 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 
 public class TestInit : IDisposable
 {
-    private SqliteConnection? _sqliteConnection;
+    // Tests default to a private in-memory SQLite database: isolated per TestInit and fully
+    // self-contained, so no SQL Server is required (CI runners have none). Developer-only
+    // override: create a gitignored testsettings.local.json next to this test project with
+    // { "UseSqlite": false } to run against the real database from appsettings.json.
+    private static readonly bool UseSqlite = TestSettings.UseSqlite;
+    private readonly SqliteConnection? _sqliteConnection;
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
@@ -44,8 +50,16 @@ public class TestInit : IDisposable
     public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
 
-    private TestInit(Dictionary<string, string?> appSettings, string environment)
+    private TestInit(Dictionary<string, string?> appSettings, string environment, bool useResourceProvider)
     {
+        // IgnoreDb tells the sample's Program to skip its SqlServer registrations; every context
+        // is then re-registered below on the shared SQLite connection.
+        if (UseSqlite) {
+            appSettings["IgnoreDb"] = "1";
+            _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+            _sqliteConnection.Open();
+        }
+
         // Application
         WebApp = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder => {
@@ -54,13 +68,13 @@ public class TestInit : IDisposable
 
                 builder.UseEnvironment(environment);
                 builder.ConfigureServices(services => {
-                    const bool useSqlLite = false;
-                    if (useSqlLite) {
-                        appSettings.Add("IgnoreDb", "1");
-                        _sqliteConnection = new SqliteConnection("DataSource=:memory:");
-                        _sqliteConnection.Open();
-                        services.AddGrayMintCommonProviderDb(options => options.UseSqlite(_sqliteConnection));
-                    }
+                    if (_sqliteConnection == null)
+                        return;
+
+                    services.AddGrayMintCommonProviderDb(options => options.UseSqlite(_sqliteConnection));
+                    if (useResourceProvider)
+                        services.AddGrayMintResourceProviderDb(options => options.UseSqlite(_sqliteConnection));
+                    services.AddDbContext<AppDbContext>(options => options.UseSqlite(_sqliteConnection));
                 });
             });
 
@@ -145,7 +159,7 @@ public class TestInit : IDisposable
         appSettings ??= new Dictionary<string, string?>();
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         appSettings["App:UseResourceProvider"] = useResourceProvider.ToString();
-        var testInit = new TestInit(appSettings, environment);
+        var testInit = new TestInit(appSettings, environment, useResourceProvider);
         await testInit.Init();
 
         // add app as the resource

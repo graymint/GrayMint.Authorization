@@ -131,11 +131,15 @@ public class UserProvider(
         recordCount ??= int.MaxValue;
         if (!Guid.TryParse(search, out var searchGuid)) searchGuid = Guid.Empty;
 
+        // compare as Guid, not string: string-casting the column is not sargable and its casing
+        // differs between providers (SQLite compares case-sensitively)
+        var userIdGuids = userIds?.Select(Guid.Parse).ToArray();
+
         await using var trans = await userDbContext.WithNoLockTransaction();
         var query = userDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
-                (userIds == null || userIds.Contains(x.UserId.ToString())) &&
+                (userIdGuids == null || ((IEnumerable<Guid>)userIdGuids).Contains(x.UserId)) &&
                 (firstName == null || (x.FirstName != null && x.FirstName.StartsWith(firstName))) &&
                 (lastName == null || (x.LastName != null && x.LastName.StartsWith(lastName))))
             .Where(x =>
@@ -152,7 +156,7 @@ public class UserProvider(
             .ToArrayAsync();
 
         var ret = new ListResult<User> {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.LongCountAsync(),
+            TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
             Items = results.Select(x => x.ToDto()).ToArray()
         };
 

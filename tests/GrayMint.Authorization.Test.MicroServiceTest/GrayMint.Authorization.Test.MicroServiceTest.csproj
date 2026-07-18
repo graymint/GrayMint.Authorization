@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="4.2.3" />
     <PackageReference Include="MSTest.TestFramework" Version="4.2.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,4 +20,8 @@
     <ProjectReference Include="..\GrayMint.Authorization.Test.MicroserviceSample\GrayMint.Authorization.Test.MicroserviceSample.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- optional developer-only settings (gitignored); see Helper/TestSettings.cs -->
+    <None Include="testsettings.local.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('testsettings.local.json')" />
+  </ItemGroup>
 </Project>

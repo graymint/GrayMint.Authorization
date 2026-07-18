@@ -189,7 +189,7 @@ public class TeamService(
 
         // create the result
         var ret = new ListResult<TeamUserRole> {
-            Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue),
+            Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue).ToArray(),
             TotalCount = userRoles.Length
         };
         return ret;

@@ -1,6 +1,7 @@
 using System.Net;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
+using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
@@ -51,28 +52,30 @@ public class ItemAccessTest
     [TestMethod]
     public async Task AppUser_access_by_permission()
     {
-        var testInit1 = await TestInit.Create();
-        var testInit2 = await TestInit.Create();
-        // Create an AppCreator
+        using var testInit = await TestInit.Create();
 
         // **** Check: accept create item by Create Permission
-        await testInit1.AddNewBot(Roles.SystemAdmin);
-        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId);
+        await testInit.AddNewBot(Roles.SystemAdmin);
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.App.AppId);
 
         // **** Check: accept create item by the App permission
-        await testInit1.AddNewBot(Roles.AppWriter);
-        await testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId);
+        await testInit.AddNewBot(Roles.AppWriter);
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.App.AppId);
+
+        // a second app in the same host, so its keys are valid but belong to another app
+        testInit.SetApiKey(testInit.SystemAdminApiKey);
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         // Check:
-        testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppWriter));
+        await testInit.AddNewBot(Roles.AppWriter, resourceId: app2.AppId);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId),
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.App.AppId),
             "refuse if caller belong to other app and does not have all the app permission.");
 
         // **** Check:
-        testInit1.SetApiKey(await testInit2.AddNewBot(Roles.AppReader));
+        await testInit.AddNewBot(Roles.AppReader, resourceId: app2.AppId);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit1.ItemsClient.CreateByPermissionAsync(testInit1.App.AppId),
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.App.AppId),
             "refuse if caller does not have write permission.");
     }
 }

@@ -29,7 +29,9 @@ public class CustomerAccessTest
         // ------
         // **** Check: success
         // ------
-        var apiKey = GmUtils.JsonClone<ApiKey>(apiKeyDto,
+        // cross-type clone (Authentications.Dtos.ApiKey -> Test.Api.ApiKey): serialize/deserialize
+        // explicitly since JsonClone<T> clones within one type
+        var apiKey = GmUtils.JsonDeserialize<ApiKey>(JsonSerializer.Serialize(apiKeyDto),
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         testInit.SetApiKey(apiKey);

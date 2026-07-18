@@ -80,7 +80,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
 
         var ret = new ListResult<TUserRole> {
             TotalCount = userRoles.TotalCount,
-            Items = userRoles.Items.Select(ToDto)
+            Items = userRoles.Items.Select(ToDto).ToArray()
         };
         return ret;
     }

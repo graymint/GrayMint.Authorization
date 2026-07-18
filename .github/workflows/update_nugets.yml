@@ -17,6 +17,4 @@ permissions:
 jobs:
   update-nugets:
     uses: graymint/GrayMint.Common/.github/workflows/update_nugets.yml@main
-    with:
-      runs-on: windows-latest # tests use SQL Server LocalDB, which is Windows-only
     secrets: inherit

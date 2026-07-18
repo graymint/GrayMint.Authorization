@@ -26,9 +26,10 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // authentication & its controller
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
 
-            // Database
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+            // Database (tests set IgnoreDb and register their own SQLite contexts)
+            if (builder.Configuration["IgnoreDb"] != "1")
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
             services.AddItemServices();
 
             // Add services to the container.

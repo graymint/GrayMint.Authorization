@@ -27,4 +27,8 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
+  <ItemGroup>
+    <!-- optional developer-only settings (gitignored); see Helper/TestSettings.cs -->
+    <None Include="testsettings.local.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('testsettings.local.json')" />
+  </ItemGroup>
 </Project>
