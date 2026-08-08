@@ -45,7 +45,7 @@ public class ItemService(AppDbContext appDbContext)
             .Where(x => x.AppId == appId)
             .ToArrayAsync();
 
-        return items.Select(x => x.ToDto()).ToArray();
+        return [.. items.Select(x => x.ToDto())];
     }
 
     public async Task Delete(int appId, int itemId)

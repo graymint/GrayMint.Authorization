@@ -150,7 +150,7 @@ public class GrayMintAuthentication(
             key: _authenticationOptions.Secret,
             issuer: _authenticationOptions.Issuer,
             audience: audience,
-            claims: claimsIdentity.Claims.ToArray(),
+            claims: [.. claimsIdentity.Claims],
             expirationTime: expTime);
 
         var token = new Token {

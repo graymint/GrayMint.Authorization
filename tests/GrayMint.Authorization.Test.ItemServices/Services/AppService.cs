@@ -36,7 +36,7 @@ public class AppService(AppDbContext appDbContext)
             .Where(x => appIds.Contains(x.AppId))
             .ToArrayAsync();
 
-        return apps.Select(x => x.ToDto()).ToArray();
+        return [.. apps.Select(x => x.ToDto())];
     }
 
     public async Task<App[]> List()
@@ -44,7 +44,7 @@ public class AppService(AppDbContext appDbContext)
         var apps = await appDbContext.Apps
             .ToArrayAsync();
 
-        return apps.Select(x => x.ToDto()).ToArray();
+        return [.. apps.Select(x => x.ToDto())];
     }
 
     public async Task UpdateAuthorizationCode(int appId, string authorizationCode)

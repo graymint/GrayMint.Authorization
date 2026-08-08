@@ -15,6 +15,6 @@ public class GmRole : Role
             .Where(x => x.PropertyType == typeof(GmRole));
 
         var roles = properties.Select(propertyInfo => (GmRole)propertyInfo.GetValue(null)!);
-        return roles.ToArray();
+        return [.. roles];
     }
 }

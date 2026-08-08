@@ -157,7 +157,7 @@ public class UserProvider(
 
         var ret = new ListResult<User> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
-            Items = results.Select(x => x.ToDto()).ToArray()
+            Items = [.. results.Select(x => x.ToDto())]
         };
 
         return ret;

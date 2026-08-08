@@ -80,7 +80,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
 
         var ret = new ListResult<TUserRole> {
             TotalCount = userRoles.TotalCount,
-            Items = userRoles.Items.Select(ToDto).ToArray()
+            Items = [.. userRoles.Items.Select(ToDto)]
         };
         return ret;
     }
@@ -92,7 +92,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         var userByEmail = await teamService.GetUser(resourceId, userId);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = userByEmail.Roles.Select(ToDto).ToArray()
+            Roles = [.. userByEmail.Roles.Select(ToDto)]
         };
         return ret;
     }
@@ -104,7 +104,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         var userByEmail = await teamService.GetUserByEmail(resourceId, email);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = userByEmail.Roles.Select(ToDto).ToArray()
+            Roles = [.. userByEmail.Roles.Select(ToDto)]
         };
         return ret;
     }

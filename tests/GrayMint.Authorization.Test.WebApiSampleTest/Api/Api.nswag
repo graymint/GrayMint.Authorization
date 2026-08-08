@@ -1,5 +1,5 @@
 {
-  "runtime": "Net90",
+  "runtime": "Net100",
   "defaultVariables": null,
   "documentGenerator": {
     "aspNetCoreToOpenApi": {
@@ -123,6 +123,7 @@
       "dictionaryBaseType": "System.Collections.Generic.Dictionary",
       "classStyle": "Poco",
       "jsonLibrary": "SystemTextJson",
+      "jsonLibraryVersion": 9.0,
       "generateDefaultValues": true,
       "generateDataAnnotations": true,
       "excludedTypeNames": [],

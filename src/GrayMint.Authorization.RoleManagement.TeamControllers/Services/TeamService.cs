@@ -185,11 +185,11 @@ public class TeamService(
 
         // filter user search
         if (search != null || isBot != null)
-            userRoles = userRoles.Where(x => x.User != null).ToArray();
+            userRoles = [.. userRoles.Where(x => x.User != null)];
 
         // create the result
         var ret = new ListResult<TeamUserRole> {
-            Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue).ToArray(),
+            Items = [.. userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue)],
             TotalCount = userRoles.Length
         };
         return ret;
@@ -202,7 +202,7 @@ public class TeamService(
             { ResourceId = resourceId, UserId = user.UserId });
         var teamUser = new TeamUser {
             User = user,
-            Roles = userRoleList.Select(x => x.Role).ToArray()
+            Roles = [.. userRoleList.Select(x => x.Role)]
         };
         return teamUser;
     }
@@ -214,7 +214,7 @@ public class TeamService(
             { ResourceId = resourceId, UserId = user.UserId });
         var teamUser = new TeamUser {
             User = user,
-            Roles = userRoleList.Select(x => x.Role).ToArray()
+            Roles = [.. userRoleList.Select(x => x.Role)]
         };
         return teamUser;
     }
@@ -292,7 +292,7 @@ public class TeamService(
         foreach (var userRole in userRoles.Items)
             await VerifyWritePermissionOnRole(caller, resourceId, userRole.Role.RoleId);
 
-        return userRoles.Items.ToArray();
+        return [.. userRoles.Items];
     }
 
     public async Task VerifyWritePermissionOnRole(ClaimsPrincipal caller, string resourceId, string roleId)

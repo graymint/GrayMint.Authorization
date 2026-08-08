@@ -112,7 +112,7 @@ public class ResourceProvider(
             resource = await Get(resource.ParentResourceId);
         }
 
-        return parentIds.ToArray();
+        return [.. parentIds];
     }
 
     private async Task ClearResourceCache(IEnumerable<string> resourceIds)

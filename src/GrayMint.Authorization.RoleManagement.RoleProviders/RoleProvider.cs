@@ -104,7 +104,7 @@ public class RoleProvider : IRoleProvider
     public async Task<UserRole[]> GetUserRoles(UserRoleCriteria criteria)
     {
         var res = await GetUserRoles(criteria, 0, int.MaxValue);
-        return res.Items.ToArray();
+        return [.. res.Items];
     }
 
     public async Task<ListResult<UserRole>> GetUserRoles(UserRoleCriteria criteria, int recordIndex, int recordCount)
@@ -128,7 +128,7 @@ public class RoleProvider : IRoleProvider
 
         var ret = new ListResult<UserRole> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
-            Items = results.Select(x => x.ToDto(_roles)).ToArray()
+            Items = [.. results.Select(x => x.ToDto(_roles))]
         };
 
         return ret;
@@ -159,7 +159,7 @@ public class RoleProvider : IRoleProvider
 
         var ret = new ListResult<UserRole> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.Length,
-            Items = results.Select(x => x.ToDto(_roles)).ToArray()
+            Items = [.. results.Select(x => x.ToDto(_roles))]
         };
 
         return ret;
@@ -193,7 +193,7 @@ public class RoleProvider : IRoleProvider
         if (!IsRootResource(resourceId))
             permissions.AddRange(await GetUserPermissions(parentResourceId, userId));
 
-        return permissions.Distinct().ToArray();
+        return [.. permissions.Distinct()];
     }
 
     public Task<string[]> GetRolePermissions(string resourceId, string roleId)
