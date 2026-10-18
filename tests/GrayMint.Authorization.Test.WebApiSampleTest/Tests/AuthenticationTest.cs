@@ -136,6 +136,23 @@ public class AuthenticationTest
     }
 
     [TestMethod]
+    public async Task SignUp_with_unverified_email_creates_no_user()
+    {
+        using var testInit = await TestInit.Create();
+        var userEmail = TestInit.NewEmail();
+
+        // an unverified email can not sign up
+        var idToken = await testInit.CreateUnregisteredUserIdToken(userEmail, isEmailVerified: false);
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.AuthenticationClient.SignUpAsync(new SignUpRequest { IdToken = idToken }));
+
+        // nor did it leave a user that holds the email: it signs up once verified
+        await testInit.SignUpNewUser(userEmail);
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
+        Assert.AreEqual(userEmail, user.Email);
+    }
+
+    [TestMethod]
     public async Task RefreshToken_should_extend_expiration()
     {
         var testInit = await TestInit.Create();

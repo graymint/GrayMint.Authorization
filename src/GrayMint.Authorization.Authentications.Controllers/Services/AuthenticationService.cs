@@ -14,8 +14,7 @@ public class AuthenticationService(
     IOptions<GrayMintAuthenticationOptions> authenticationOptions,
     GrayMintAuthentication grayMintAuthentication,
     IUserProvider userProvider,
-    IAuthorizationProvider authorizationProvider,
-    GrayMintTokenValidator grayMintIdTokenValidator)
+    IAuthorizationProvider authorizationProvider)
 {
     public Uri? SignInRedirectUrl => authenticationOptions.Value.SignInRedirectUrl;
 
@@ -138,7 +137,7 @@ public class AuthenticationService(
         if (!authenticationOptions.Value.AllowUserSelfRegister)
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
-        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(signUpRequest.IdToken);
+        var claimsIdentity = await grayMintAuthentication.ValidateSignInIdToken(signUpRequest.IdToken);
         var claimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity);
 
         var email =

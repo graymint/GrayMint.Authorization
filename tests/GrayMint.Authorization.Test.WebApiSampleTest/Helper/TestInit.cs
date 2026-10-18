@@ -121,13 +121,13 @@ public class TestInit : IDisposable
     }
 
     public async Task<string> CreateUnregisteredUserIdToken(
-        string? email = null, Claim[]? claims = null)
+        string? email = null, Claim[]? claims = null, bool isEmailVerified = true)
     {
         email ??= NewEmail();
 
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, email));
-        claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.EmailVerified, "true"));
+        claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.EmailVerified, isEmailVerified ? "true" : "false"));
         if (claims != null) claimsIdentity.AddClaims(claims);
 
         var grayMintAuthentication = Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();

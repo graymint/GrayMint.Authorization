@@ -228,7 +228,9 @@ public class GrayMintAuthentication(
         return apiKey;
     }
 
-    public async Task<ApiKey> SignIn(string idToken, RefreshTokenType refreshTokenType)
+    // An id token a user may sign in or sign up with: a sign-up claims the token's email for good,
+    // so an unverified one must fail before anything is saved.
+    public async Task<ClaimsIdentity> ValidateSignInIdToken(string idToken)
     {
         var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
 
@@ -237,6 +239,13 @@ public class GrayMintAuthentication(
 
         if (!claimsIdentity.HasClaim(GrayMintClaimTypes.EmailVerified, "true"))
             throw new AuthenticationException("Email has not been verified.");
+
+        return claimsIdentity;
+    }
+
+    public async Task<ApiKey> SignIn(string idToken, RefreshTokenType refreshTokenType)
+    {
+        var claimsIdentity = await ValidateSignInIdToken(idToken);
 
         // check user existence
         var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
