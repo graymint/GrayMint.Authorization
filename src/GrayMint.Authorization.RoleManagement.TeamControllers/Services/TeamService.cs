@@ -197,26 +197,31 @@ public class TeamService(
 
     public async Task<TeamUser> GetUser(string resourceId, string userId)
     {
-        var user = await userProvider.Get(userId);
-        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resourceId, UserId = user.UserId });
-        var teamUser = new TeamUser {
-            User = user,
-            Roles = [.. userRoleList.Select(x => x.Role)]
-        };
-        return teamUser;
+        var user = await userProvider.FindById(userId);
+        return await GetTeamUser(resourceId, user);
     }
 
     public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
     {
-        var user = await userProvider.GetByEmail(email);
-        var userRoleList = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resourceId, UserId = user.UserId });
-        var teamUser = new TeamUser {
+        var user = await userProvider.FindByEmail(email);
+        return await GetTeamUser(resourceId, user);
+    }
+
+    // a resource's readers find only its own team, not even learning whether anyone else exists;
+    // the root resource's readers already read every team, so they find any user
+    private async Task<TeamUser> GetTeamUser(string resourceId, User? user)
+    {
+        var userRoles = user != null
+            ? await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId })
+            : [];
+
+        if (user == null || (userRoles.Length == 0 && resourceId != GetRootResourceId()))
+            throw new NotExistsException("There is no such user in this resource.");
+
+        return new TeamUser {
             User = user,
-            Roles = [.. userRoleList.Select(x => x.Role)]
+            Roles = [.. userRoles.Select(x => x.Role)]
         };
-        return teamUser;
     }
 
     public async Task RemoveUser(string resourceId, string roleId, string userId)

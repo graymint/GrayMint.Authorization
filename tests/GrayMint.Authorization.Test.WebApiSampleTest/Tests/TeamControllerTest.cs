@@ -1,6 +1,7 @@
 using System.Net;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
+using GrayMint.Common.ApiClients;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
@@ -155,6 +156,70 @@ public class TeamControllerTest
         await testInit2.AddNewBot(Roles.AppAdmin);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit2.TeamClient.ResetBotApiKeyAsync(botUserRole.User!.UserId));
+    }
+
+    [TestMethod]
+    public async Task User_of_alien_resource_can_not_be_read()
+    {
+        using var testInit = await TestInit.Create();
+        var memberEmail = TestInit.NewEmail();
+        var member = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppReader.RoleId, memberEmail);
+
+        // a user of a second app only
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        var alienEmail = TestInit.NewEmail();
+        var alien = await testInit.TeamClient.AddUserByEmailAsync(app2.AppId.ToString(), Roles.AppReader.RoleId, alienEmail);
+
+        // the system's readers still find any user
+        await testInit.TeamClient.GetUserAsync(testInit.RootResourceId, alien.UserId);
+
+        // the first app's admin finds its own team only; a user out of it answers as no user at all
+        await testInit.AddNewBot(Roles.AppAdmin);
+        await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, member.UserId);
+        await testInit.TeamClient.GetUserByEmailAsync(testInit.AppResourceId, memberEmail);
+        ApiException[] errors = [
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.GetUserAsync(testInit.AppResourceId, alien.UserId)),
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.GetUserByEmailAsync(testInit.AppResourceId, alienEmail)),
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.GetUserAsync(testInit.AppResourceId, Guid.NewGuid().ToString())),
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.GetUserByEmailAsync(testInit.AppResourceId, TestInit.NewEmail()))
+        ];
+
+        foreach (var error in errors) {
+            Assert.AreEqual(nameof(NotExistsException), error.ExceptionTypeName);
+            Assert.AreEqual(errors[0].StatusCode, error.StatusCode);
+            Assert.AreEqual(errors[0].Message, error.Message);
+        }
+    }
+
+    [TestMethod]
+    public async Task Bot_endpoints_tell_nothing_of_users_out_of_reach()
+    {
+        using var testInit = await TestInit.Create();
+
+        // the first app's person and bot, and an id of no one
+        var person = await testInit.AddNewUser(Roles.AppReader);
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        string[] targetIds = [person.UserId, bot.UserId, Guid.NewGuid().ToString()];
+
+        // a second app's admin may manage none of them, so each answers alike
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        await testInit.AddNewBot(Roles.AppAdmin, resourceId: app2.AppId);
+        var errors = new List<ApiException>();
+        foreach (var targetId in targetIds) {
+            errors.Add(await Assert.ThrowsAsync<ApiException>(() => testInit.TeamClient.ResetBotApiKeyAsync(targetId)));
+            errors.Add(await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.UpdateBotAsync(targetId, new TeamUpdateBotParam())));
+        }
+
+        foreach (var error in errors) {
+            Assert.AreEqual((int)HttpStatusCode.Forbidden, error.StatusCode);
+            Assert.AreEqual(errors[0].ExceptionTypeName, error.ExceptionTypeName);
+            Assert.AreEqual(errors[0].Message, error.Message);
+        }
     }
 
     [TestMethod]

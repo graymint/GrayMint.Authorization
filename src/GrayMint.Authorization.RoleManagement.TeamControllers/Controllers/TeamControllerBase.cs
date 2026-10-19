@@ -170,21 +170,19 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     // ReSharper disable once UnusedMethodReturnValue.Local
     private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
     {
+        // the caller needs write rights over every resource of the user before learning anything of
+        // them, so a user out of its reach answers the same bare 403 as no user at all
         var userRoles = await teamService.GetUserRoles(userId: userId);
+        if (!userRoles.Items.Any())
+            throw new UnauthorizedAccessException();
 
-        // find user
-        var user = userRoles.Items.FirstOrDefault()?.User;
-        if (user == null)
-            throw new UnauthorizedAccessException("UserId does not belong to any role.");
-
-        // check is a bot user
-        if (user is not { IsBot: true })
-            throw new InvalidOperationException("This operation can only be performed on bots.");
-
-        // check is the caller has permission over all resources that the bot belong to
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
             await teamService.VerifyWritePermissionOnUser(User, resId, userId);
+
+        // check is a bot user
+        if (userRoles.Items.First().User is not { IsBot: true })
+            throw new InvalidOperationException("This operation can only be performed on bots.");
 
         return userRoles.Items;
     }
