@@ -23,7 +23,8 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         // under the lock, so a user never has a second token that a clear would miss
         lock (_lockObject)
             return memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
-                entry.SetSlidingExpiration(CacheTimeout);
+                // a minute past CacheTimeout: an item's time starts when it is saved, after its read
+                entry.SetSlidingExpiration(CacheTimeout + TimeSpan.FromMinutes(1));
                 entry.RegisterPostEvictionCallback((_, value, _, _) => (value as CancellationTokenSource)?.Cancel());
                 return new CancellationTokenSource(); // never disposed: a reader may still hold it
             }) ?? throw new InvalidOperationException("Could not create the user's cache token.");
@@ -72,16 +73,24 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         CapExpiration(entry);
     }
 
-    public void ClearUserItems(string userId)
+    // under the lock, so no new item ties to the token between its read and its removal
+    private CancellationTokenSource? RemoveUserTokenSource(string userId)
     {
         var userCacheKey = BuildUserCacheKey(userId);
         lock (_lockObject) {
             if (!memoryCache.TryGetValue(userCacheKey, out CancellationTokenSource? tokenSource))
-                return;
+                return null;
 
-            // cancelling expires the items at once; the eviction callback alone would run later
             memoryCache.Remove(userCacheKey);
-            tokenSource?.Cancel();
+            return tokenSource;
         }
+    }
+
+    public void ClearUserItems(string userId)
+    {
+        // cancelling expires the items at once, where the eviction callback alone would run later; outside
+        // the lock, so a user with many items holds up no one else
+        var tokenSource = RemoveUserTokenSource(userId);
+        tokenSource?.Cancel();
     }
 }

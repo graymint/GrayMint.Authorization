@@ -70,6 +70,24 @@ public class UserAuthorizationCacheTest
         }
     }
 
+    [TestMethod]
+    public void Item_added_by_its_entry_is_capped_too()
+    {
+        var clock = new TestClock();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions { Clock = clock });
+        var userAuthorizationCache = new UserAuthorizationCache(memoryCache);
+
+        // as the token validator does: the entry's own expiration first, then it becomes the user's item
+        using (var entry = memoryCache.CreateEntry("item")) {
+            entry.SetAbsoluteExpiration(TimeSpan.FromHours(2));
+            userAuthorizationCache.AddUserItem(Guid.NewGuid().ToString(), entry);
+            entry.Value = "stale";
+        }
+
+        clock.UtcNow += AuthorizationConstants.CacheTimeout + TimeSpan.FromMinutes(1);
+        Assert.IsFalse(memoryCache.TryGetValue("item", out _));
+    }
+
     private static Task<string> CreateItem(ICacheEntry entry, string value)
     {
         entry.SetAbsoluteExpiration(AuthorizationConstants.CacheTimeout);
