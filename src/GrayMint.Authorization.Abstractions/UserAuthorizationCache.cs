@@ -23,7 +23,7 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         // under the lock, so a user never has a second token that a clear would miss
         lock (_lockObject)
             return memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
-                // a minute past CacheTimeout: an item's time starts when it is saved, after its read
+                // a minute past CacheTimeout: an item's time starts when it is saved, just after the last touch
                 entry.SetSlidingExpiration(CacheTimeout + TimeSpan.FromMinutes(1));
                 entry.RegisterPostEvictionCallback((_, value, _, _) => (value as CancellationTokenSource)?.Cancel());
                 return new CancellationTokenSource(); // never disposed: a reader may still hold it
@@ -59,6 +59,9 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
             TieToUser(userId, entry);
             var item = await factory(entry);
             CapExpiration(entry);
+
+            // touched again once read, so however long the read took, the token outlives the item
+            _ = GetUserTokenSource(userId);
             return item;
         });
 

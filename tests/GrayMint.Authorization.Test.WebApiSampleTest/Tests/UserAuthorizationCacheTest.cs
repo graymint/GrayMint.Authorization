@@ -28,6 +28,28 @@ public class UserAuthorizationCacheTest
     }
 
     [TestMethod]
+    public async Task Clear_reaches_an_item_after_a_slow_read()
+    {
+        var clock = new TestClock();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions { Clock = clock });
+        var userAuthorizationCache = new UserAuthorizationCache(memoryCache);
+        var userId = Guid.NewGuid().ToString();
+
+        // a read of two minutes saves the item two minutes after the token was first touched
+        await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "item", entry => {
+            clock.UtcNow += TimeSpan.FromMinutes(2);
+            return CreateItem(entry, "stale");
+        });
+
+        // past the token's 61 minutes from that first touch, still inside the item's 60
+        clock.UtcNow += TimeSpan.FromMinutes(59.5);
+        userAuthorizationCache.ClearUserItems(userId);
+        var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "item",
+            entry => CreateItem(entry, "fresh"));
+        Assert.AreEqual("fresh", item);
+    }
+
+    [TestMethod]
     public async Task Clear_during_a_read_leaves_nothing_cached()
     {
         using var memoryCache = new MemoryCache(new MemoryCacheOptions());
