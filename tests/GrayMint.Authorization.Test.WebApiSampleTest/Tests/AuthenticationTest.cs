@@ -50,7 +50,6 @@ public class AuthenticationTest
 
         //reset token
         await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
-        await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
@@ -68,7 +67,6 @@ public class AuthenticationTest
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
-        await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
@@ -91,7 +89,6 @@ public class AuthenticationTest
 
         //reset token
         await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
-        await Task.Delay(200);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId));
     }

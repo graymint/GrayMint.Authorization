@@ -223,6 +223,27 @@ public class TeamControllerTest
     }
 
     [TestMethod]
+    public async Task Bot_of_alien_resource_can_not_be_reset_by_another_form_of_its_id()
+    {
+        using var testInit = await TestInit.Create();
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        var otherFormId = Guid.Parse(bot.UserId).ToString("N").ToUpperInvariant();
+
+        // the app's admin reads the bot's roles by another form of its id while the bot is in its reach
+        var adminApiKey = await testInit.AddNewBot(Roles.AppAdmin);
+        await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: otherFormId);
+
+        // the bot joins a second app, out of that admin's reach
+        testInit.SetApiKey(testInit.SystemAdminApiKey);
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        await testInit.TeamClient.AddUserAsync(app2.AppId.ToString(), Roles.AppReader.RoleId, bot.UserId);
+
+        testInit.SetApiKey(adminApiKey);
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.ResetBotApiKeyAsync(otherFormId));
+    }
+
+    [TestMethod]
     public async Task Crud()
     {
         using var testInit = await TestInit.Create();

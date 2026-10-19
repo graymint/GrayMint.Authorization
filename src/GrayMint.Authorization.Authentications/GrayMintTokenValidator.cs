@@ -40,18 +40,28 @@ public class GrayMintTokenValidator(
             throw new AuthenticationException(
                 $"Can not authenticated by this token usage. RequiredToken: {tokenUsage}");
 
+        // find the token's user; tied to the user once known, so a lock or a reset drops it
+        var userIdCacheKey = $"graymint:auth:token:userid:jti={tokenId}";
+        var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, async entry => {
+            entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
+            var id = await authorizationProvider.GetUserId(claimsPrincipal);
+            if (id != null)
+                userAuthorizationCache.AddUserItem(id, entry);
+            return id;
+        });
+
         // check authCode
         var tokenAuthCode = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
-        var authCodeCacheKey = $"graymint:auth:token:auth-code:jti={tokenId}";
         if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode) {
             if (string.IsNullOrEmpty(tokenAuthCode))
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");
 
-            // get authCode and manage cache
-            var authCode = await memoryCache.GetOrCreateAsync(authCodeCacheKey, entry => {
-                entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
-                return authorizationProvider.GetAuthorizationCode(claimsPrincipal);
-            });
+            // get authCode and manage cache; a user's code is tied to the user before it is read
+            var authCode = userId != null
+                ? await userAuthorizationCache.GetOrCreateUserItemAsync(userId, $"token:auth-code:jti={tokenId}",
+                    entry => CreateAuthCodeEntry(entry, claimsPrincipal))
+                : await memoryCache.GetOrCreateAsync($"graymint:auth:token:auth-code:jti={tokenId}",
+                    entry => CreateAuthCodeEntry(entry, claimsPrincipal));
 
             if (string.IsNullOrEmpty(authCode))
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in token.");
@@ -61,19 +71,16 @@ public class GrayMintTokenValidator(
         }
 
         // update name-identifier
-        var userIdCacheKey = $"graymint:auth:token:userid:jti={tokenId}";
-        var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, entry => {
-            entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
-            return authorizationProvider.GetUserId(claimsPrincipal);
-        });
-
-        if (userId != null) {
+        if (userId != null)
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, userId);
-            userAuthorizationCache.AddUserItem(userId, userIdCacheKey);
-            userAuthorizationCache.AddUserItem(userId, authCodeCacheKey);
-        }
 
         await authorizationProvider.OnAuthenticated(claimsPrincipal);
+    }
+
+    private Task<string?> CreateAuthCodeEntry(ICacheEntry entry, ClaimsPrincipal claimsPrincipal)
+    {
+        entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
+        return authorizationProvider.GetAuthorizationCode(claimsPrincipal);
     }
 
     private static string EnsureHttps(string url)

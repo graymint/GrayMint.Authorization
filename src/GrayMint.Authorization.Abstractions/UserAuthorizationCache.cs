@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 
 namespace GrayMint.Authorization.Abstractions;
 
@@ -7,9 +8,37 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
     private readonly Lock _lockObject = new();
     private static TimeSpan CacheTimeout => AuthorizationConstants.CacheTimeout;
 
+    // a Guid id is keyed in its standard form, so every way of writing it (upper case, no hyphens)
+    // shares the same entries and every clear reaches them
     private static string BuildUserCacheKey(string userId)
     {
-        return $"graymint:auth:userid:{userId}";
+        var normalizedUserId = Guid.TryParse(userId, out var guid) ? guid.ToString() : userId;
+        return $"graymint:auth:userid:{normalizedUserId}";
+    }
+
+    // every item of a user expires with the user's token, so a clear drops them all at once; the token
+    // slides with each new item and no item lives longer than CacheTimeout, so it outlives its items
+    private CancellationTokenSource GetUserTokenSource(string userId)
+    {
+        // under the lock, so a user never has a second token that a clear would miss
+        lock (_lockObject)
+            return memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
+                entry.SetSlidingExpiration(CacheTimeout);
+                entry.RegisterPostEvictionCallback((_, value, _, _) => (value as CancellationTokenSource)?.Cancel());
+                return new CancellationTokenSource(); // never disposed: a reader may still hold it
+            }) ?? throw new InvalidOperationException("Could not create the user's cache token.");
+    }
+
+    private void TieToUser(string userId, ICacheEntry entry)
+    {
+        entry.AddExpirationToken(new CancellationChangeToken(GetUserTokenSource(userId).Token));
+    }
+
+    // MemoryCache keeps the earlier of an absolute and a relative expiration, so this caps both
+    private static void CapExpiration(ICacheEntry entry)
+    {
+        if (entry.AbsoluteExpirationRelativeToNow is null || entry.AbsoluteExpirationRelativeToNow > CacheTimeout)
+            entry.AbsoluteExpirationRelativeToNow = CacheTimeout;
     }
 
     public async Task<TItem> GetOrCreateRequiredUserItemAsync<TItem>(string userId, string itemKey,
@@ -23,50 +52,36 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
     public async Task<TItem?> GetOrCreateUserItemAsync<TItem>(string userId, string itemKey,
         Func<ICacheEntry, Task<TItem>> factory)
     {
-        // get list of current users keys
-        var userCacheKey = BuildUserCacheKey(userId);
-        var keys = memoryCache.GetOrCreate(userCacheKey, entry => {
-                entry.SetAbsoluteExpiration(CacheTimeout);
-                return new HashSet<string>();
-            }
-        );
+        var itemCacheKey = $"{BuildUserCacheKey(userId)}:{itemKey}";
+        var res = await memoryCache.GetOrCreateAsync(itemCacheKey, async entry => {
+            // tied before the read, so a clear during the read leaves nothing cached
+            TieToUser(userId, entry);
+            var item = await factory(entry);
+            CapExpiration(entry);
+            return item;
+        });
 
-        // Create a unique key for the user item in the mem cache
-        var itemCacheKey = $"{userCacheKey}:{itemKey}";
-
-        // add the itemCacheKey to user keys
-        lock (_lockObject)
-            keys?.Add(itemCacheKey);
-
-        // add the key
-        var res = await memoryCache.GetOrCreateAsync(itemCacheKey, factory);
         return res;
     }
 
-    public void AddUserItem(string userId, string itemKey)
+    // makes an entry being created one of the user's items, when its user is known only once read;
+    // call it after setting the entry's expiration
+    public void AddUserItem(string userId, ICacheEntry entry)
     {
-        var keys = memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
-                entry.SetAbsoluteExpiration(CacheTimeout);
-                return new HashSet<string>();
-            }
-        );
-
-        lock (_lockObject)
-            keys?.Add(itemKey);
+        TieToUser(userId, entry);
+        CapExpiration(entry);
     }
 
     public void ClearUserItems(string userId)
     {
         var userCacheKey = BuildUserCacheKey(userId);
-        var keys = memoryCache.Get<HashSet<string>>(userCacheKey);
-        if (keys == null)
-            return;
+        lock (_lockObject) {
+            if (!memoryCache.TryGetValue(userCacheKey, out CancellationTokenSource? tokenSource))
+                return;
 
-        foreach (var key in keys)
-            if (keys.TryGetValue(key, out var actualKey))
-                memoryCache.Remove(actualKey);
-
-        // remove key itself
-        memoryCache.Remove(userCacheKey);
+            // cancelling expires the items at once; the eviction callback alone would run later
+            memoryCache.Remove(userCacheKey);
+            tokenSource?.Cancel();
+        }
     }
 }

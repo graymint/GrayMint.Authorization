@@ -61,6 +61,25 @@ public class RoleProviderTest
     }
 
     [TestMethod]
+    public async Task Role_added_by_another_form_of_user_id_applies_at_once()
+    {
+        using var testInit = await TestInit.Create();
+
+        // the bot's roles are cached by its own id
+        var bot = await testInit.AddNewBot(Roles.AppReader);
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
+
+        // a role added by the same id in upper case and without hyphens
+        var otherFormId = Guid.Parse(bot.UserId).ToString("N").ToUpperInvariant();
+        var resourceId = Guid.NewGuid().ToString();
+        var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
+        await roleProvider.AddUserRole(resourceId, Roles.AppReader.RoleId, otherFormId);
+
+        var resourceIds = await testInit.TeamClient.ListCurrentUserResourcesAsync();
+        Assert.Contains(resourceId, resourceIds);
+    }
+
+    [TestMethod]
     public async Task GetAuthUser()
     {
         using var testInit = await TestInit.Create();

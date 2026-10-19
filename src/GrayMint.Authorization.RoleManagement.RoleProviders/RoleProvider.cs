@@ -74,7 +74,7 @@ public class RoleProvider : IRoleProvider
 
         // Clear cache
         foreach (var userRole in userRoles)
-            _userAuthorizationCache.ClearUserItems(userRole.UserId.ToString().ToLower());
+            _userAuthorizationCache.ClearUserItems(userRole.UserId.ToString());
     }
 
     public Task<Role[]> GetRoles(string resourceId)
