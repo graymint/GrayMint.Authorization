@@ -32,6 +32,7 @@ dotnet add package GrayMint.Authorization
 ### 1. Configure App Settings
 - `Issuer`: The issuer of the tokens.
 - `Audience`: The audience of the tokens.
+- `Audiences`: More audiences to accept but never to issue, such as the old one while a service moves its tokens to a new `Audience`.
 - `Secret`: The secret key for token generation.
 - `Secrets`: List of additional secret keys.
 - `CacheTimeout`: The cache timeout duration.
@@ -40,6 +41,23 @@ dotnet add package GrayMint.Authorization
 - `AllowRefreshToken`: Boolean flag to allow or disallow refresh tokens.
 - `SignInRedirectUrl`: The URL to redirect to after sign-in.
 - `OpenIdProviders`: List of OpenID providers with their respective configurations.
+- `AllowSystemApiKey`: Allows the anonymous system api-key endpoints, which take the signing secret. Unset, they work outside production only.
+
+Every access token carries an `authorization_code` claim, checked on each request so that the token can be revoked; a token without one is refused. A token meant to outlive any revocation, such as a customer token, carries `*`.
+
+A person added to a resource by email shows to its team by email only until their first request to that resource, so adding an email shows the team nothing of that person's profile. Bots, which the team's own admins create, show in full.
+
+Upgrading an existing SQL Server database: the role provider creates missing tables, not missing columns, so add `ConfirmedTime` before the new version starts. The members already on a team are confirmed once, with the column, so they keep showing in full:
+
+```sql
+IF COL_LENGTH('gmrole.UserRoles', 'ConfirmedTime') IS NULL
+BEGIN
+    ALTER TABLE [gmrole].[UserRoles] ADD [ConfirmedTime] datetime2(0) NULL
+    EXEC('UPDATE [gmrole].[UserRoles] SET [ConfirmedTime] = SYSUTCDATETIME()')
+END
+```
+
+Emails are looked up and stored lower-cased. On a database that compares text case-sensitively (PostgreSQL, SQLite), lower-case the emails already stored once, or an email stored in another case is not found and adding it again creates a second account.
 
 ### 2. Service Registration (from Sample Web API)
 ```csharp

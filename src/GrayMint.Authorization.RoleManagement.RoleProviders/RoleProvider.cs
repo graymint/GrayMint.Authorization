@@ -9,11 +9,13 @@ using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 public class RoleProvider : IRoleProvider
 {
+    private static readonly CancellationChangeToken NotCachedToken = new(new CancellationToken(canceled: true));
     private readonly RoleDbContext _roleDbContext;
     private readonly RoleProviderOptions _roleProviderOptions;
     private readonly IRoleResourceProvider _roleResourceProvider;
@@ -46,12 +48,24 @@ public class RoleProvider : IRoleProvider
             throw new InvalidOperationException(
                 $"The role of {role.RoleName} can only be added on the system resource.");
 
+        // a resource's role on the system resource would apply to every resource
+        if (!role.IsRoot && IsRootResource(resourceId))
+            throw new InvalidOperationException(
+                $"The role of {role.RoleName} can not be added on the system resource.");
+
+        // a member who has used the resource stays confirmed when their role changes
+        var userGuid = Guid.Parse(userId);
+        var confirmedTime = (await GetUserRoleModels(userGuid, userId))
+            .Where(x => x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase))
+            .Max(x => x.ConfirmedTime);
+
         _roleDbContext.ChangeTracker.Clear();
         var entry = await _roleDbContext.UserRoles
             .AddAsync(new UserRoleModel {
                 RoleId = Guid.Parse(roleId),
-                UserId = Guid.Parse(userId),
-                ResourceId = resourceId
+                UserId = userGuid,
+                ResourceId = resourceId,
+                ConfirmedTime = confirmedTime
             });
 
         await _roleDbContext.SaveChangesAsync();
@@ -113,11 +127,15 @@ public class RoleProvider : IRoleProvider
             return await GetUserRolesWithUserFilter(criteria.ResourceId, criteria.UserId, criteria.RoleId,
                 recordIndex: recordIndex, recordCount: recordCount);
 
+        // a role id that is no Guid matches no one
+        Guid? roleGuid = Guid.TryParse(criteria.RoleId, out var parsedRoleId) ? parsedRoleId : null;
+        if (criteria.RoleId != null && roleGuid == null)
+            return new ListResult<UserRole> { TotalCount = 0, Items = [] };
+
         await using var trans = await _roleDbContext.WithNoLockTransaction();
         var query = _roleDbContext.UserRoles
             .Where(x =>
-                (criteria.RoleId == null || x.RoleId == Guid.Parse(criteria.RoleId)) &&
-                (criteria.UserId == null || x.UserId == Guid.Parse(criteria.UserId)) &&
+                (roleGuid == null || x.RoleId == roleGuid) &&
                 (criteria.ResourceId == null || x.ResourceId == criteria.ResourceId));
 
         var results = await query
@@ -137,40 +155,75 @@ public class RoleProvider : IRoleProvider
     private async Task<ListResult<UserRole>> GetUserRolesWithUserFilter(string? resourceId, string userId,
         string? roleId, int recordIndex, int recordCount)
     {
-        var allUserRoles = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
-            async entry => {
-                await using var trans = await _roleDbContext.WithNoLockTransaction();
-                var res = await _roleDbContext.UserRoles
-                    .Where(x => x.UserId == Guid.Parse(userId))
-                    .ToArrayAsync();
+        // an id that is no Guid belongs to no one, so it answers as an unknown user does
+        if (!Guid.TryParse(userId, out var userGuid))
+            return new ListResult<UserRole> { TotalCount = 0, Items = [] };
 
-                entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
-                return res;
-            });
-
-        var results = allUserRoles
+        var userRoles = (await GetUserRoleModels(userGuid, userId))
             .Where(x =>
-                (roleId == null || x.RoleId == Guid.Parse(roleId)) &&
+                (roleId == null || (Guid.TryParse(roleId, out var roleGuid) && x.RoleId == roleGuid)) &&
                 (resourceId == null || x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(x => x.ResourceId)
-            .Skip(recordIndex)
-            .Take(recordCount)
             .ToArray();
 
         var ret = new ListResult<UserRole> {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : allUserRoles.Length,
-            Items = [.. results.Select(x => x.ToDto(_roles))]
+            TotalCount = userRoles.Length,
+            Items = [.. userRoles.Skip(recordIndex).Take(recordCount).Select(x => x.ToDto(_roles))]
         };
 
         return ret;
     }
 
+    // all of a user's roles, cached as they are read
+    private Task<UserRoleModel[]> GetUserRoleModels(Guid userGuid, string userId)
+    {
+        return _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
+            async entry => {
+                await using var trans = await _roleDbContext.WithNoLockTransaction();
+                var res = await _roleDbContext.UserRoles
+                    .Where(x => x.UserId == userGuid)
+                    .ToArrayAsync();
+
+                entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
+                return res;
+            });
+    }
+
+    // the first request a member makes to the resource; written once, as the cached roles take it too
+    private async Task ConfirmUserRoles(string resourceId, string userId)
+    {
+        if (!Guid.TryParse(userId, out var userGuid))
+            return;
+
+        var userRoleModels = (await GetUserRoleModels(userGuid, userId))
+            .Where(x => x.ConfirmedTime == null && x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (userRoleModels.Length == 0)
+            return;
+
+        var confirmedTime = DateTime.UtcNow;
+        var userRoleIds = userRoleModels.Select(x => x.UserRoleId).ToArray();
+        await _roleDbContext.UserRoles
+            .Where(x => userRoleIds.Contains(x.UserRoleId) && x.ConfirmedTime == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ConfirmedTime, confirmedTime));
+
+        foreach (var userRoleModel in userRoleModels)
+            userRoleModel.ConfirmedTime = confirmedTime;
+    }
+
     public async Task<string[]> GetUserPermissions(string resourceId, string userId)
     {
         var permissions = await _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId,
-            $"resources:{resourceId}:user-permissions", entry => {
+            $"resources:{resourceId}:user-permissions", async entry => {
                 entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
-                return GetUserPermissionsInternal(resourceId, userId);
+                var res = await GetUserPermissionsInternal(resourceId, userId);
+
+                // an empty set isn't kept, so made-up resource ids can't grow the cache; a cancelled token
+                // makes the cache refuse the entry
+                if (res.Length == 0)
+                    entry.AddExpirationToken(NotCachedToken);
+
+                return res;
             });
 
         return permissions;
@@ -180,6 +233,10 @@ public class RoleProvider : IRoleProvider
     {
         // get roles for the resource and system resource
         var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
+
+        // these are the user's own permissions, asked by their request, which confirms the membership
+        if (userRoles.Any(x => x.ConfirmedTime == null))
+            await ConfirmUserRoles(resourceId, userId);
 
         // find roles
         var roles = _roles.Where(x => userRoles.Any(y => y.Role.RoleId == x.RoleId))

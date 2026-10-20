@@ -3,6 +3,7 @@ using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.Dtos;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace GrayMint.Authorization.MicroserviceAuthorization;
@@ -11,7 +12,8 @@ public class MicroserviceAuthorizationService(
     GrayMintAuthentication grayMintAuthentication,
     IAuthorizationProvider authorizationProvider,
     UserAuthorizationCache userAuthorizationCache,
-    IOptions<GrayMintAuthenticationOptions> authenticationOptions)
+    IOptions<GrayMintAuthenticationOptions> authenticationOptions,
+    IHostEnvironment hostEnvironment)
 {
     private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
 
@@ -46,7 +48,11 @@ public class MicroserviceAuthorizationService(
 
     public async Task<ApiKey> CreateSystemApiKey(string secret)
     {
-        if (!Convert.FromBase64String(secret).SequenceEqual(_authenticationOptions.Secret))
+        // checked before the secret, so a production server never even compares it
+        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsProduction()))
+            throw new UnauthorizedAccessException("The system api key is disabled.");
+
+        if (!_authenticationOptions.MatchesSecret(secret))
             throw new UnauthorizedAccessException("Bad secret.");
 
         // get authorization code

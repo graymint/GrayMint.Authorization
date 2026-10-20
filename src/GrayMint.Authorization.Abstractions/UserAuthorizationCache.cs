@@ -76,24 +76,18 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         CapExpiration(entry);
     }
 
-    // under the lock, so no new item ties to the token between its read and its removal
-    private CancellationTokenSource? RemoveUserTokenSource(string userId)
-    {
-        var userCacheKey = BuildUserCacheKey(userId);
-        lock (_lockObject) {
-            if (!memoryCache.TryGetValue(userCacheKey, out CancellationTokenSource? tokenSource))
-                return null;
-
-            memoryCache.Remove(userCacheKey);
-            return tokenSource;
-        }
-    }
-
     public void ClearUserItems(string userId)
     {
-        // cancelling expires the items at once, where the eviction callback alone would run later; outside
-        // the lock, so a user with many items holds up no one else
-        var tokenSource = RemoveUserTokenSource(userId);
-        tokenSource?.Cancel();
+        var userCacheKey = BuildUserCacheKey(userId);
+
+        // cancelled before it can no longer be found, so a clear that finds no token finds no live item
+        // either; CancelAsync sets the signal at once and runs the items' callbacks off the lock
+        lock (_lockObject) {
+            if (!memoryCache.TryGetValue(userCacheKey, out CancellationTokenSource? tokenSource))
+                return;
+
+            _ = tokenSource?.CancelAsync();
+            memoryCache.Remove(userCacheKey);
+        }
     }
 }

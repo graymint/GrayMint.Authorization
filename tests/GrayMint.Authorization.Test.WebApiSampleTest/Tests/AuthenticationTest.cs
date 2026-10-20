@@ -1,5 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Claims;
+using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Utils;
+using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
@@ -7,6 +13,7 @@ using GrayMint.Common.ApiClients;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using TokenUse = GrayMint.Authorization.Authentications.Dtos.TokenUse;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
@@ -309,5 +316,116 @@ public class AuthenticationTest
             testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
                 { RefreshToken = apiKey.RefreshToken.Value }),
             "Revoked token should not be refreshed.");
+    }
+
+    [TestMethod]
+    public async Task Token_without_auth_code_is_refused()
+    {
+        using var testInit = await TestInit.Create();
+        var bot = await testInit.AddNewBot(Roles.AppReader);
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
+
+        // the same bot's token, signed with the server's own key but carrying no auth code
+        var options = testInit.AuthenticationOptions;
+        var token = JwtUtil.CreateSymmetricJwt(options.Secret, options.Issuer, options.Audience ?? options.Issuer,
+            subject: bot.UserId,
+            claims: [
+                new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Access),
+                new Claim(GrayMintClaimTypes.Version, "2", ClaimValueTypes.Integer)
+            ],
+            expirationTime: DateTime.UtcNow.AddHours(1));
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.TeamClient.ListCurrentUserResourcesAsync());
+    }
+
+    [TestMethod]
+    public async Task Extra_audiences_are_accepted_but_never_issued()
+    {
+        using var testInit = await TestInit.Create(
+            appSettings: new Dictionary<string, string?> { ["Auth:Audiences:0"] = "old-audience" });
+        var apiKey = await testInit.SignUpNewUser();
+        var user = await testInit.UserProvider.Get(apiKey.UserId);
+        var options = testInit.AuthenticationOptions;
+
+        // our own tokens carry the main audience only
+        var issuedToken = new JwtSecurityTokenHandler().ReadJwtToken(apiKey.AccessToken.Value);
+        Assert.AreEqual(options.Audience ?? options.Issuer, issuedToken.Audiences.Single());
+
+        // a token for the extra audience works, any other audience doesn't
+        foreach (var audience in new[] { "old-audience", "other-audience" }) {
+            var token = JwtUtil.CreateSymmetricJwt(options.Secret, options.Issuer, audience,
+                subject: apiKey.UserId,
+                claims: [
+                    new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Access),
+                    new Claim(GrayMintClaimTypes.Version, "2", ClaimValueTypes.Integer),
+                    new Claim(GrayMintClaimTypes.AuthCode, user.AuthorizationCode ?? string.Empty)
+                ],
+                expirationTime: DateTime.UtcNow.AddHours(1));
+            testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            if (audience == "old-audience")
+                await testInit.TeamClient.ListCurrentUserResourcesAsync();
+            else
+                await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+                    testInit.TeamClient.ListCurrentUserResourcesAsync());
+        }
+    }
+
+    [TestMethod]
+    public async Task Sign_in_keeps_only_profile_claims()
+    {
+        using var testInit = await TestInit.Create();
+
+        // an id token that also carries a permission and a role
+        var permissionClaim = PermissionAuthorization.BuildPermissionClaim(testInit.AppResourceId, Permissions.CustomerRead);
+        var apiKey = await testInit.SignUpNewUser(claims: [
+            permissionClaim,
+            new Claim(ClaimTypes.Role, Roles.SystemAdmin.RoleName),
+            new Claim(ClaimTypes.GivenName, "Ada")
+        ]);
+
+        var accessToken = new JwtSecurityTokenHandler().ReadJwtToken(apiKey.AccessToken.Value);
+        Assert.IsFalse(accessToken.Claims.Any(x => x.Type == permissionClaim.Type));
+        Assert.IsFalse(accessToken.Claims.Any(x => x.Type is "role" or ClaimTypes.Role));
+        Assert.IsTrue(accessToken.Claims.Any(x => x.Value == "Ada"));
+    }
+
+    [TestMethod]
+    public async Task Current_user_answer_hides_the_auth_code()
+    {
+        using var testInit = await TestInit.Create();
+        await testInit.AddNewBot(Roles.AppReader);
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
+        Assert.IsNull(user.AuthorizationCode);
+    }
+
+    [TestMethod]
+    public async Task System_api_key_is_off_when_disabled()
+    {
+        using var testInit = await TestInit.Create(
+            appSettings: new Dictionary<string, string?> { ["Auth:AllowSystemApiKey"] = "false" },
+            createSystemAdmin: false);
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret)));
+    }
+
+    [TestMethod]
+    public async Task System_api_key_refuses_a_secret_that_is_no_base64()
+    {
+        using var testInit = await TestInit.Create();
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.CreateSystemApiKeyAsync("not base64!"));
+    }
+
+    [TestMethod]
+    public void System_api_key_is_off_in_production_unless_set()
+    {
+        var options = new GrayMintAuthenticationOptions { Secret = [1], Issuer = "local" };
+        Assert.IsFalse(options.IsSystemApiKeyAllowed(isProduction: true));
+        Assert.IsTrue(options.IsSystemApiKeyAllowed(isProduction: false));
+
+        options = new GrayMintAuthenticationOptions { Secret = [1], Issuer = "local", AllowSystemApiKey = true };
+        Assert.IsTrue(options.IsSystemApiKeyAllowed(isProduction: true));
     }
 }

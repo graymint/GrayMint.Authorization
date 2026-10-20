@@ -12,6 +12,7 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 
@@ -24,7 +25,8 @@ public class TeamService(
     IOptions<TeamControllerOptions> teamControllersOptions,
     IOptions<GrayMintAuthenticationOptions> authenticationOptions,
     GrayMintAuthentication grayMintAuthentication,
-    IAuthorizationService authorizationService)
+    IAuthorizationService authorizationService,
+    IHostEnvironment hostEnvironment)
 {
     private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
     private readonly TeamControllerOptions _teamControllersOptions = teamControllersOptions.Value;
@@ -45,7 +47,54 @@ public class TeamService(
             FirstName = updateParam.Name
         });
 
+        return HideInternalFields(user);
+    }
+
+    // teammates see a user's profile, never the token revocation code or the app's own notes on them
+    private static User HideInternalFields(User user)
+    {
+        user.AuthorizationCode = null;
+        user.Description = null;
+        user.ExData = null;
         return user;
+    }
+
+    // a person shows on a resource's team by the email they were added by until their first request to it,
+    // so adding an email tells no one whether it has an account, or anything of its profile
+    private static User HideProfile(User user)
+    {
+        HideInternalFields(user);
+        user.Name = null;
+        user.FirstName = null;
+        user.LastName = null;
+        user.PictureUrl = null;
+        user.Phone = null;
+        user.CreatedTime = default;
+        user.AccessedTime = null;
+        user.IsDisabled = false;
+        user.IsEmailVerified = false;
+        user.IsPhoneVerified = false;
+        return user;
+    }
+
+    // a bot is the team's own, so it always shows
+    private static bool IsProfileHidden(User user, IEnumerable<UserRole> resourceUserRoles)
+    {
+        var userRoles = resourceUserRoles.Where(x => x.UserId == user.UserId).ToArray();
+        return !user.IsBot && userRoles.Length > 0 && userRoles.All(x => x.ConfirmedTime == null);
+    }
+
+    // a hidden profile is found only by what shows of it: its email or id
+    private static bool MatchesHiddenProfile(User user, string? search, string? firstName, string? lastName)
+    {
+        if (firstName != null || lastName != null)
+            return false;
+
+        search = search?.Trim();
+        return string.IsNullOrEmpty(search) ||
+               user.Email?.StartsWith(search, StringComparison.OrdinalIgnoreCase) == true ||
+               (Guid.TryParse(search, out var searchGuid) && Guid.TryParse(user.UserId, out var userGuid) &&
+                searchGuid == userGuid);
     }
 
     public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
@@ -101,8 +150,13 @@ public class TeamService(
 
     public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email)
     {
+        // a role the resource can't hold fails before an account is made for the email
+        var roles = await roleProvider.GetRoles(resourceId);
+        if (roles.All(x => x.RoleId != roleId))
+            throw new InvalidOperationException("This role can not be added on this resource.");
+
         // create user if not found
-        email = email.Trim();
+        email = NormalizeEmail(email);
         var user = await userProvider.FindByEmail(email);
         user ??= await userProvider.Create(new UserCreateRequest { Email = email });
         return await AddUser(resourceId, roleId, user.UserId);
@@ -114,6 +168,9 @@ public class TeamService(
         var user = await userProvider.Get(userId);
         if (user.IsBot && !_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
+
+        // the user's own id from here on, as the caller may have written it another way
+        userId = user.UserId;
 
         // check is already exists
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
@@ -135,8 +192,13 @@ public class TeamService(
 
     public Task<User?> FindUserByEmail(string email)
     {
-        email = email.Trim();
-        return userProvider.FindByEmail(email);
+        return userProvider.FindByEmail(NormalizeEmail(email));
+    }
+
+    // as sign-up stores it, so an added email answers in one form whether or not an account held it
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
     }
 
     public async Task<string> GetUserId(ClaimsPrincipal user)
@@ -168,9 +230,17 @@ public class TeamService(
         var userRoleList = await roleProvider.GetUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
-        // get users of userRoles
+        // get users of userRoles; on a resource's team, one who hasn't used it yet shows by email only
         var userList = await userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
             userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
+        var users = userList.Items
+            .Select(x => new {
+                User = x,
+                IsHidden = resourceId != null && IsProfileHidden(x, userRoleList)
+            })
+            .Where(x => !x.IsHidden || MatchesHiddenProfile(x.User, search, firstName, lastName))
+            .Select(x => x.IsHidden ? HideProfile(x.User) : HideInternalFields(x.User))
+            .ToArray();
 
         // attach user to UserRoles
         var userRoles = userRoleList
@@ -178,13 +248,14 @@ public class TeamService(
                 ResourceId = x.ResourceId,
                 Role = x.Role,
                 UserId = x.UserId,
-                User = userList.Items.SingleOrDefault(y => y.UserId == x.UserId)
+                ConfirmedTime = x.ConfirmedTime,
+                User = users.SingleOrDefault(y => y.UserId == x.UserId)
             })
             .OrderBy(x => x.User?.FirstName)
             .ToArray();
 
         // filter user search
-        if (search != null || isBot != null)
+        if (search != null || firstName != null || lastName != null || isBot != null)
             userRoles = [.. userRoles.Where(x => x.User != null)];
 
         // create the result
@@ -203,7 +274,7 @@ public class TeamService(
 
     public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
     {
-        var user = await userProvider.FindByEmail(email);
+        var user = await userProvider.FindByEmail(NormalizeEmail(email));
         return await GetTeamUser(resourceId, user);
     }
 
@@ -219,7 +290,7 @@ public class TeamService(
             throw new NotExistsException("There is no such user in this resource.");
 
         return new TeamUser {
-            User = user,
+            User = IsProfileHidden(user, userRoles) ? HideProfile(user) : HideInternalFields(user),
             Roles = [.. userRoles.Select(x => x.Role)]
         };
     }
@@ -248,7 +319,11 @@ public class TeamService(
 
     public async Task<ApiKey> CreateSystemApiKey(string secret)
     {
-        if (!Convert.FromBase64String(secret).SequenceEqual((_authenticationOptions.Secret)))
+        // checked before the secret, so a production server never even compares it
+        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsProduction()))
+            throw new UnauthorizedAccessException("The system api key is disabled.");
+
+        if (!_authenticationOptions.MatchesSecret(secret))
             throw new UnauthorizedAccessException("Bad secret.");
 
         var rootResourceId = GetRootResourceId();
@@ -320,9 +395,9 @@ public class TeamService(
         if (_teamControllersOptions.AllowOwnerSelfRemove)
             return;
 
-        // check is caller changing himself
+        // check is caller changing himself, however the id is written
         var callerUserId = await authorizationProvider.GetUserId(caller);
-        if (callerUserId != userId)
+        if (!IsSameUserId(callerUserId, userId))
             return;
 
         // check is caller the owner of the resource
@@ -356,5 +431,13 @@ public class TeamService(
     public string GetRootResourceId()
     {
         return AuthorizationConstants.RootResourceId;
+    }
+
+    // a Guid id may be written several ways (upper case, no hyphens); any other id compares as written
+    private static bool IsSameUserId(string? userId1, string userId2)
+    {
+        return Guid.TryParse(userId1, out var guid1) && Guid.TryParse(userId2, out var guid2)
+            ? guid1 == guid2
+            : userId1 == userId2;
     }
 }

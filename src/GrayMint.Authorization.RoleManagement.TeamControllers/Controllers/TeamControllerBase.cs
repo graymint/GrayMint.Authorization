@@ -140,7 +140,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         //await VerifyWritePermissionOnUser(resourceId, userId); any user can be added to a resource except bots
         await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
 
-
         // check write permission on bot
         var user = await teamService.GetUser(userId);
         if (user.IsBot)

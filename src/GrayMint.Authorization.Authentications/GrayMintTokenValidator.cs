@@ -50,8 +50,13 @@ public class GrayMintTokenValidator(
             return id;
         });
 
-        // check authCode
+        // check authCode: a token used for access carries the code it was issued with, so it can always be
+        // revoked; only an id token of a user who has not signed up yet has none
         var tokenAuthCode = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
+        var isIdToken = tokenUsage != TokenUse.Access && claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id);
+        if (tokenAuthCode == null && !isIdToken)
+            throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");
+
         if (tokenAuthCode != null && tokenAuthCode != AuthorizationConstants.AnyAuthCode) {
             if (string.IsNullOrEmpty(tokenAuthCode))
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in the token.");

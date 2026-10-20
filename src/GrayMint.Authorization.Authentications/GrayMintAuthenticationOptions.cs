@@ -1,4 +1,5 @@
-﻿using GrayMint.Authorization.Authentications.Dtos;
+﻿using System.Security.Cryptography;
+using GrayMint.Authorization.Authentications.Dtos;
 
 namespace GrayMint.Authorization.Authentications;
 
@@ -35,6 +36,9 @@ public class GrayMintAuthenticationOptions
     public IEnumerable<byte[]> Secrets { get; init; } = [];
     public required string Issuer { get; init; }
     public string? Audience { get; init; }
+
+    // also accepted, never issued: lets a service move its tokens to a new Audience while old ones live
+    public string[] Audiences { get; init; } = [];
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenTimeout { get; init; } = TimeSpan.FromMinutes(15);
@@ -48,6 +52,20 @@ public class GrayMintAuthenticationOptions
     public Uri? SignInRedirectUrl { get; init; }
     public bool AllowRefreshToken { get; init; }
     public OpenIdProvider[] OpenIdProviders { get; init; } = [];
+
+    // the anonymous system api-key endpoints take the signing secret as a password: off in production
+    // unless set, so a host turns them on only to mint a token
+    public bool? AllowSystemApiKey { get; init; }
+
+    public bool IsSystemApiKeyAllowed(bool isProduction) => AllowSystemApiKey ?? !isProduction;
+
+    // compared in fixed time; anything that is not base64 matches nothing
+    public bool MatchesSecret(string base64Secret)
+    {
+        var buffer = new byte[base64Secret.Length];
+        return Convert.TryFromBase64String(base64Secret, buffer, out var length) &&
+               CryptographicOperations.FixedTimeEquals(buffer.AsSpan(0, length), Secret);
+    }
 
     public void Validate(bool isProduction)
     {

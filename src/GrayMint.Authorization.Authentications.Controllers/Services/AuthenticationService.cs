@@ -30,6 +30,9 @@ public class AuthenticationService(
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
         user.AccessedTime = null;
+
+        // the revocation code is the server's, not the user's
+        user.AuthorizationCode = null;
         return user;
     }
 
@@ -68,7 +71,8 @@ public class AuthenticationService(
         var updateRequest = new UserUpdateRequest();
         var isUpdated = false;
 
-        var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email);
+        // lower-cased, as sign-up stores it, so the team sees one form of it however the provider writes it
+        var email = claimsPrincipal.FindFirstValue(ClaimTypes.Email)?.ToLowerInvariant();
         if (email != null && user.Email != email) {
             updateRequest.Email = email;
             isUpdated = true;

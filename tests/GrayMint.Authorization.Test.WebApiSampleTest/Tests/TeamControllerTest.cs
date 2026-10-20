@@ -1,16 +1,81 @@
 using System.Net;
+using System.Security.Claims;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.ApiClients;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
+using UserCreateRequest = GrayMint.Authorization.UserManagement.Abstractions.UserCreateRequest;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
 public class TeamControllerTest
 {
+    [TestMethod]
+    public async Task Added_person_shows_by_email_until_their_first_request()
+    {
+        using var testInit = await TestInit.Create();
+        var item = await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
+
+        // a person with an account and a name of their own
+        var email = TestInit.NewEmail();
+        var personApiKey = await testInit.SignUpNewUser(email,
+            [new Claim(ClaimTypes.GivenName, "Ada"), new Claim(ClaimTypes.Surname, "Lovelace")],
+            setAsCurrent: false);
+
+        // the team that adds the email sees the email only, in the form it would have for a new account,
+        // and can't find the person by their name
+        var userRole = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId,
+            Roles.AppReader.RoleId, email.ToUpperInvariant());
+        Assert.AreEqual(email, userRole.User?.Email);
+        Assert.IsNull(userRole.User?.FirstName);
+
+        var newEmail = TestInit.NewEmail();
+        var newUserRole = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId,
+            Roles.AppReader.RoleId, newEmail.ToUpperInvariant());
+        Assert.AreEqual(newEmail, newUserRole.User?.Email);
+
+        var teamUser = await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, userRole.UserId);
+        Assert.IsNull(teamUser.User.FirstName);
+        Assert.IsNull(teamUser.User.LastName);
+        Assert.IsFalse(teamUser.User.IsEmailVerified);
+        var listedUserRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId);
+        Assert.IsNull(listedUserRoles.Items.Single(x => x.UserId == userRole.UserId).User?.FirstName);
+        Assert.IsEmpty((await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, search: "Ada")).Items);
+        Assert.HasCount(1, (await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, search: email)).Items);
+
+        // their first request to the app shows them in full
+        var adminAuthorization = testInit.HttpClient.DefaultRequestHeaders.Authorization;
+        testInit.SetApiKey(personApiKey);
+        await testInit.ItemsClient.GetByPermissionAsync(testInit.AppId, item.ItemId);
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = adminAuthorization;
+
+        teamUser = await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, userRole.UserId);
+        Assert.AreEqual("Ada", teamUser.User.FirstName);
+        Assert.AreEqual("Lovelace", teamUser.User.LastName);
+
+        // and a role change keeps it so
+        await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppWriter.RoleId, email);
+        var listedUserRole = (await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId,
+            userId: userRole.UserId)).Items.Single();
+        Assert.AreEqual(Roles.AppWriter.RoleId, listedUserRole.Role.RoleId);
+        Assert.AreEqual("Ada", listedUserRole.User?.FirstName);
+    }
+
+    [TestMethod]
+    public async Task Bot_shows_in_full_at_once()
+    {
+        using var testInit = await TestInit.Create();
+        var botName = Guid.NewGuid().ToString();
+        await testInit.TeamClient.AddNewBotAsync(testInit.AppResourceId, Roles.AppReader.RoleId,
+            new TeamAddBotParam { Name = botName });
+
+        var listedUserRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, isBot: true);
+        Assert.IsTrue(listedUserRoles.Items.Any(x => x.User?.FirstName == botName));
+    }
+
     [TestMethod]
     public async Task Bot_create()
     {
@@ -200,10 +265,10 @@ public class TeamControllerTest
     {
         using var testInit = await TestInit.Create();
 
-        // the first app's person and bot, and an id of no one
+        // the first app's person and bot, an id of no one, and an id that is no id at all
         var person = await testInit.AddNewUser(Roles.AppReader);
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
-        string[] targetIds = [person.UserId, bot.UserId, Guid.NewGuid().ToString()];
+        string[] targetIds = [person.UserId, bot.UserId, Guid.NewGuid().ToString(), "not-an-id"];
 
         // a second app's admin may manage none of them, so each answers alike
         var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
@@ -241,6 +306,72 @@ public class TeamControllerTest
         testInit.SetApiKey(adminApiKey);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.TeamClient.ResetBotApiKeyAsync(otherFormId));
+    }
+
+    [TestMethod]
+    public async Task User_added_by_another_form_of_the_id_gets_the_role()
+    {
+        using var testInit = await TestInit.Create();
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+
+        // the same id in upper case and without hyphens
+        var otherFormId = Guid.Parse(bot.UserId).ToString("N").ToUpperInvariant();
+        var userRole = await testInit.TeamClient.AddUserAsync(app2.AppId.ToString(), Roles.AppReader.RoleId, otherFormId);
+        Assert.AreEqual(bot.UserId, userRole.UserId);
+        Assert.AreEqual(Roles.AppReader.RoleId, userRole.Role.RoleId);
+    }
+
+    [TestMethod]
+    public async Task Owner_can_not_drop_own_owner_role_by_another_form_of_the_id()
+    {
+        using var testInit = await TestInit.Create();
+        var owner = await testInit.AddNewBot(Roles.AppOwner);
+        var otherFormId = Guid.Parse(owner.UserId).ToString("N").ToUpperInvariant();
+        await TestUtil.AssertApiException<InvalidOperationException>(
+            testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppOwner.RoleId, otherFormId));
+    }
+
+    [TestMethod]
+    public async Task Team_answers_hide_internal_fields()
+    {
+        using var testInit = await TestInit.Create();
+        var user = await testInit.UserProvider.Create(new UserCreateRequest {
+            Email = TestInit.NewEmail(),
+            Description = Guid.NewGuid().ToString(),
+            ExData = Guid.NewGuid().ToString()
+        });
+
+        var added = await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, user.UserId);
+        var listed = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: user.UserId);
+        var read = await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, user.UserId);
+        foreach (var teamUser in new[] { added.User, listed.Items.Single().User, read.User }) {
+            Assert.IsNotNull(teamUser);
+            Assert.IsNull(teamUser.AuthorizationCode);
+            Assert.IsNull(teamUser.Description);
+            Assert.IsNull(teamUser.ExData);
+        }
+    }
+
+    [TestMethod]
+    public async Task App_role_can_not_be_added_on_the_system_resource()
+    {
+        using var testInit = await TestInit.Create();
+        var email = TestInit.NewEmail();
+        await TestUtil.AssertApiException<InvalidOperationException>(
+            testInit.TeamClient.AddUserByEmailAsync(testInit.RootResourceId, Roles.AppReader.RoleId, email));
+
+        // refused before an account was made for the email
+        Assert.IsNull(await testInit.UserProvider.FindByEmail(email));
+    }
+
+    [TestMethod]
+    public async Task Role_id_that_is_no_id_lists_no_one()
+    {
+        using var testInit = await TestInit.Create();
+        await testInit.AddNewUser(Roles.AppReader);
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, roleId: "not-an-id");
+        Assert.HasCount(0, userRoles.Items);
     }
 
     [TestMethod]

@@ -4,6 +4,7 @@ using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
@@ -11,6 +12,22 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 [TestClass]
 public class RoleProviderTest
 {
+    [TestMethod]
+    public async Task User_roles_total_counts_the_filtered_roles()
+    {
+        using var testInit = await TestInit.Create();
+        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
+        var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
+        var resource1 = Guid.NewGuid().ToString();
+        await roleProvider.AddUserRole(resource1, Roles.AppAdmin.RoleId, user.UserId);
+        await roleProvider.AddUserRole(Guid.NewGuid().ToString(), Roles.AppAdmin.RoleId, user.UserId);
+
+        // a full page of one resource's roles counts that resource's, not all of the user's
+        var userRoles = await roleProvider.GetUserRoles(
+            new UserRoleCriteria { UserId = user.UserId, ResourceId = resource1 }, recordIndex: 0, recordCount: 1);
+        Assert.AreEqual(1, userRoles.TotalCount);
+    }
+
     [TestMethod]
     public async Task Add_remove_user()
     {
@@ -80,6 +97,23 @@ public class RoleProviderTest
     }
 
     [TestMethod]
+    public async Task Permissions_on_made_up_resources_are_not_kept()
+    {
+        using var testInit = await TestInit.Create();
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
+        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
+
+        // the first lookup may cache the bot's own roles; the made-up resources after it add nothing
+        await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId);
+        var count = memoryCache.Count;
+        for (var i = 0; i < 20; i++)
+            Assert.HasCount(0, await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId));
+
+        Assert.AreEqual(count, memoryCache.Count);
+    }
+
+    [TestMethod]
     public async Task GetAuthUser()
     {
         using var testInit = await TestInit.Create();
@@ -96,12 +130,13 @@ public class RoleProviderTest
             Description = Guid.NewGuid().ToString()
         });
 
+        var systemRole = Roles.SystemAdmin;
         var role1 = Roles.AppAdmin;
         var role2 = Roles.AppReader;
 
         // Add the user to roles
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await roleProvider.AddUserRole(AuthorizationConstants.RootResourceId, role1.RoleId, user.UserId);
+        await roleProvider.AddUserRole(AuthorizationConstants.RootResourceId, systemRole.RoleId, user.UserId);
         await roleProvider.AddUserRole("1", role1.RoleId, user.UserId);
         await roleProvider.AddUserRole("1", role2.RoleId, user.UserId);
 
@@ -120,7 +155,7 @@ public class RoleProviderTest
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
         Assert.HasCount(3, userRoles);
         Assert.IsTrue(userRoles.Any(x =>
-            x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == role1.RoleName));
+            x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == systemRole.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role1.RoleName));
         Assert.IsTrue(userRoles.Any(x => x.ResourceId == "1" && x.Role.RoleName == role2.RoleName));
     }

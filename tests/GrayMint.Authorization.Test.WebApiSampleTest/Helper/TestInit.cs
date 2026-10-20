@@ -152,14 +152,18 @@ public class TestInit : IDisposable
             new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
     }
 
+    // createSystemAdmin: false leaves the app without a caller, App, or SystemAdminApiKey
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
         string environment = "Development", bool allowUserMultiRole = false,
-        bool useResourceProvider = false)
+        bool useResourceProvider = false, bool createSystemAdmin = true)
     {
         appSettings ??= new Dictionary<string, string?>();
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         appSettings["App:UseResourceProvider"] = useResourceProvider.ToString();
         var testInit = new TestInit(appSettings, environment, useResourceProvider);
+        if (!createSystemAdmin)
+            return testInit;
+
         await testInit.Init();
 
         // add app as the resource

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.Test.WebApiSample.Security;
@@ -20,10 +21,12 @@ public class CustomerAccessTest
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         var customerId = 2000;
 
+        // a customer token belongs to no user, so nothing can revoke it, and it has to say so
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(
             $"apps:{testInit.AppId}:customers:{customerId}",
             Permissions.CustomerRead));
+        claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.AuthCode, AuthorizationConstants.AnyAuthCode));
         var apiKeyDto = await grayMintAuthentication.CreateApiKey(claimsIdentity);
 
         // ------

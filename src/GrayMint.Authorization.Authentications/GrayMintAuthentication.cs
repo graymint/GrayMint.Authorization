@@ -22,6 +22,16 @@ public class GrayMintAuthentication(
 {
     private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
 
+    // as an identity provider writes them and as a validated token maps them
+    private static readonly HashSet<string> SignInProfileClaimTypes = [
+        JwtRegisteredClaimNames.Email, ClaimTypes.Email,
+        JwtRegisteredClaimNames.Name, ClaimTypes.Name,
+        JwtRegisteredClaimNames.GivenName, ClaimTypes.GivenName,
+        JwtRegisteredClaimNames.FamilyName, ClaimTypes.Surname,
+        JwtRegisteredClaimNames.PhoneNumber, ClaimTypes.MobilePhone,
+        GrayMintClaimTypes.Picture, GrayMintClaimTypes.EmailVerified
+    ];
+
     internal static TokenValidationParameters GetTokenValidationParameters(GrayMintAuthenticationOptions options)
     {
         var securityKey = new SymmetricSecurityKey(options.Secret);
@@ -33,6 +43,7 @@ public class GrayMintAuthentication(
             IssuerSigningKeys = securityKeys,
             ValidIssuer = options.Issuer,
             ValidAudience = options.Audience ?? options.Issuer,
+            ValidAudiences = options.Audiences,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
             ValidateIssuer = true,
@@ -251,12 +262,14 @@ public class GrayMintAuthentication(
         var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
                      ?? throw new UnregisteredUserException();
 
-        // update userId in claims
+        // our token keeps only the profile claims; anything else the identity provider sent, such as a role
+        // or a permission, must never reach the checks that trust our own tokens
         var issuedAt = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Iat);
-        ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
-        ClaimUtil.SetClaim(claimsIdentity, ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, issuedAt));
+        var signInIdentity = new ClaimsIdentity(claimsIdentity.Claims.Where(x => SignInProfileClaimTypes.Contains(x.Type)));
+        ClaimUtil.SetClaim(signInIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
+        ClaimUtil.SetClaim(signInIdentity, ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, issuedAt));
 
-        var apiKey = await CreateApiKey(claimsIdentity,
+        var apiKey = await CreateApiKey(signInIdentity,
             new ApiKeyOptions {
                 ValidateOptions = new ValidateOptions { ValidateAuthCode = true, ValidateSubject = true },
                 RefreshTokenType = refreshTokenType

@@ -3373,6 +3373,9 @@ namespace GrayMint.Common.Test.Api
         [System.ComponentModel.DataAnnotations.Required]
         public Role Role { get; set; } = new Role();
 
+        [System.Text.Json.Serialization.JsonPropertyName("confirmedTime")]
+        public System.DateTime? ConfirmedTime { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

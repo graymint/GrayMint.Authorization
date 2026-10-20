@@ -129,12 +129,14 @@ https://localhost:5001/swagger
 |---------|-------------|---------|
 | `Issuer` | JWT token issuer | `WebAppSample` |
 | `Audience` | JWT token audience | `WebAppSample` |
+| `Audiences` | More audiences to accept, never to issue | None |
 | `Secret` | Secret key for token signing | Required |
 | `CacheTimeout` | Authorization cache duration | `00:05:00` |
 | `AllowUserSelfRegister` | Allow user self-registration | `false` |
 | `AllowUserApiKey` | Enable API key authentication | `false` |
 | `AllowRefreshToken` | Enable refresh token support | `true` |
 | `SignInRedirectUrl` | Redirect URL after sign-in | Required |
+| `AllowSystemApiKey` | Allow the anonymous system api-key endpoint | Unset: outside production only |
 
 ### Team Controller Settings
 

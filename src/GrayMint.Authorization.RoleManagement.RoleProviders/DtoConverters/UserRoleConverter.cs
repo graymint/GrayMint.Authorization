@@ -11,6 +11,7 @@ internal static class UserRoleConverter
         var userRole = new UserRole {
             ResourceId = model.ResourceId,
             UserId = model.UserId.ToString().ToLower(),
+            ConfirmedTime = model.ConfirmedTime,
             Role = roles.SingleOrDefault(x => Guid.TryParse(x.RoleId, out var roleId) && roleId == model.RoleId)
                    ?? new Role {
                        RoleId = modelRoleId.ToLower(),
