@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -150,6 +151,14 @@ public class TestInit : IDisposable
     {
         HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value);
+    }
+
+    // the cache's live entries; those a clear cancels leave it a moment later, so they are dropped first
+    public int CountCacheEntries()
+    {
+        var memoryCache = (MemoryCache)WebApp.Services.GetRequiredService<IMemoryCache>();
+        memoryCache.Compact(0);
+        return memoryCache.Count;
     }
 
     // createSystemAdmin: false leaves the app without a caller, App, or SystemAdminApiKey

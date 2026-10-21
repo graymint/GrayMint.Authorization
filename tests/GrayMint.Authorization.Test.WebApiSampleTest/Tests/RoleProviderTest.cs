@@ -4,7 +4,6 @@ using GrayMint.Authorization.RoleManagement.Abstractions;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
@@ -110,15 +109,14 @@ public class RoleProviderTest
         using var testInit = await TestInit.Create();
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
 
         // the first lookup may cache the bot's own roles; the made-up resources after it add nothing
         await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId);
-        var count = memoryCache.Count;
+        var count = testInit.CountCacheEntries();
         for (var i = 0; i < 20; i++)
             Assert.HasCount(0, await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId));
 
-        Assert.AreEqual(count, memoryCache.Count);
+        Assert.AreEqual(count, testInit.CountCacheEntries());
     }
 
     [TestMethod]

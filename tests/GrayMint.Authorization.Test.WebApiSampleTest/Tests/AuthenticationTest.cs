@@ -466,7 +466,6 @@ public class AuthenticationTest
     {
         using var testInit = await TestInit.Create();
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
-        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
 
         // each renewal mints new tokens, which share the entries of the ones before
         async Task<ApiKey> RenewAndUse(ApiKey current)
@@ -482,11 +481,11 @@ public class AuthenticationTest
         // two renewals first: the sign-in's refresh token carries no session end, its renewals do
         apiKey = await RenewAndUse(apiKey);
         apiKey = await RenewAndUse(apiKey);
-        var count = memoryCache.Count;
+        var count = testInit.CountCacheEntries();
         for (var i = 0; i < 5; i++)
             apiKey = await RenewAndUse(apiKey);
 
-        Assert.AreEqual(count, memoryCache.Count);
+        Assert.AreEqual(count, testInit.CountCacheEntries());
     }
 
     [TestMethod]
@@ -507,14 +506,13 @@ public class AuthenticationTest
         using var testInit = await TestInit.Create();
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
         await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, bot.UserId);
-        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
-        var count = memoryCache.Count;
+        var count = testInit.CountCacheEntries();
 
         // the bot went with its last role; its token is refused and keeps no answer
         testInit.SetApiKey(bot);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.TeamClient.ListCurrentUserResourcesAsync());
-        Assert.AreEqual(count, memoryCache.Count);
+        Assert.AreEqual(count, testInit.CountCacheEntries());
     }
 
     [TestMethod]

@@ -6,7 +6,6 @@ using GrayMint.Common.ApiClients;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using UserCreateRequest = GrayMint.Authorization.UserManagement.Abstractions.UserCreateRequest;
 
@@ -323,7 +322,6 @@ public class TeamControllerTest
     {
         using var testInit = await TestInit.Create();
         await testInit.AddNewBot(Roles.AppAdmin);
-        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
 
         // each call names an id of no one, and is refused
         async Task CallWithIdsOfNoOne()
@@ -340,11 +338,11 @@ public class TeamControllerTest
 
         // past the caller's own entries, the cache stays as it was
         await CallWithIdsOfNoOne();
-        var count = memoryCache.Count;
+        var count = testInit.CountCacheEntries();
         for (var i = 0; i < 5; i++)
             await CallWithIdsOfNoOne();
 
-        Assert.AreEqual(count, memoryCache.Count);
+        Assert.AreEqual(count, testInit.CountCacheEntries());
     }
 
     [TestMethod]
