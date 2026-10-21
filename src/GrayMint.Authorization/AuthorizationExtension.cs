@@ -94,16 +94,18 @@ public static class AuthorizationExtension
                     options.DefaultPolicy = defaultPolicy;
                 });
 
-            // users
+            // users; their cache and the roles' follow the configured CacheTimeout, so a change made by another
+            // process reaches this one within twice it (an answer worked out from a cached copy is cached anew)
             services
-                .AddGrayMintUserProvider(new UserProviderOptions());
+                .AddGrayMintUserProvider(new UserProviderOptions { CacheTimeout = authenticationOptions.CacheTimeout });
 
             // roles & its controller
             services
                 .AddGrayMintTeamController(teamControllerOptions)
                 .AddGrayMintRoleProvider(
                     new RoleProviderOptions {
-                        Roles = roles
+                        Roles = roles,
+                        CacheTimeout = authenticationOptions.CacheTimeout
                     });
 
             return services;

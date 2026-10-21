@@ -129,7 +129,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
             return await AddUser(resourceId, roleId, user.UserId);
 
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        var res = await teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email);
+        var res = await teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email, User);
         return ToDto(res);
     }
 
@@ -145,7 +145,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         if (user.IsBot)
             await VerifyWritePermissionOnBot(userId: userId);
 
-        var res = await teamService.AddUser(ToResourceId(resourceId), roleId, userId);
+        // the caller's rights over the roles the new one replaces are checked on the very roles it removes
+        var res = await teamService.AddUser(ToResourceId(resourceId), roleId, userId, User);
         return ToDto(res);
     }
 
@@ -169,19 +170,16 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     // ReSharper disable once UnusedMethodReturnValue.Local
     private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
     {
-        // the caller needs write rights over every resource of the user before learning anything of
-        // them, so a user out of its reach answers the same bare 403 as no user at all
+        // one bare 403 for all but a bot in the caller's full reach, so the answer tells nothing of a user out of
+        // reach, nor whether a teammate who is no bot belongs elsewhere too
         var userRoles = await teamService.GetUserRoles(userId: userId);
-        if (!userRoles.Items.Any())
+        if (userRoles.Items.FirstOrDefault()?.User is not { IsBot: true })
             throw new UnauthorizedAccessException();
 
+        // the caller needs write rights over every resource of the bot
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
             await teamService.VerifyWritePermissionOnUser(User, resId, userId);
-
-        // check is a bot user
-        if (userRoles.Items.First().User is not { IsBot: true })
-            throw new InvalidOperationException("This operation can only be performed on bots.");
 
         return userRoles.Items;
     }

@@ -66,16 +66,25 @@ public class UserProvider(
 
     public async Task<User?> FindById(string userId)
     {
-        if (!Guid.TryParse(userId, out var uid))
-            return null;
-
-        var user = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
-            entry => {
-                entry.SetAbsoluteExpiration(userProviderOptions.Value.CacheTimeout);
-                return userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
-            });
-
+        var user = await FindUserModel(userId);
         return user?.ToDto();
+    }
+
+    // the cached user; an id of no one isn't kept, so made-up ids can't grow the cache
+    private Task<UserModel?> FindUserModel(string userId)
+    {
+        if (!Guid.TryParse(userId, out var uid))
+            return Task.FromResult<UserModel?>(null);
+
+        return userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
+            async entry => {
+                entry.SetAbsoluteExpiration(userProviderOptions.Value.CacheTimeout);
+                var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
+                if (user == null)
+                    UserAuthorizationCache.RefuseEntry(entry);
+
+                return user;
+            });
     }
 
     public async Task<User> Get(string userId)
@@ -86,9 +95,16 @@ public class UserProvider(
 
     public async Task UpdateAccessedTime(string userId)
     {
-        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
-        user.AccessedTime = DateTime.UtcNow;
-        await userDbContext.SaveChangesAsync();
+        var accessedTime = DateTime.UtcNow;
+        var userGuid = Guid.Parse(userId);
+        await userDbContext.Users
+            .Where(x => x.UserId == userGuid)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AccessedTime, accessedTime));
+
+        // the cached user takes the new time too, or each request until that copy expires would write it again
+        var user = await FindUserModel(userId);
+        if (user != null)
+            user.AccessedTime = accessedTime;
     }
 
     public async Task Remove(string userId)

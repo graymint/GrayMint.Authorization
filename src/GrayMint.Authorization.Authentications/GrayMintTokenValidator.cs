@@ -1,6 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications.Dtos;
 using GrayMint.Authorization.Authentications.Utils;
@@ -18,12 +20,34 @@ public class GrayMintTokenValidator(
     IAuthorizationProvider authorizationProvider,
     UserAuthorizationCache userAuthorizationCache)
 {
+    // what every copy of a token differs in; the rest is what an IAuthorizationProvider may read
+    private static readonly HashSet<string> PerTokenClaimTypes = [
+        JwtRegisteredClaimNames.Jti, JwtRegisteredClaimNames.Iat, JwtRegisteredClaimNames.Exp,
+        JwtRegisteredClaimNames.Nbf, GrayMintClaimTypes.AccessToken
+    ];
+
+    // a token's answers are cached by its claims, not its id, so the copies a refresh mints share one entry
+    // instead of adding one each; the claims keep their order and all a provider may read of them (a FindFirst
+    // tells orders apart), each part length-prefixed so no two sets read alike
+    private static string BuildTokenCacheKey(ClaimsPrincipal claimsPrincipal)
+    {
+        var parts = claimsPrincipal.Claims
+            .Where(x => !PerTokenClaimTypes.Contains(x.Type))
+            .SelectMany(x => new[] { x.Type, x.ValueType, x.Issuer, x.Value })
+            .Select(x => $"{x.Length}:{x}")
+            .ToArray();
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Concat(parts))));
+    }
+
     /// <param name="claimsPrincipal">Must have been already been validated</param>
     /// <param name="tokenUsage">the tokenUsage claim must be this value if it is not null</param>
     public async Task PostValidate(ClaimsPrincipal claimsPrincipal, string? tokenUsage = null)
     {
-        var tokenId = claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Jti)
-                      ?? throw new AuthenticationException("Can not find jti in token.");
+        if (claimsPrincipal.FindFirst(JwtRegisteredClaimNames.Jti) == null)
+            throw new AuthenticationException("Can not find jti in token.");
+
+        var tokenKey = BuildTokenCacheKey(claimsPrincipal);
 
         // translate name-identifier to userId
         var sub = claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Sub);
@@ -40,13 +64,15 @@ public class GrayMintTokenValidator(
             throw new AuthenticationException(
                 $"Can not authenticated by this token usage. RequiredToken: {tokenUsage}");
 
-        // find the token's user; tied to the user once known, so a lock or a reset drops it
-        var userIdCacheKey = $"graymint:auth:token:userid:jti={tokenId}";
+        // find the token's user; tied to the user once known, so a lock or a reset drops it; no user isn't kept
+        var userIdCacheKey = $"graymint:auth:token:userid:{tokenKey}";
         var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, async entry => {
             entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
             var id = await authorizationProvider.GetUserId(claimsPrincipal);
             if (id != null)
                 userAuthorizationCache.AddUserItem(id, entry);
+            else
+                UserAuthorizationCache.RefuseEntry(entry);
             return id;
         });
 
@@ -63,9 +89,9 @@ public class GrayMintTokenValidator(
 
             // get authCode and manage cache; a user's code is tied to the user before it is read
             var authCode = userId != null
-                ? await userAuthorizationCache.GetOrCreateUserItemAsync(userId, $"token:auth-code:jti={tokenId}",
+                ? await userAuthorizationCache.GetOrCreateUserItemAsync(userId, $"token:auth-code:{tokenKey}",
                     entry => CreateAuthCodeEntry(entry, claimsPrincipal))
-                : await memoryCache.GetOrCreateAsync($"graymint:auth:token:auth-code:jti={tokenId}",
+                : await memoryCache.GetOrCreateAsync($"graymint:auth:token:auth-code:{tokenKey}",
                     entry => CreateAuthCodeEntry(entry, claimsPrincipal));
 
             if (string.IsNullOrEmpty(authCode))
@@ -82,10 +108,16 @@ public class GrayMintTokenValidator(
         await authorizationProvider.OnAuthenticated(claimsPrincipal);
     }
 
-    private Task<string?> CreateAuthCodeEntry(ICacheEntry entry, ClaimsPrincipal claimsPrincipal)
+    private async Task<string?> CreateAuthCodeEntry(ICacheEntry entry, ClaimsPrincipal claimsPrincipal)
     {
         entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
-        return authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+        var authCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+
+        // no code isn't kept: the check fails on it anyway, and the tokens of a user gone would each keep one
+        if (string.IsNullOrEmpty(authCode))
+            UserAuthorizationCache.RefuseEntry(entry);
+
+        return authCode;
     }
 
     private static string EnsureHttps(string url)
@@ -162,6 +194,32 @@ public class GrayMintTokenValidator(
         }
     }
 
+    private OpenIdProvider? FindOpenIdProvider(string issuer)
+    {
+        return authenticationOptions.Value.OpenIdProviders
+            .SingleOrDefault(x => x.Issuer == issuer || x.Issuers.Contains(issuer));
+    }
+
+    // an identity provider's id token only, never one of ours
+    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken)
+    {
+        try {
+            var issuer = new JwtSecurityTokenHandler().ReadToken(idToken).Issuer;
+            var openIdProvider = FindOpenIdProvider(issuer)
+                                 ?? throw new AuthenticationException(
+                                     $"Could not find any provider for this issuer. {issuer}");
+
+            var claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
+            if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
+                throw new AuthenticationException("This is not an id token.");
+
+            return claimsIdentity;
+        }
+        catch (Exception ex) {
+            throw new AuthenticationException(ex.Message);
+        }
+    }
+
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
     {
         try {
@@ -169,8 +227,7 @@ public class GrayMintTokenValidator(
             var securityToken = tokenHandler.ReadToken(idToken);
 
             ClaimsIdentity claimsIdentity;
-            var openIdProvider = authenticationOptions.Value.OpenIdProviders
-                .SingleOrDefault(x => x.Issuer == securityToken.Issuer || x.Issuers.Contains(securityToken.Issuer));
+            var openIdProvider = FindOpenIdProvider(securityToken.Issuer);
 
             if (openIdProvider != null)
                 claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);

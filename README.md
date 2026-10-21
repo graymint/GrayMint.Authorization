@@ -41,11 +41,11 @@ dotnet add package GrayMint.Authorization
 - `AllowRefreshToken`: Boolean flag to allow or disallow refresh tokens.
 - `SignInRedirectUrl`: The URL to redirect to after sign-in.
 - `OpenIdProviders`: List of OpenID providers with their respective configurations.
-- `AllowSystemApiKey`: Allows the anonymous system api-key endpoints, which take the signing secret. Unset, they work outside production only.
+- `AllowSystemApiKey`: Allows the anonymous system api-key endpoints, which take the signing secret. Unset, they work in Development only.
 
 Every access token carries an `authorization_code` claim, checked on each request so that the token can be revoked; a token without one is refused. A token meant to outlive any revocation, such as a customer token, carries `*`.
 
-A person added to a resource by email shows to its team by email only until their first request to that resource, so adding an email shows the team nothing of that person's profile. Bots, which the team's own admins create, show in full.
+A person added to a resource by email shows to its team by email only until their first request to that resource, so adding an email shows the team nothing of that person's profile. Bots, which the team's own admins create, show in full. Removing someone's last role deletes a bot, or an account an email add made that was never used, but never a person who has signed in.
 
 Upgrading an existing SQL Server database: the role provider creates missing tables, not missing columns, so add `ConfirmedTime` before the new version starts. The members already on a team are confirmed once, with the column, so they keep showing in full:
 
@@ -131,6 +131,8 @@ Implement custom providers:
 - `IResourceProvider`
 
 These interfaces allow full control over how roles, users, and resources are managed.
+
+An `IAuthorizationProvider`'s answers for a token are cached by the token's claims, leaving out the ones every copy differs in (`jti`, `iat`, `exp`, `nbf`, and a refresh token's embedded access token), so they must not depend on those.
 
 ---
 

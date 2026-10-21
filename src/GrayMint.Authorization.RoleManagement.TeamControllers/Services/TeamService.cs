@@ -77,11 +77,11 @@ public class TeamService(
         return user;
     }
 
-    // a bot is the team's own, so it always shows
-    private static bool IsProfileHidden(User user, IEnumerable<UserRole> resourceUserRoles)
+    // takes the user's own roles on the resource; a bot is the team's own, so it always shows
+    private static bool IsProfileHidden(User user, IEnumerable<UserRole> userRoles)
     {
-        var userRoles = resourceUserRoles.Where(x => x.UserId == user.UserId).ToArray();
-        return !user.IsBot && userRoles.Length > 0 && userRoles.All(x => x.ConfirmedTime == null);
+        var roles = userRoles.ToArray();
+        return !user.IsBot && roles.Length > 0 && roles.All(x => x.ConfirmedTime == null);
     }
 
     // a hidden profile is found only by what shows of it: its email or id
@@ -148,7 +148,8 @@ public class TeamService(
         return apiKey;
     }
 
-    public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email)
+    public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email,
+        ClaimsPrincipal? caller = null)
     {
         // a role the resource can't hold fails before an account is made for the email
         var roles = await roleProvider.GetRoles(resourceId);
@@ -159,10 +160,13 @@ public class TeamService(
         email = NormalizeEmail(email);
         var user = await userProvider.FindByEmail(email);
         user ??= await userProvider.Create(new UserCreateRequest { Email = email });
-        return await AddUser(resourceId, roleId, user.UserId);
+        return await AddUser(resourceId, roleId, user.UserId, caller);
     }
 
-    public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId)
+    // takes away the user's other roles on the resource unless AllowUserMultiRole; given the caller, it first
+    // checks their rights over the very roles it takes away, or an admin could strip an owner by a lesser role
+    public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId,
+        ClaimsPrincipal? caller = null)
     {
         // check bot policy
         var user = await userProvider.Get(userId);
@@ -178,13 +182,21 @@ public class TeamService(
         if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
+        // the roles the new one replaces if MultipleRoles is not allowed
+        var replacedRoles = _teamControllersOptions.AllowUserMultiRole
+            ? []
+            : userRoles.Where(x => x.Role.RoleId != roleId).ToArray();
+
+        if (caller != null)
+            foreach (var userRole in replacedRoles)
+                await VerifyWritePermissionOnRole(caller, resourceId, userRole.Role.RoleId);
+
         // add to role
         await roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
 
-        // remove from other roles if MultipleRoles is not allowed
-        if (!_teamControllersOptions.AllowUserMultiRole)
-            foreach (var userRole in userRoles.Where(x => x.Role.RoleId != roleId))
-                await RemoveUser(resourceId, userRole.Role.RoleId, userId);
+        // remove from the roles it replaces
+        foreach (var userRole in replacedRoles)
+            await RemoveUser(resourceId, userRole.Role.RoleId, userId);
 
         var userRoleList = await GetUserRoles(resourceId: resourceId, roleId: roleId, userId: userId);
         return userRoleList.Items.Single(x => x.UserId == userId);
@@ -230,17 +242,19 @@ public class TeamService(
         var userRoleList = await roleProvider.GetUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
-        // get users of userRoles; on a resource's team, one who hasn't used it yet shows by email only
+        // get users of userRoles; on a resource's team, one who hasn't used it yet shows by email only; users and
+        // roles are matched by lookup, not by scans, so a large team costs no more than its size
+        var rolesByUser = userRoleList.ToLookup(x => x.UserId);
         var userList = await userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
             userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
         var users = userList.Items
             .Select(x => new {
                 User = x,
-                IsHidden = resourceId != null && IsProfileHidden(x, userRoleList)
+                IsHidden = resourceId != null && IsProfileHidden(x, rolesByUser[x.UserId])
             })
             .Where(x => !x.IsHidden || MatchesHiddenProfile(x.User, search, firstName, lastName))
             .Select(x => x.IsHidden ? HideProfile(x.User) : HideInternalFields(x.User))
-            .ToArray();
+            .ToDictionary(x => x.UserId);
 
         // attach user to UserRoles
         var userRoles = userRoleList
@@ -249,7 +263,7 @@ public class TeamService(
                 Role = x.Role,
                 UserId = x.UserId,
                 ConfirmedTime = x.ConfirmedTime,
-                User = users.SingleOrDefault(y => y.UserId == x.UserId)
+                User = users.GetValueOrDefault(x.UserId)
             })
             .OrderBy(x => x.User?.FirstName)
             .ToArray();
@@ -300,9 +314,14 @@ public class TeamService(
         await roleProvider.RemoveUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
-        // delete if user does not have any more roles in the system
-        var userRoles = await GetUserRoles(userId: userId, recordCount: 1);
-        if (!userRoles.Items.Any())
+        // with its last role goes a bot, or an account an email add made and no one has used; a person who has
+        // signed in keeps theirs, as leaving one team must not delete them
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
+        if (userRoles.Length > 0)
+            return;
+
+        var user = await userProvider.Get(userId);
+        if (user.IsBot || (user.AccessedTime == null && !user.IsEmailVerified))
             await DeleteUser(userId);
     }
 
@@ -319,8 +338,8 @@ public class TeamService(
 
     public async Task<ApiKey> CreateSystemApiKey(string secret)
     {
-        // checked before the secret, so a production server never even compares it
-        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsProduction()))
+        // checked before the secret, so a server where it is off never even compares it
+        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsDevelopment()))
             throw new UnauthorizedAccessException("The system api key is disabled.");
 
         if (!_authenticationOptions.MatchesSecret(secret))

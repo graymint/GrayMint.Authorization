@@ -29,6 +29,14 @@ public class RoleProviderTest
     }
 
     [TestMethod]
+    public async Task Removing_roles_needs_a_criterion()
+    {
+        using var testInit = await TestInit.Create();
+        var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
+        await Assert.ThrowsAsync<ArgumentException>(() => roleProvider.RemoveUserRoles(new UserRoleCriteria()));
+    }
+
+    [TestMethod]
     public async Task Add_remove_user()
     {
         using var testInit = await TestInit.Create();

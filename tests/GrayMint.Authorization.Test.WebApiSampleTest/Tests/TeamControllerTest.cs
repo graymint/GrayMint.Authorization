@@ -6,6 +6,8 @@ using GrayMint.Common.ApiClients;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using UserCreateRequest = GrayMint.Authorization.UserManagement.Abstractions.UserCreateRequest;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
@@ -38,6 +40,7 @@ public class TeamControllerTest
         Assert.AreEqual(newEmail, newUserRole.User?.Email);
 
         var teamUser = await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, userRole.UserId);
+        Assert.IsNotNull(teamUser.User);
         Assert.IsNull(teamUser.User.FirstName);
         Assert.IsNull(teamUser.User.LastName);
         Assert.IsFalse(teamUser.User.IsEmailVerified);
@@ -53,6 +56,7 @@ public class TeamControllerTest
         testInit.HttpClient.DefaultRequestHeaders.Authorization = adminAuthorization;
 
         teamUser = await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, userRole.UserId);
+        Assert.IsNotNull(teamUser.User);
         Assert.AreEqual("Ada", teamUser.User.FirstName);
         Assert.AreEqual("Lovelace", teamUser.User.LastName);
 
@@ -288,6 +292,62 @@ public class TeamControllerTest
     }
 
     [TestMethod]
+    public async Task Bot_endpoints_tell_nothing_of_a_teammates_other_resources()
+    {
+        using var testInit = await TestInit.Create();
+
+        // two people on the app, one of them on a second app too
+        var person = await testInit.AddNewUser(Roles.AppReader);
+        var memberElsewhere = await testInit.AddNewUser(Roles.AppReader);
+        var app2 = await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        await testInit.TeamClient.AddUserAsync(app2.AppId.ToString(), Roles.AppReader.RoleId, memberElsewhere.UserId);
+
+        // the app's admin can't tell them apart by the bot endpoints
+        await testInit.AddNewBot(Roles.AppAdmin);
+        var errors = new List<ApiException>();
+        foreach (var userId in new[] { person.UserId, memberElsewhere.UserId }) {
+            errors.Add(await Assert.ThrowsAsync<ApiException>(() => testInit.TeamClient.ResetBotApiKeyAsync(userId)));
+            errors.Add(await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.UpdateBotAsync(userId, new TeamUpdateBotParam())));
+        }
+
+        foreach (var error in errors) {
+            Assert.AreEqual((int)HttpStatusCode.Forbidden, error.StatusCode);
+            Assert.AreEqual(errors[0].ExceptionTypeName, error.ExceptionTypeName);
+            Assert.AreEqual(errors[0].Message, error.Message);
+        }
+    }
+
+    [TestMethod]
+    public async Task Ids_of_no_one_leave_nothing_in_the_cache()
+    {
+        using var testInit = await TestInit.Create();
+        await testInit.AddNewBot(Roles.AppAdmin);
+        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
+
+        // each call names an id of no one, and is refused
+        async Task CallWithIdsOfNoOne()
+        {
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.ResetBotApiKeyAsync(Guid.NewGuid().ToString()));
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.GetUserAsync(testInit.AppResourceId, Guid.NewGuid().ToString()));
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, Guid.NewGuid().ToString()));
+            await Assert.ThrowsAsync<ApiException>(() =>
+                testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, Guid.NewGuid().ToString()));
+        }
+
+        // past the caller's own entries, the cache stays as it was
+        await CallWithIdsOfNoOne();
+        var count = memoryCache.Count;
+        for (var i = 0; i < 5; i++)
+            await CallWithIdsOfNoOne();
+
+        Assert.AreEqual(count, memoryCache.Count);
+    }
+
+    [TestMethod]
     public async Task Bot_of_alien_resource_can_not_be_reset_by_another_form_of_its_id()
     {
         using var testInit = await TestInit.Create();
@@ -481,6 +541,43 @@ public class TeamControllerTest
         // ---------------
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppOwner.RoleId, ownerApiKey.UserId));
+    }
+
+    [TestMethod]
+    public async Task Admin_can_not_strip_an_owner_by_a_lesser_role()
+    {
+        using var testInit = await TestInit.Create();
+        var owner = await testInit.AddNewUser(Roles.AppOwner);
+        Assert.IsNotNull(owner.User?.Email);
+
+        // a lesser role would take the owner's away, which needs the rights of an owner
+        await testInit.AddNewBot(Roles.AppAdmin);
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, owner.UserId));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppReader.RoleId, owner.User.Email));
+
+        testInit.SetApiKey(testInit.SystemAdminApiKey);
+        var ownerRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: owner.UserId);
+        Assert.AreEqual(Roles.AppOwner.RoleId, ownerRoles.Items.Single().Role.RoleId);
+    }
+
+    [TestMethod]
+    public async Task Removing_a_person_keeps_their_account()
+    {
+        using var testInit = await TestInit.Create();
+
+        // a person who has signed up and holds no role, added to the app by their email and removed again
+        var email = TestInit.NewEmail();
+        var personApiKey = await testInit.SignUpNewUser(email, setAsCurrent: false);
+        var userRole = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppReader.RoleId, email);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, userRole.UserId);
+        Assert.IsNotNull(await testInit.UserProvider.FindById(personApiKey.UserId));
+
+        // an account an email add made, never used, goes with its last role
+        var unused = await testInit.AddNewUser(Roles.AppReader);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, unused.UserId);
+        Assert.IsNull(await testInit.UserProvider.FindById(unused.UserId));
     }
 
     [TestMethod]

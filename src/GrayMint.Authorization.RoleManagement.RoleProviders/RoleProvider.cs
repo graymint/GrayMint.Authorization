@@ -9,13 +9,11 @@ using GrayMint.Common.Generics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 
 namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 public class RoleProvider : IRoleProvider
 {
-    private static readonly CancellationChangeToken NotCachedToken = new(new CancellationToken(canceled: true));
     private readonly RoleDbContext _roleDbContext;
     private readonly RoleProviderOptions _roleProviderOptions;
     private readonly IRoleResourceProvider _roleResourceProvider;
@@ -75,6 +73,10 @@ public class RoleProvider : IRoleProvider
 
     public async Task RemoveUserRoles(UserRoleCriteria criteria)
     {
+        // no criterion at all would match every role of every user
+        if (criteria is { RoleId: null, UserId: null, ResourceId: null })
+            throw new ArgumentException("Removing user roles needs at least one criterion.", nameof(criteria));
+
         _roleDbContext.ChangeTracker.Clear();
         var userRoles = await _roleDbContext.UserRoles
             .Where(x =>
@@ -174,7 +176,8 @@ public class RoleProvider : IRoleProvider
         return ret;
     }
 
-    // all of a user's roles, cached as they are read
+    // all of a user's roles, cached as they are read; none is kept only for a user the cache already holds, such
+    // as the request's own, so a user without roles costs no read per request while ids of no one leave nothing
     private Task<UserRoleModel[]> GetUserRoleModels(Guid userGuid, string userId)
     {
         return _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
@@ -185,6 +188,9 @@ public class RoleProvider : IRoleProvider
                     .ToArrayAsync();
 
                 entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
+                if (res.Length == 0)
+                    UserAuthorizationCache.RefuseEntryForUncachedUser(entry);
+
                 return res;
             });
     }
@@ -218,10 +224,9 @@ public class RoleProvider : IRoleProvider
                 entry.SetAbsoluteExpiration(_roleProviderOptions.CacheTimeout);
                 var res = await GetUserPermissionsInternal(resourceId, userId);
 
-                // an empty set isn't kept, so made-up resource ids can't grow the cache; a cancelled token
-                // makes the cache refuse the entry
+                // an empty set isn't kept, so made-up resource ids can't grow the cache
                 if (res.Length == 0)
-                    entry.AddExpirationToken(NotCachedToken);
+                    UserAuthorizationCache.RefuseEntry(entry);
 
                 return res;
             });

@@ -1,19 +1,26 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Authentication;
 using System.Security.Claims;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.Authentications;
 using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.PermissionAuthorizations;
+using GrayMint.Authorization.RoleManagement.RoleProviders;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
+using GrayMint.Authorization.UserManagement.UserProviders;
 using GrayMint.Common.ApiClients;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ApiKeyOptions = GrayMint.Authorization.Authentications.Dtos.ApiKeyOptions;
 using TokenUse = GrayMint.Authorization.Authentications.Dtos.TokenUse;
+using TokenRefreshType = GrayMint.Authorization.Authentications.Dtos.RefreshTokenType;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
@@ -106,7 +113,7 @@ public class AuthenticationTest
         using var testInit = await TestInit.Create();
         var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
         Assert.IsNotNull(userRole.User);
-        await TestUtil.AssertApiException<InvalidOperationException>(
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId));
     }
 
@@ -392,12 +399,163 @@ public class AuthenticationTest
     }
 
     [TestMethod]
-    public async Task Current_user_answer_hides_the_auth_code()
+    public async Task Current_user_answer_hides_internal_fields()
     {
         using var testInit = await TestInit.Create();
-        await testInit.AddNewBot(Roles.AppReader);
+        var apiKey = await testInit.AddNewBot(Roles.AppReader);
+        await testInit.UserProvider.Update(apiKey.UserId, new UserUpdateRequest {
+            Description = Guid.NewGuid().ToString(),
+            ExData = Guid.NewGuid().ToString()
+        });
+
         var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.IsNull(user.AuthorizationCode);
+        Assert.IsNull(user.Description);
+        Assert.IsNull(user.ExData);
+    }
+
+    [TestMethod]
+    public async Task Refresh_keeps_an_explicit_session_end()
+    {
+        using var testInit = await TestInit.Create();
+        var user = await testInit.SignUpNewUser(setAsCurrent: false);
+
+        // a session a host ends in a minute
+        var sessionEnd = JwtUtil.UtcNow.AddMinutes(1);
+        var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
+        var claimsIdentity = new ClaimsIdentity([
+            new Claim(JwtRegisteredClaimNames.Sub, user.UserId),
+            ClaimUtil.CreateClaimTime(JwtRegisteredClaimNames.AuthTime, JwtUtil.UtcNow)
+        ]);
+        var apiKey = await grayMintAuthentication.CreateApiKey(claimsIdentity, new ApiKeyOptions {
+            RefreshTokenType = TokenRefreshType.Web,
+            RefreshTokenMaxExpirationTime = sessionEnd
+        });
+        Assert.IsNotNull(apiKey.RefreshToken);
+        Assert.IsTrue(apiKey.AccessToken.ExpirationTime <= sessionEnd);
+        Assert.IsTrue(apiKey.RefreshToken.ExpirationTime <= sessionEnd);
+
+        // every renewal ends with it, and carries it on to the next
+        var refreshToken = apiKey.RefreshToken.Value;
+        for (var i = 0; i < 2; i++) {
+            var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
+                new RefreshTokenRequest { RefreshToken = refreshToken });
+            Assert.IsNotNull(renewed.RefreshToken);
+            Assert.IsTrue(renewed.AccessToken.ExpirationTime <= sessionEnd);
+            Assert.IsTrue(renewed.RefreshToken.ExpirationTime <= sessionEnd);
+
+            refreshToken = renewed.RefreshToken.Value;
+            var claims = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken).Claims;
+            Assert.IsTrue(claims.Any(x => x.Type == GrayMintClaimTypes.AuthEndTime));
+        }
+    }
+
+    [TestMethod]
+    public async Task Refresh_token_needs_a_sign_in_time()
+    {
+        using var testInit = await TestInit.Create();
+        var user = await testInit.SignUpNewUser(setAsCurrent: false);
+        var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => grayMintAuthentication.CreateApiKey(
+            new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]),
+            new ApiKeyOptions { RefreshTokenType = TokenRefreshType.Web }));
+    }
+
+    [TestMethod]
+    public async Task Refreshing_adds_nothing_to_the_cache()
+    {
+        using var testInit = await TestInit.Create();
+        var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
+        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
+
+        // each renewal mints new tokens, which share the entries of the ones before
+        async Task<ApiKey> RenewAndUse(ApiKey current)
+        {
+            Assert.IsNotNull(current.RefreshToken);
+            var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
+                new RefreshTokenRequest { RefreshToken = current.RefreshToken.Value });
+            testInit.SetApiKey(renewed);
+            await testInit.AuthenticationClient.GetCurrentUserAsync();
+            return renewed;
+        }
+
+        // two renewals first: the sign-in's refresh token carries no session end, its renewals do
+        apiKey = await RenewAndUse(apiKey);
+        apiKey = await RenewAndUse(apiKey);
+        var count = memoryCache.Count;
+        for (var i = 0; i < 5; i++)
+            apiKey = await RenewAndUse(apiKey);
+
+        Assert.AreEqual(count, memoryCache.Count);
+    }
+
+    [TestMethod]
+    public async Task Roles_of_a_user_without_any_stay_cached()
+    {
+        using var testInit = await TestInit.Create();
+        var apiKey = await testInit.SignUpNewUser();
+
+        // the request's own user holds no role, and that is kept, so their next requests read none
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
+        var memoryCache = testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
+        Assert.IsTrue(memoryCache.TryGetValue($"graymint:auth:userid:{Guid.Parse(apiKey.UserId)}:user-roles", out _));
+    }
+
+    [TestMethod]
+    public async Task Token_of_a_deleted_user_leaves_nothing_in_the_cache()
+    {
+        using var testInit = await TestInit.Create();
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, bot.UserId);
+        var memoryCache = (MemoryCache)testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
+        var count = memoryCache.Count;
+
+        // the bot went with its last role; its token is refused and keeps no answer
+        testInit.SetApiKey(bot);
+        await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
+            testInit.TeamClient.ListCurrentUserResourcesAsync());
+        Assert.AreEqual(count, memoryCache.Count);
+    }
+
+    [TestMethod]
+    public async Task Google_redirect_takes_no_id_token_of_ours()
+    {
+        using var testInit = await TestInit.Create();
+        var idToken = await testInit.CreateUnregisteredUserIdToken();
+        var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
+        await Assert.ThrowsAsync<AuthenticationException>(() =>
+            grayMintAuthentication.GetSignInRedirectUrl(idToken, Guid.NewGuid().ToString()));
+    }
+
+    [TestMethod]
+    public async Task Provider_caches_follow_the_configured_timeout()
+    {
+        using var testInit = await TestInit.Create(
+            appSettings: new Dictionary<string, string?> { ["Auth:CacheTimeout"] = "00:03:00" });
+        var services = testInit.WebApp.Services;
+        Assert.AreEqual(TimeSpan.FromMinutes(3),
+            services.GetRequiredService<IOptions<UserProviderOptions>>().Value.CacheTimeout);
+        Assert.AreEqual(TimeSpan.FromMinutes(3),
+            services.GetRequiredService<IOptions<RoleProviderOptions>>().Value.CacheTimeout);
+    }
+
+    [TestMethod]
+    public async Task Access_time_write_reaches_the_cached_user()
+    {
+        using var testInit = await TestInit.Create();
+        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
+
+        // one request caches the user, another writes the time, each in a scope of its own
+        using var readScope = testInit.WebApp.Services.CreateScope();
+        var readUserProvider = readScope.ServiceProvider.GetRequiredService<IUserProvider>();
+        Assert.IsNull((await readUserProvider.Get(user.UserId)).AccessedTime);
+
+        using var writeScope = testInit.WebApp.Services.CreateScope();
+        var writeUserProvider = (UserProvider)writeScope.ServiceProvider.GetRequiredService<IUserProvider>();
+        await writeUserProvider.UpdateAccessedTime(user.UserId);
+
+        // the cached user takes the written time too, or each request until it expires would write again
+        Assert.IsNotNull((await readUserProvider.Get(user.UserId)).AccessedTime);
     }
 
     [TestMethod]
@@ -419,13 +577,21 @@ public class AuthenticationTest
     }
 
     [TestMethod]
-    public void System_api_key_is_off_in_production_unless_set()
+    public void System_api_key_is_on_in_development_only_unless_set()
     {
         var options = new GrayMintAuthenticationOptions { Secret = [1], Issuer = "local" };
-        Assert.IsFalse(options.IsSystemApiKeyAllowed(isProduction: true));
-        Assert.IsTrue(options.IsSystemApiKeyAllowed(isProduction: false));
+        Assert.IsTrue(options.IsSystemApiKeyAllowed(isDevelopment: true));
+        Assert.IsFalse(options.IsSystemApiKeyAllowed(isDevelopment: false));
 
         options = new GrayMintAuthenticationOptions { Secret = [1], Issuer = "local", AllowSystemApiKey = true };
-        Assert.IsTrue(options.IsSystemApiKeyAllowed(isProduction: true));
+        Assert.IsTrue(options.IsSystemApiKeyAllowed(isDevelopment: false));
+    }
+
+    [TestMethod]
+    public async Task System_api_key_is_off_on_staging_unless_set()
+    {
+        using var testInit = await TestInit.Create(environment: "Staging", createSystemAdmin: false);
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
+            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret)));
     }
 }

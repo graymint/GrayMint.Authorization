@@ -78,18 +78,28 @@ public class GrayMintAuthentication(
     {
         options ??= new ApiKeyOptions();
 
-        // create access token
+        // create access token; an explicit session end caps it, as it does the refresh token
+        var accessTokenExpirationTime =
+            options.AccessTokenExpirationTime ?? JwtUtil.UtcNow + _authenticationOptions.AccessTokenTimeout;
+        if (options.RefreshTokenMaxExpirationTime < accessTokenExpirationTime)
+            accessTokenExpirationTime = options.RefreshTokenMaxExpirationTime.Value;
+
         var accessToken = await CreateToken(
             claimsIdentity,
             options.ValidateOptions,
             TokenUse.Access,
-            options.AccessTokenExpirationTime ?? JwtUtil.UtcNow + _authenticationOptions.AccessTokenTimeout);
+            accessTokenExpirationTime);
 
         // create refresh token
         Token? refreshToken = null;
         if (options.RefreshTokenType != RefreshTokenType.None) {
             if (!_authenticationOptions.AllowRefreshToken)
                 throw new UnauthorizedAccessException("Refresh token is not available on the server.");
+
+            // a session ends counting from its sign-in, so a refresh token without one would refresh forever
+            if (ClaimUtil.GetUtcTime(claimsIdentity, JwtRegisteredClaimNames.AuthTime) == null)
+                throw new InvalidOperationException(
+                    $"A refresh token needs the sign-in time ({JwtRegisteredClaimNames.AuthTime}).");
 
             // add refresh token clams
             claimsIdentity = claimsIdentity.Clone();
@@ -101,11 +111,16 @@ public class GrayMintAuthentication(
                     ClaimUtil.CreateClaimTime(GrayMintClaimTypes.AuthEndTime,
                         options.RefreshTokenMaxExpirationTime.Value));
 
+            var refreshTokenExpirationTime =
+                GetRefreshTokenExpirationTime(options.RefreshTokenType, options.RefreshTokenExpirationTime);
+            if (options.RefreshTokenMaxExpirationTime < refreshTokenExpirationTime)
+                refreshTokenExpirationTime = options.RefreshTokenMaxExpirationTime.Value;
+
             refreshToken = await CreateToken(
                 claimsIdentity: claimsIdentity,
                 options.ValidateOptions,
                 tokenUse: TokenUse.Refresh,
-                expTime: GetRefreshTokenExpirationTime(options.RefreshTokenType, options.RefreshTokenExpirationTime));
+                expTime: refreshTokenExpirationTime);
         }
 
         // create apiKey
@@ -206,12 +221,13 @@ public class GrayMintAuthentication(
         var expTime = ClaimUtil.GetRequiredUtcTime(claimsIdentity, JwtRegisteredClaimNames.Exp);
         var authTime = ClaimUtil.GetUtcTime(claimsIdentity, JwtRegisteredClaimNames.AuthTime);
 
-        // set authEndTime if not exists
+        // set authEndTime if not exists; a token with neither has no end, so it refreshes nothing
         var authEndTime = ClaimUtil.GetUtcTime(claimsIdentity, GrayMintClaimTypes.AuthEndTime)
                           ?? refreshTokenType switch {
                               RefreshTokenType.App => authTime + _authenticationOptions.SessionAppTimeout,
                               _ => authTime + _authenticationOptions.SessionWebTimeout
-                          };
+                          }
+                          ?? throw new AuthenticationException("This refresh token has no session end.");
 
         if (JwtUtil.UtcNow > authEndTime)
             throw new AuthenticationException("Can not use this refresh token anymore.");
@@ -219,7 +235,7 @@ public class GrayMintAuthentication(
         // Calculate refresh token expiration tome
         var newExpTime = JwtUtil.UtcNow + (expTime - issuedTime);
         if (newExpTime > authEndTime)
-            newExpTime = authEndTime.Value;
+            newExpTime = authEndTime;
 
         // extract old access token claimIdentity
         var oldAccessToken = claimsIdentity.FindFirst(GrayMintClaimTypes.AccessToken)?.Value
@@ -228,12 +244,14 @@ public class GrayMintAuthentication(
         var token = tokenHandler.ReadJwtToken(oldAccessToken);
         var accessTokenClaimIdentity = new ClaimsIdentity(token.Claims);
 
-        // Create the refresh token  with new access key
+        // Create the refresh token  with new access key; the session's end rides along and caps both, so it holds
+        // however often the pair is renewed
         var apiKey = await CreateApiKey(
             accessTokenClaimIdentity,
             new ApiKeyOptions {
                 RefreshTokenType = refreshTokenType,
-                RefreshTokenExpirationTime = newExpTime
+                RefreshTokenExpirationTime = newExpTime,
+                RefreshTokenMaxExpirationTime = authEndTime
             });
 
         return apiKey;
@@ -291,7 +309,8 @@ public class GrayMintAuthentication(
             throw new InvalidOperationException(
                 "TeamController:SignInRedirectUrl has not been configured in app settings.");
 
-        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
+        // an identity provider's token only: one of ours would renew itself here, each copy with a new sign-in time
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateOpenIdToken(idToken);
         var token = await CreateIdToken(claimsIdentity);
 
         // Adding a parameter

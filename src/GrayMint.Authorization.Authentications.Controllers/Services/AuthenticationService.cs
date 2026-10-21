@@ -31,8 +31,10 @@ public class AuthenticationService(
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
         user.AccessedTime = null;
 
-        // the revocation code is the server's, not the user's
+        // the revocation code is the server's, and the description and extra data are the app's notes on the user
         user.AuthorizationCode = null;
+        user.Description = null;
+        user.ExData = null;
         return user;
     }
 

@@ -48,8 +48,8 @@ public class MicroserviceAuthorizationService(
 
     public async Task<ApiKey> CreateSystemApiKey(string secret)
     {
-        // checked before the secret, so a production server never even compares it
-        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsProduction()))
+        // checked before the secret, so a server where it is off never even compares it
+        if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsDevelopment()))
             throw new UnauthorizedAccessException("The system api key is disabled.");
 
         if (!_authenticationOptions.MatchesSecret(secret))

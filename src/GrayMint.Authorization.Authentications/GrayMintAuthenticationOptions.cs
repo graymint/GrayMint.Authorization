@@ -53,11 +53,11 @@ public class GrayMintAuthenticationOptions
     public bool AllowRefreshToken { get; init; }
     public OpenIdProvider[] OpenIdProviders { get; init; } = [];
 
-    // the anonymous system api-key endpoints take the signing secret as a password: off in production
-    // unless set, so a host turns them on only to mint a token
+    // the anonymous system api-key endpoints take the signing secret as a password: off outside Development
+    // unless set, so a deployed host, staging too, turns them on only to mint a token
     public bool? AllowSystemApiKey { get; init; }
 
-    public bool IsSystemApiKeyAllowed(bool isProduction) => AllowSystemApiKey ?? !isProduction;
+    public bool IsSystemApiKeyAllowed(bool isDevelopment) => AllowSystemApiKey ?? isDevelopment;
 
     // compared in fixed time; anything that is not base64 matches nothing
     public bool MatchesSecret(string base64Secret)
