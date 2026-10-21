@@ -206,6 +206,8 @@ public class GrayMintAuthentication(
         return token;
     }
 
+    // a used refresh token stays valid until it expires: rotating them would cost a database write per refresh,
+    // and resetting the user's authorization code ends them all
     public async Task<ApiKey> RefreshToken(string refreshToken)
     {
         // validate token

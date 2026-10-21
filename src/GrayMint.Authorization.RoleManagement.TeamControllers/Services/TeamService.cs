@@ -320,6 +320,8 @@ public class TeamService(
         if (userRoles.Length > 0)
             return;
 
+        // read, then deleted, left so: a first sign-in, or another team's add, at that very moment can still lose
+        // the account, costing a new sign-up, or a new add (that team keeps a role without a user)
         var user = await userProvider.Get(userId);
         if (user.IsBot || (user.AccessedTime == null && !user.IsEmailVerified))
             await DeleteUser(userId);
