@@ -110,22 +110,25 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
         var res = await memoryCache.GetOrCreateAsync(itemCacheKey, async entry => {
             // tied before the read, so a clear during the read leaves nothing cached
             var tokenSource = TieToUser(userId, entry, out var isNewToken);
-            var item = await factory(entry);
-            CapExpiration(entry);
+            var isKept = false;
+            try {
+                var item = await factory(entry);
+                CapExpiration(entry);
 
-            if (isNewToken && entry.ExpirationTokens.Contains(UncachedUserToken))
-                RefuseEntry(entry);
+                if (isNewToken && entry.ExpirationTokens.Contains(UncachedUserToken))
+                    RefuseEntry(entry);
 
-            // a refused item leaves behind no token it alone made, so an id of no one leaves nothing at all
-            if (IsRefused(entry)) {
-                if (isNewToken)
-                    RemoveUserTokenSource(userId, tokenSource);
+                isKept = !IsRefused(entry);
                 return item;
             }
-
-            // touched again once read, so however long the read took, the token outlives the item
-            TouchUserTokenSource(userId);
-            return item;
+            finally {
+                // touched again once read, so however long the read took, the token outlives the item; a refused
+                // item or a failed read leaves behind no token it alone made, so an id of no one leaves nothing
+                if (isKept)
+                    TouchUserTokenSource(userId);
+                else if (isNewToken)
+                    RemoveUserTokenSource(userId, tokenSource);
+            }
         });
 
         return res;

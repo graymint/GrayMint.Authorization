@@ -140,7 +140,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         //await VerifyWritePermissionOnUser(resourceId, userId); any user can be added to a resource except bots
         await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
 
-        // check write permission on bot
+        // check write permission on bot; the answers tell no one, a bot out of reach and a person apart, left so:
+        // ids are random, so only someone who shared a team with that person knows one, and saw them there
         var user = await teamService.GetUser(userId);
         if (user.IsBot)
             await VerifyWritePermissionOnBot(userId: userId);

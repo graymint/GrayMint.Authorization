@@ -67,6 +67,43 @@ public class UserAuthorizationCacheTest
     }
 
     [TestMethod]
+    public async Task Failed_read_leaves_nothing_cached()
+    {
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var userAuthorizationCache = new UserAuthorizationCache(memoryCache);
+
+        // a read that fails, as on a database timeout
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            userAuthorizationCache.GetOrCreateUserItemAsync<string>(Guid.NewGuid().ToString(), "item",
+                _ => throw new TimeoutException()));
+
+        Assert.AreEqual(0, memoryCache.Count);
+    }
+
+    [TestMethod]
+    public async Task Empty_answer_read_during_a_failed_read_is_not_kept()
+    {
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var userAuthorizationCache = new UserAuthorizationCache(memoryCache);
+        var userId = Guid.NewGuid().ToString();
+
+        // another read of the same id of no one, during the failing one, ties its empty answer to that read's token
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            userAuthorizationCache.GetOrCreateUserItemAsync<string>(userId, "item", async _ => {
+                await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "other", entry => {
+                    UserAuthorizationCache.RefuseEntryForUncachedUser(entry);
+                    return CreateItem(entry, "stale");
+                });
+                await Task.Yield();
+                throw new TimeoutException();
+            }));
+
+        var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "other",
+            entry => CreateItem(entry, "fresh"));
+        Assert.AreEqual("fresh", item);
+    }
+
+    [TestMethod]
     public async Task No_item_outlives_the_cache_timeout()
     {
         var clock = new TestClock();
