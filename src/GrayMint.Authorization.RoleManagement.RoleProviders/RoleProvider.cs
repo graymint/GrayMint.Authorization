@@ -209,8 +209,9 @@ public class RoleProvider : IRoleProvider
 
         var confirmedTime = DateTime.UtcNow;
         var userRoleIds = userRoleModels.Select(x => x.UserRoleId).ToArray();
+        // Enumerable's Contains, as C# 14 binds an array's to the span overload
         await _roleDbContext.UserRoles
-            .Where(x => userRoleIds.Contains(x.UserRoleId) && x.ConfirmedTime == null)
+            .Where(x => Enumerable.Contains(userRoleIds, x.UserRoleId) && x.ConfirmedTime == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ConfirmedTime, confirmedTime));
 
         foreach (var userRoleModel in userRoleModels)

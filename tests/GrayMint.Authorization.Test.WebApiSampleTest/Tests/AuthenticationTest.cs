@@ -468,7 +468,7 @@ public class AuthenticationTest
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
 
         // each renewal mints new tokens, which share the entries of the ones before
-        async Task<ApiKey> RenewAndUse(ApiKey current)
+        static async Task<ApiKey> RenewAndUse(TestInit testInit, ApiKey current)
         {
             Assert.IsNotNull(current.RefreshToken);
             var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
@@ -479,11 +479,11 @@ public class AuthenticationTest
         }
 
         // two renewals first: the sign-in's refresh token carries no session end, its renewals do
-        apiKey = await RenewAndUse(apiKey);
-        apiKey = await RenewAndUse(apiKey);
+        apiKey = await RenewAndUse(testInit, apiKey);
+        apiKey = await RenewAndUse(testInit, apiKey);
         var count = testInit.CountCacheEntries();
         for (var i = 0; i < 5; i++)
-            apiKey = await RenewAndUse(apiKey);
+            apiKey = await RenewAndUse(testInit, apiKey);
 
         Assert.AreEqual(count, testInit.CountCacheEntries());
     }

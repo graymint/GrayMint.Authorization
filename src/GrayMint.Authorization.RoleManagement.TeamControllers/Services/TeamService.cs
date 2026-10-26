@@ -12,7 +12,6 @@ using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Generics;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 
