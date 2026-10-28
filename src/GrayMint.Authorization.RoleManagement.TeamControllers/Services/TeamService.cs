@@ -430,7 +430,8 @@ public class TeamService(
 
         var exception =
             new InvalidOperationException(
-                "You are an owner and can not remove yourself. Ask other owners or delete the project.");
+                "You are an owner and cannot give up your owner role yourself. Another owner can remove you or change your role. " +
+                "If you are the only one, make someone else an owner first.");
         var targetRoleIsOwner = await IsResourceOwnerRole(resourceId, targetRoleId);
 
         // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
@@ -444,8 +445,7 @@ public class TeamService(
         // MultiRole is not enable 
         if ((isAdding && !targetRoleIsOwner) || // Owners can't change his role to any other non owner role
             (!isAdding && targetRoleIsOwner)) // Owners can't remove hos owner role
-            throw new InvalidOperationException(
-                "You are an owner and can not remove yourself. Ask other owners or delete the project.");
+            throw exception;
     }
 
     public string GetRootResourceId()
