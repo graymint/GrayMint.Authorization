@@ -1,8 +1,12 @@
 name: Publish NuGets
 
-# Thin wrapper: the whole build->test->bump->pack->publish pipeline is the REUSABLE workflow in
-# graymint/GrayMint.Common — this repo carries no CI logic and no scripts, only pub/PubVersion.json.
-# See GrayMint.Common/docs/versioning-and-nuget-updates.md.
+# Build -> test -> bump -> pack run in the REUSABLE pack_nugets.yml of graymint/GrayMint.Common;
+# this file only pushes the packages to nuget.org. This repo carries no scripts, only
+# pub/PubVersion.json. See GrayMint.Common/docs/versioning-and-nuget-updates.md.
+#
+# nuget.org Trusted Publishing, no stored key: a policy on nuget.org names this repo and this
+# file's NAME, so renaming the file breaks publishing. The NuGet profile that owns the policy comes
+# from the org secret NUGET_USER.
 
 on:
   push:
@@ -13,6 +17,27 @@ permissions:
   contents: write # push the bump commit to main
 
 jobs:
-  publish-nugets:
-    uses: graymint/GrayMint.Common/.github/workflows/publish_nugets.yml@main
-    secrets: inherit
+  pack-nugets:
+    uses: graymint/GrayMint.Common/.github/workflows/pack_nugets.yml@main
+
+  push-nugets:
+    needs: pack-nugets
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC token for nuget.org Trusted Publishing
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          name: nupkgs
+          path: nupkgs
+
+      # The key is valid for one hour, so it is requested right before the push.
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org
+        run: dotnet nuget push "nupkgs/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
