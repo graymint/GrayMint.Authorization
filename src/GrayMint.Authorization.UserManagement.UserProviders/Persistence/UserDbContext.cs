@@ -80,6 +80,11 @@ public partial class UserDbContext : DbContext
 
             entity.Property(e => e.ExData)
                 .HasMaxLength(int.MaxValue);
+
+            // Google's profile picture URLs can exceed the 400 default.
+            // Existing databases: ALTER TABLE gmuser.Users ALTER COLUMN PictureUrl nvarchar(2000) NULL;
+            entity.Property(e => e.PictureUrl)
+                .HasMaxLength(2000);
         });
 
         // ReSharper disable once InvocationIsSkipped

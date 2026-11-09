@@ -21,7 +21,7 @@ public class UserProviderTest
             IsDisabled = true,
             IsEmailVerified = true,
             IsPhoneVerified = true,
-            PictureUrl = $"https://local/{Guid.NewGuid()}",
+            PictureUrl = $"https://local/{Guid.NewGuid()}/{new string('a', 1500)}", // longer than the 400 default, as Google's are
             Name = Guid.NewGuid().ToString(),
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
