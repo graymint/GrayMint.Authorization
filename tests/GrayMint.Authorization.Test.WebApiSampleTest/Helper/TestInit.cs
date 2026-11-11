@@ -8,9 +8,11 @@ using GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.WebApiSample;
 using GrayMint.Authorization.UserManagement.Abstractions;
+using GrayMint.Authorization.UserManagement.UserProviders;
 using GrayMint.Common.Test.Api;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -51,7 +53,8 @@ public class TestInit : IDisposable
     public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
 
-    private TestInit(Dictionary<string, string?> appSettings, string environment, bool useResourceProvider)
+    private TestInit(Dictionary<string, string?> appSettings, string environment, bool useResourceProvider,
+        HandedOutUsers? handedOutUsers)
     {
         // IgnoreDb tells the sample's Program to skip its SqlServer registrations; every context
         // is then re-registered below on the shared SQLite connection.
@@ -77,6 +80,13 @@ public class TestInit : IDisposable
                         services.AddGrayMintResourceProviderDb(options => options.UseSqlite(_sqliteConnection));
                     services.AddDbContext<AppDbContext>(options => options.UseSqlite(_sqliteConnection));
                 });
+
+                if (handedOutUsers != null)
+                    builder.ConfigureTestServices(services => {
+                        services.AddScoped<UserProvider>();
+                        services.AddScoped<IUserProvider>(serviceProvider =>
+                            new RecordingUserProvider(serviceProvider.GetRequiredService<UserProvider>(), handedOutUsers));
+                    });
             });
 
         // Client
@@ -161,15 +171,16 @@ public class TestInit : IDisposable
         return memoryCache.Count;
     }
 
-    // createSystemAdmin: false leaves the app without a caller, App, or SystemAdminApiKey
+    // createSystemAdmin: false leaves the app without a caller, App, or SystemAdminApiKey;
+    // handedOutUsers: the user provider keeps there each user it hands out
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
         string environment = "Development", bool allowUserMultiRole = false,
-        bool useResourceProvider = false, bool createSystemAdmin = true)
+        bool useResourceProvider = false, bool createSystemAdmin = true, HandedOutUsers? handedOutUsers = null)
     {
         appSettings ??= new Dictionary<string, string?>();
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         appSettings["App:UseResourceProvider"] = useResourceProvider.ToString();
-        var testInit = new TestInit(appSettings, environment, useResourceProvider);
+        var testInit = new TestInit(appSettings, environment, useResourceProvider, handedOutUsers);
         if (!createSystemAdmin)
             return testInit;
 

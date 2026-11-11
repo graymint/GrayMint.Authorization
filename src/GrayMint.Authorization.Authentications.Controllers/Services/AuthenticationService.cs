@@ -27,15 +27,16 @@ public class AuthenticationService(
     public async Task<User> GetUser(string userId)
     {
         var user = await userProvider.Get(userId);
+        var ret = user.Clone();
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
-        user.AccessedTime = null;
+        ret.AccessedTime = null;
 
         // the revocation code is the server's, and the description and extra data are the app's notes on the user
-        user.AuthorizationCode = null;
-        user.Description = null;
-        user.ExData = null;
-        return user;
+        ret.AuthorizationCode = null;
+        ret.Description = null;
+        ret.ExData = null;
+        return ret;
     }
 
     public async Task<User> ResetAuthorizationCode(string userId)

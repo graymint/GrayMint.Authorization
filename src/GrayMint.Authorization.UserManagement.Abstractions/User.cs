@@ -18,4 +18,10 @@ public class User
     public required bool IsBot { get; set; }
     public required string? Description { get; set; }
     public required string? ExData { get; set; }
+
+    // a provider may hand out the very user it caches, so an answer that hides part of it changes a copy
+    public User Clone()
+    {
+        return (User)MemberwiseClone();
+    }
 }

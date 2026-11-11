@@ -49,31 +49,36 @@ public class TeamService(
         return HideInternalFields(user);
     }
 
-    // teammates see a user's profile, never the token revocation code or the app's own notes on them
+    // teammates see a user's profile, never the token revocation code or the app's own notes on them, nor when a
+    // person last used the account, which tells of their other teams too; a bot's shows, as a bot is the team's own
     private static User HideInternalFields(User user)
     {
-        user.AuthorizationCode = null;
-        user.Description = null;
-        user.ExData = null;
-        return user;
+        var ret = user.Clone();
+        ret.AuthorizationCode = null;
+        ret.Description = null;
+        ret.ExData = null;
+        if (!ret.IsBot)
+            ret.AccessedTime = null;
+
+        return ret;
     }
 
     // a person shows on a resource's team by the email they were added by until their first request to it,
     // so adding an email tells no one whether it has an account, or anything of its profile
     private static User HideProfile(User user)
     {
-        HideInternalFields(user);
-        user.Name = null;
-        user.FirstName = null;
-        user.LastName = null;
-        user.PictureUrl = null;
-        user.Phone = null;
-        user.CreatedTime = default;
-        user.AccessedTime = null;
-        user.IsDisabled = false;
-        user.IsEmailVerified = false;
-        user.IsPhoneVerified = false;
-        return user;
+        var ret = HideInternalFields(user);
+        ret.Name = null;
+        ret.FirstName = null;
+        ret.LastName = null;
+        ret.PictureUrl = null;
+        ret.Phone = null;
+        ret.CreatedTime = default;
+        ret.AccessedTime = null;
+        ret.IsDisabled = false;
+        ret.IsEmailVerified = false;
+        ret.IsPhoneVerified = false;
+        return ret;
     }
 
     // takes the user's own roles on the resource; a bot is the team's own, so it always shows
@@ -223,8 +228,9 @@ public class TeamService(
         var user = await userProvider.Get(userId);
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
-        user.AccessedTime = null;
-        return user;
+        var ret = user.Clone();
+        ret.AccessedTime = null;
+        return ret;
     }
 
     public Task<string[]> GetUserPermissions(string resourceId, string userId)

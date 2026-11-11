@@ -2,11 +2,14 @@ using System.Net;
 using System.Security.Claims;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
+using GrayMint.Authorization.UserManagement.UserProviders;
 using GrayMint.Common.ApiClients;
 using GrayMint.Common.Exceptions;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using UserCreateRequest = GrayMint.Authorization.UserManagement.Abstractions.UserCreateRequest;
+using UserUpdateRequest = GrayMint.Authorization.UserManagement.Abstractions.UserUpdateRequest;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
@@ -407,6 +410,85 @@ public class TeamControllerTest
             Assert.IsNull(teamUser.AuthorizationCode);
             Assert.IsNull(teamUser.Description);
             Assert.IsNull(teamUser.ExData);
+        }
+    }
+
+    [TestMethod]
+    public async Task Team_answers_leave_the_providers_users_as_they_were()
+    {
+        var handedOutUsers = new HandedOutUsers();
+        using var testInit = await TestInit.Create(handedOutUsers: handedOutUsers);
+
+        // a person and a bot with a value in every field an answer may hide, so hiding any of them in place shows
+        var email = TestInit.NewEmail();
+        var user = await testInit.UserProvider.Create(new UserCreateRequest {
+            Email = email,
+            Name = Guid.NewGuid().ToString(),
+            FirstName = Guid.NewGuid().ToString(),
+            LastName = Guid.NewGuid().ToString(),
+            PictureUrl = "https://local/picture.png",
+            Phone = "+15550100",
+            IsDisabled = true,
+            IsEmailVerified = true,
+            IsPhoneVerified = true,
+            Description = Guid.NewGuid().ToString(),
+            ExData = Guid.NewGuid().ToString()
+        });
+        var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        await testInit.UserProvider.Update(bot.UserId, new UserUpdateRequest {
+            Description = Guid.NewGuid().ToString(),
+            ExData = Guid.NewGuid().ToString()
+        });
+        var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>();
+        await userProvider.UpdateAccessedTime(user.UserId);
+        await userProvider.UpdateAccessedTime(bot.UserId);
+
+        // the person hidden on the app's team and in full on the system's, and the bot updated
+        await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, user.UserId);
+        await testInit.TeamClient.GetUserAsync(testInit.AppResourceId, user.UserId);
+        await testInit.TeamClient.GetUserByEmailAsync(testInit.AppResourceId, email);
+        await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId);
+        await testInit.TeamClient.GetUserAsync(testInit.RootResourceId, user.UserId);
+        await testInit.TeamClient.UpdateBotAsync(bot.UserId,
+            new TeamUpdateBotParam { Name = new PatchOfString { Value = Guid.NewGuid().ToString() } });
+
+        Assert.IsNotEmpty(handedOutUsers.GetAll());
+        Assert.IsEmpty(handedOutUsers.GetChanged());
+    }
+
+    [TestMethod]
+    public async Task Team_answers_show_a_bots_last_use_but_not_a_persons()
+    {
+        using var testInit = await TestInit.Create();
+        var item = await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
+
+        // a person and a bot of the app, each after a request to it, which shows the person in full
+        var email = TestInit.NewEmail();
+        var personApiKey = await testInit.SignUpNewUser(email, setAsCurrent: false);
+        var person = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppReader.RoleId, email);
+        var botApiKey = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
+        var adminAuthorization = testInit.HttpClient.DefaultRequestHeaders.Authorization;
+        foreach (var apiKey in new[] { personApiKey, botApiKey }) {
+            testInit.SetApiKey(apiKey);
+            await testInit.ItemsClient.GetByPermissionAsync(testInit.AppId, item.ItemId);
+        }
+
+        testInit.HttpClient.DefaultRequestHeaders.Authorization = adminAuthorization;
+        var storedPerson = await testInit.UserProvider.Get(person.UserId);
+        Assert.IsNotNull(storedPerson.AccessedTime);
+
+        // the person's last use tells of their other teams too; a bot's is its team's own
+        var userRoles = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId);
+        var listedPerson = userRoles.Items.Single(x => x.UserId == person.UserId).User;
+        Assert.IsNotNull(listedPerson);
+        Assert.IsTrue(listedPerson.IsEmailVerified, "The person should show in full.");
+        Assert.IsNull(listedPerson.AccessedTime);
+        Assert.IsNotNull(userRoles.Items.Single(x => x.UserId == botApiKey.UserId).User?.AccessedTime);
+
+        foreach (var resourceId in new[] { testInit.AppResourceId, testInit.RootResourceId }) {
+            var teamUser = await testInit.TeamClient.GetUserAsync(resourceId, person.UserId);
+            Assert.IsNotNull(teamUser.User);
+            Assert.IsNull(teamUser.User.AccessedTime);
         }
     }
 

@@ -415,6 +415,25 @@ public class AuthenticationTest
     }
 
     [TestMethod]
+    public async Task Current_user_answer_leaves_the_providers_user_as_it_was()
+    {
+        var handedOutUsers = new HandedOutUsers();
+        using var testInit = await TestInit.Create(handedOutUsers: handedOutUsers);
+
+        // a caller with a value in every field the answer hides, so hiding any of them in place shows
+        var apiKey = await testInit.AddNewBot(Roles.AppReader);
+        await testInit.UserProvider.Update(apiKey.UserId, new UserUpdateRequest {
+            Description = Guid.NewGuid().ToString(),
+            ExData = Guid.NewGuid().ToString()
+        });
+        await testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>().UpdateAccessedTime(apiKey.UserId);
+
+        await testInit.AuthenticationClient.GetCurrentUserAsync();
+        Assert.IsNotEmpty(handedOutUsers.GetAll());
+        Assert.IsEmpty(handedOutUsers.GetChanged());
+    }
+
+    [TestMethod]
     public async Task Refresh_keeps_an_explicit_session_end()
     {
         using var testInit = await TestInit.Create();
