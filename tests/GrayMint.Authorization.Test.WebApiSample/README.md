@@ -136,7 +136,7 @@ https://localhost:5001/swagger
 | `AllowUserApiKey` | Enable API key authentication | `false` |
 | `AllowRefreshToken` | Enable refresh token support | `true` |
 | `SignInRedirectUrl` | Redirect URL after sign-in | Required |
-| `AllowSystemApiKey` | Allow the anonymous system api-key endpoint | Unset: outside production only |
+| `AllowSystemApiKey` | Allow the anonymous system api-key endpoint | Unset: Development only |
 
 ### Team Controller Settings
 
