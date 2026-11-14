@@ -48,7 +48,8 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
             var tokenSource = memoryCache.GetOrCreate(BuildUserCacheKey(userId), entry => {
                 isCreated = true;
 
-                // a minute past CacheTimeout: an item's time starts when it is saved, just after the last touch
+                // a minute past CacheTimeout: an item's time starts when it is saved, just after the last touch. Only a
+                // thread stalled over a minute between the two could let a clear miss the item, for milliseconds
                 entry.SetSlidingExpiration(CacheTimeout + TimeSpan.FromMinutes(1));
                 entry.RegisterPostEvictionCallback((_, value, _, _) => (value as CancellationTokenSource)?.Cancel());
                 return new CancellationTokenSource(); // never disposed: a reader may still hold it

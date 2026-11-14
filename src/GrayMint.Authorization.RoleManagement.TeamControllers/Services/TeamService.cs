@@ -152,6 +152,8 @@ public class TeamService(
         return apiKey;
     }
 
+    // the person is on the team at once, with no invitation to accept, which would need an invitation store and an
+    // email server: their profile stays hidden from the team until their first request instead
     public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email,
         ClaimsPrincipal? caller = null)
     {

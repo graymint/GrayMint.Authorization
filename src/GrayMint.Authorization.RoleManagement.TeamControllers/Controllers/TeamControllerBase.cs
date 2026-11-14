@@ -44,6 +44,8 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     [HttpPost("users/{userId}/bot/reset-api-key")]
     public async Task<ApiKey> ResetBotApiKey(string userId)
     {
+        // a reset racing the bot's add to another resource may hand out a key with that resource's rights: no more
+        // than a key reset just before the add gets, as a key acts with the bot's roles wherever it is added
         await VerifyWritePermissionOnBot(userId);
         var res = await teamService.ResetBotApiKey(userId);
         return res;
