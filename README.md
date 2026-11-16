@@ -136,6 +136,53 @@ An `IAuthorizationProvider`'s answers for a token are cached by the token's clai
 
 ---
 
+## 🔑 An OpenID Connect identity provider's tokens
+
+`GrayMint.Authorization.OpenIdAuthentications` is a package of its own, for a service whose people sign in
+at an OpenID Connect identity provider and that issues no tokens itself. It needs none of the
+authentication packages above; the roles and permissions work with it as they are.
+
+```cs
+services
+    .AddAuthentication(OpenIdAuthenticationDefaults.AuthenticationScheme)
+    .AddGrayMintOpenIdAuthentication(new OpenIdAuthenticationOptions {
+        Providers = [
+            new OpenIdProviderOptions {
+                Name = "main",                       // never changes: users are tied under it
+                Issuer = "https://id.example.com/",  // as the provider's tokens carry it
+                Audience = "files.example.com",      // this service, as its access tokens name it
+                ClientIds = ["files"]                // the applications whose people sign in here
+            }
+        ]
+    });
+services.AddGrayMintOpenIdAuthenticationDb(options => options.UseNpgsql(connectionString));
+```
+
+- **An access token is taken only as the provider's own, for this service**: signed by a key the provider
+  publishes, in the one way it signs, in its name, naming this service as its audience, not run out, and an
+  access token by its own word (`typ` is `at+jwt`), which an ID token of the same provider is not. The
+  provider's keys are read from its address, and again when a token names one that isn't known yet.
+- **A name is read to its last letter.** An audience or an application whose name is this one's with a
+  slash more is another one.
+- **A caller is a user only by a binding**: the provider's own id of the account (`sub`), tied to a local
+  user. An account that is tied to nobody is refused, whatever its token says; an address in a token ties
+  nobody. The id may be as long as OpenID Connect allows, 255 characters.
+- **`OpenIdSignInService.SignIn`** is what an application calls once, with the ID token it got for its
+  person. The first time, it ties the account to the user of its address, on the provider's word that the
+  address is the person's (`email_verified`), and only to a user that no account is tied to yet. Where
+  `AllowSelfRegister` is on, someone who is no user yet becomes one then.
+- **The ID token must be meant for one of the service's applications, and asked for by one of them.** A
+  token says who asked for it (`azp`) when it is meant for several applications, and may say so anyway: one
+  that another application asked for is refused, though it names one of the service's beside its own, and
+  so is one for several that names nobody.
+- A user is tied to one account, and an account to one user: the table's own keys hold that, also for two
+  sign-ins that come at the same moment.
+- **A locked user is tied to no account**: the one that tried while the user was locked would be the user's
+  from the day the lock is taken off.
+- **The tie of a user that was removed is dropped** when its account signs in next, and the account comes
+  as for the first time. Left there, it would keep the person out for good, also once they are made a user
+  again.
+
 ## 🏗 Repo layout & CI
 
 - `src/` — the packable libraries; one shared version and package metadata via

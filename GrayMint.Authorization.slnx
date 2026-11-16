@@ -14,6 +14,7 @@
     <Project Path="src/GrayMint.Authorization.Authentications/GrayMint.Authorization.Authentications.csproj" />
     <Project Path="src/GrayMint.Authorization.Authentications.Controllers/GrayMint.Authorization.Authentications.Controllers.csproj" />
     <Project Path="src/GrayMint.Authorization.MicroserviceAuthorization/GrayMint.Authorization.MicroserviceAuthorization.csproj" />
+    <Project Path="src/GrayMint.Authorization.OpenIdAuthentications/GrayMint.Authorization.OpenIdAuthentications.csproj" />
     <Project Path="src/GrayMint.Authorization.PermissionAuthorizations/GrayMint.Authorization.PermissionAuthorizations.csproj" />
     <Project Path="src/GrayMint.Authorization.RoleManagement.Abstractions/GrayMint.Authorization.RoleManagement.Abstractions.csproj" />
     <Project Path="src/GrayMint.Authorization.RoleManagement.ResourceProviders/GrayMint.Authorization.RoleManagement.ResourceProviders.csproj" />
@@ -27,6 +28,7 @@
     <Project Path="tests/GrayMint.Authorization.Test.ItemServices/GrayMint.Authorization.Test.ItemServices.csproj" />
     <Project Path="tests/GrayMint.Authorization.Test.MicroserviceSample/GrayMint.Authorization.Test.MicroserviceSample.csproj" />
     <Project Path="tests/GrayMint.Authorization.Test.MicroServiceTest/GrayMint.Authorization.Test.MicroServiceTest.csproj" />
+    <Project Path="tests/GrayMint.Authorization.Test.OpenIdAuthenticationTest/GrayMint.Authorization.Test.OpenIdAuthenticationTest.csproj" />
     <Project Path="tests/GrayMint.Authorization.Test.WebApiSample/GrayMint.Authorization.Test.WebApiSample.csproj" />
     <Project Path="tests/GrayMint.Authorization.Test.WebApiSampleTest/GrayMint.Authorization.Test.WebApiSampleTest.csproj" />
   </Folder>
