@@ -25,6 +25,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- Each package carries its doc comments, which an app's API description and IDE show. Not every public member
+         needs one, so a missing comment is no warning (CS1591). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- Shared package metadata (identical across every package; only Description stays per-project). -->
     <Authors>GrayMint</Authors>
     <Copyright>GrayMint. All rights reserved.</Copyright>

@@ -9,6 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 
+/// <summary>
+/// A resource's team: the people and bots with a role on it.
+/// </summary>
+/// <remarks>
+/// A role gives its holder the role's permissions on the resource. Changing the team takes the permission to change
+/// it, and an owner's role only an owner can give or take.
+/// </remarks>
 // ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/team")]
@@ -19,6 +26,10 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     protected abstract TRole ToDto(Role role);
     protected abstract TUserRole ToDto(TeamUserRole user);
 
+    /// <summary>
+    /// List the resources you have a role on
+    /// </summary>
+    /// <returns>The resources' ids.</returns>
     [Authorize]
     [HttpGet("users/current/resources")]
     public async Task<IEnumerable<string>> ListCurrentUserResources()
@@ -32,6 +43,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return resourceIds;
     }
 
+    /// <summary>
+    /// List your permissions on a resource
+    /// </summary>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <returns>The permissions your roles there give you.</returns>
     [Authorize]
     [HttpGet("users/current/resources/{resourceId}/permissions")]
     public async Task<IEnumerable<string>> ListCurrentUserPermissions(string resourceId)
@@ -41,6 +57,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return permissions;
     }
 
+    /// <summary>
+    /// Give a bot a new API key
+    /// </summary>
+    /// <remarks>
+    /// Its old key stops working at once. It takes the permission to change the team of every resource the bot has a
+    /// role on.
+    /// </remarks>
+    /// <param name="userId">The bot's user id.</param>
+    /// <returns>The bot's new API key, shown only here.</returns>
     [HttpPost("users/{userId}/bot/reset-api-key")]
     public async Task<ApiKey> ResetBotApiKey(string userId)
     {
@@ -51,6 +76,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return res;
     }
 
+    /// <summary>
+    /// Rename a bot
+    /// </summary>
+    /// <remarks>
+    /// It takes the permission to change the team of every resource the bot has a role on.
+    /// </remarks>
+    /// <param name="userId">The bot's user id.</param>
+    /// <param name="updateParam">The bot's new name.</param>
+    /// <returns>The bot.</returns>
     [HttpPatch("users/{userId}/bot")]
     public async Task<TUser> UpdateBot(string userId, TeamUpdateBotParam updateParam)
     {
@@ -60,6 +94,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
 
+    /// <summary>
+    /// List a resource's roles
+    /// </summary>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <returns>The roles a team member can have there.</returns>
     [HttpGet("resources/{resourceId}/roles")]
     public async Task<IEnumerable<TRole>> ListRoles(string resourceId)
     {
@@ -68,6 +107,21 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return roles.Select(ToDto);
     }
 
+    /// <summary>
+    /// List a resource's team
+    /// </summary>
+    /// <remarks>
+    /// One item for each role a member has. A person added by email shows only that email until their first request
+    /// to the resource.
+    /// </remarks>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="roleId">Only the members with this role.</param>
+    /// <param name="userId">Only this user.</param>
+    /// <param name="search">Only the users with this id, or whose first name, last name or email starts with it.</param>
+    /// <param name="isBot">Only the bots, or only the people.</param>
+    /// <param name="recordIndex">How many items to skip.</param>
+    /// <param name="recordCount">How many items to return at most.</param>
+    /// <returns>A page of the team.</returns>
     [HttpGet("resources/{resourceId}/user-roles")]
     public async Task<ListResult<TUserRole>> ListUserRoles(string resourceId,
         string? roleId = null, string? userId = null,
@@ -87,6 +141,12 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return ret;
     }
 
+    /// <summary>
+    /// Get a team member
+    /// </summary>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="userId">The member's user id.</param>
+    /// <returns>The member, with their roles on the resource.</returns>
     [HttpGet("resources/{resourceId}/users/{userId}")]
     public async Task<TeamUser<TUser, TRole>> GetUser(string resourceId, string userId)
     {
@@ -99,6 +159,12 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return ret;
     }
 
+    /// <summary>
+    /// Get a team member by their email
+    /// </summary>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="email">The member's email.</param>
+    /// <returns>The member, with their roles on the resource.</returns>
     [HttpGet("resources/{resourceId}/users/email:{email}")]
     public async Task<TeamUser<TUser, TRole>> GetUserByEmail(string resourceId, string email)
     {
@@ -112,6 +178,17 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     }
 
 
+    /// <summary>
+    /// Add a bot
+    /// </summary>
+    /// <remarks>
+    /// A new bot with the role, for a script or another service to call the API with. The service may not let a bot
+    /// have an owner's role.
+    /// </remarks>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="roleId">The bot's role.</param>
+    /// <param name="addParam">The bot's name.</param>
+    /// <returns>The bot's API key, shown only here.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/bots")]
     public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
     {
@@ -120,6 +197,19 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return res;
     }
 
+    /// <summary>
+    /// Add a person by their email
+    /// </summary>
+    /// <remarks>
+    /// They are on the team at once, with no invitation to accept, and an email with no account gets one. The team
+    /// sees only the email until their first request to the resource. The role takes the place of their other roles
+    /// there, unless the service lets a member have several.
+    /// </remarks>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="roleId">The role to give.</param>
+    /// <param name="email">The person's email.</param>
+    /// <param name="addParam">Nothing yet; leave it out.</param>
+    /// <returns>Their role on the resource.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/users/email:{email}")]
     public async Task<TUserRole> AddUserByEmail(string resourceId, string roleId, string email,
         TeamAddEmailParam? addParam = null)
@@ -135,6 +225,18 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return ToDto(res);
     }
 
+    /// <summary>
+    /// Give a user a role
+    /// </summary>
+    /// <remarks>
+    /// A person or a bot with an account. The role takes the place of their other roles on the resource, unless the
+    /// service lets a member have several. A bot takes the permission to change the team of every resource it has a
+    /// role on.
+    /// </remarks>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="roleId">The role to give.</param>
+    /// <param name="userId">The user's id.</param>
+    /// <returns>Their role on the resource.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/users/{userId}")]
     public async Task<TUserRole> AddUser(string resourceId, string roleId, string userId)
     {
@@ -153,6 +255,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return ToDto(res);
     }
 
+    /// <summary>
+    /// Take a role away from a user
+    /// </summary>
+    /// <remarks>
+    /// An owner can't give up their own owner's role; another owner can take it away.
+    /// </remarks>
+    /// <param name="resourceId">The resource's id.</param>
+    /// <param name="roleId">The role to take away.</param>
+    /// <param name="userId">The user's id.</param>
     [HttpDelete("resources/{resourceId}/roles/{roleId}/users/{userId}")]
     public async Task RemoveUser(string resourceId, string roleId, string userId)
     {
@@ -162,6 +273,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         await teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
     }
 
+    /// <summary>
+    /// Get an API key for the service's own administration
+    /// </summary>
+    /// <remarks>
+    /// A new bot with the system role that can change teams, from the service's secret. The service may not allow it.
+    /// </remarks>
+    /// <param name="secret">The service's secret, as a form field.</param>
+    /// <returns>The new bot's API key, shown only here.</returns>
     [HttpPost("system/api-key")]
     [AllowAnonymous]
     public async Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
