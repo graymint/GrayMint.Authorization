@@ -171,6 +171,15 @@ services.AddGrayMintOpenIdAuthenticationDb(options => options.UseNpgsql(connecti
   person. The first time, it ties the account to the user of its address, on the provider's word that the
   address is the person's (`email_verified`), and only to a user that no account is tied to yet. Where
   `AllowSelfRegister` is on, someone who is no user yet becomes one then.
+- **`OpenIdSignInService.SignUp`** is for a service whose people become users at a step of its own, such as
+  a page where they accept its terms. It does what `SignIn` does, and someone who is no user yet becomes
+  one, whatever `AllowSelfRegister` says. With the setting off, a sign-in alone makes nobody a user.
+- **A user who was made by their address alone takes the name of the account that is tied to them**, once.
+  A name the service gave them stays, and so does the one they took, whatever the account is called later.
+- **A person who becomes a user by themselves is kept with their address in lower case**, however the
+  provider spells it. A user made by hand is found by the address as the provider spells it, and then in
+  lower case: write it in lower case, and a service that looks for people by a typed address finds each
+  one once.
 - **The ID token must be meant for one of the service's applications, and asked for by one of them.** A
   token says who asked for it (`azp`) when it is meant for several applications, and may say so anyway: one
   that another application asked for is refused, though it names one of the service's beside its own, and

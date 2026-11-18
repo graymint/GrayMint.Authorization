@@ -68,7 +68,9 @@ public sealed class TestHost : IAsyncDisposable
         app.MapGet("/me", (ClaimsPrincipal user) => Results.Text(user.FindFirstValue(ClaimTypes.NameIdentifier)))
             .RequireAuthorization();
         app.MapPost("/sign-in",
-            (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService));
+            (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService, isSignUp: false));
+        app.MapPost("/sign-up",
+            (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService, isSignUp: true));
 
         await app.Services.UseGrayMintUserProvider();
         await app.Services.UseGrayMintOpenIdAuthentication();
@@ -77,17 +79,28 @@ public sealed class TestHost : IAsyncDisposable
     }
 
     // a user made by hand, as a service does before the person ever signs in
-    public async Task<User> CreateUser(string email)
+    public async Task<User> CreateUser(string email, string? name = null)
     {
         await using var scope = Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-            .Create(new UserCreateRequest { Email = email });
+            .Create(new UserCreateRequest { Email = email, Name = name });
     }
 
     // what an application does with the ID token it got for its person
-    public async Task<TestSignInResponse> SignIn(string idToken, CancellationToken cancellationToken)
+    public Task<TestSignInResponse> SignIn(string idToken, CancellationToken cancellationToken)
     {
-        using var response = await Client.PostAsync("/sign-in", new StringContent(idToken), cancellationToken);
+        return Post("/sign-in", idToken, cancellationToken);
+    }
+
+    // what an application does with it at its own step for becoming a user
+    public Task<TestSignInResponse> SignUp(string idToken, CancellationToken cancellationToken)
+    {
+        return Post("/sign-up", idToken, cancellationToken);
+    }
+
+    private async Task<TestSignInResponse> Post(string path, string idToken, CancellationToken cancellationToken)
+    {
+        using var response = await Client.PostAsync(path, new StringContent(idToken), cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<TestSignInResponse>(cancellationToken) ??
                throw new InvalidOperationException("The sign-in gave no answer.");
@@ -108,11 +121,13 @@ public sealed class TestHost : IAsyncDisposable
         await _connection.DisposeAsync();
     }
 
-    private static async Task<IResult> SignIn(HttpRequest request, OpenIdSignInService signInService)
+    private static async Task<IResult> SignIn(HttpRequest request, OpenIdSignInService signInService, bool isSignUp)
     {
         using var reader = new StreamReader(request.Body);
         var idToken = await reader.ReadToEndAsync(request.HttpContext.RequestAborted);
-        var result = await signInService.SignIn(idToken, request.HttpContext.RequestAborted);
+        var result = isSignUp
+            ? await signInService.SignUp(idToken, request.HttpContext.RequestAborted)
+            : await signInService.SignIn(idToken, request.HttpContext.RequestAborted);
         return Results.Json(new TestSignInResponse { Status = result.Status.ToString(), UserId = result.User?.UserId });
     }
 }

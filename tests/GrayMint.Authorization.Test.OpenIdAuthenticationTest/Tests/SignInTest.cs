@@ -97,6 +97,173 @@ public class SignInTest(TestContext testContext)
         Assert.AreEqual(user.UserId, await openResponse.Content.ReadAsStringAsync(CancellationToken));
     }
 
+    // A service where a sign-in alone makes nobody a user has a step of its own for it. That step makes the
+    // user; a sign-in before it makes none.
+    [TestMethod]
+    public async Task SignUpMakesAUserOfSomeoneWhoIsNone()
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(provider);
+        var refused = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.NotRegistered), refused.Status);
+        await using (var scope = testHost.Services.CreateAsyncScope())
+            Assert.IsNull(await scope.ServiceProvider.GetRequiredService<IUserProvider>().FindByEmail(Email));
+
+        var signUp = await testHost.SignUp(provider.CreateToken(new TestToken {
+            Subject = Subject,
+            Audience = TestProvider.ClientId,
+            Type = "JWT",
+            Email = Email,
+            IsEmailVerified = true,
+            Name = "Someone"
+        }), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signUp.Status);
+
+        await using (var scope = testHost.Services.CreateAsyncScope()) {
+            var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email);
+            Assert.AreEqual(user.UserId, signUp.UserId);
+            Assert.AreEqual("Someone", user.Name);
+            Assert.IsTrue(user.IsEmailVerified);
+        }
+
+        // the account is that user from then on: by its access tokens, by a sign-in, and by the step again
+        using var response = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
+        Assert.AreEqual(signUp.UserId, await response.Content.ReadAsStringAsync(CancellationToken));
+        var signIn = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(signUp.UserId, signIn.UserId);
+        var again = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), again.Status);
+        Assert.AreEqual(signUp.UserId, again.UserId);
+    }
+
+    // Someone who becomes a user by themselves is kept with their address in lower case, however the provider
+    // spells it: whoever looks for them later by an address that was typed finds them, and makes no second user.
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task UserThatAPersonMakesHasItsAddressInLowerCase(bool isSignUp)
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(new TestHostOptions {
+            Providers = [provider], AllowSelfRegister = !isSignUp
+        });
+
+        var idToken = provider.CreateIdToken(Subject, "SomeOne@Example.COM");
+        var result = isSignUp
+            ? await testHost.SignUp(idToken, CancellationToken)
+            : await testHost.SignIn(idToken, CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), result.Status);
+
+        await using var scope = testHost.Services.CreateAsyncScope();
+        var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email);
+        Assert.AreEqual(result.UserId, user.UserId);
+        Assert.AreEqual(Email, user.Email);
+    }
+
+    // A user who was made by their address alone has no name. They take the name of the account that is tied
+    // to them, once: a name the service gave them stays, and so does the one they took, whatever the account
+    // is called later.
+    [TestMethod]
+    public async Task UserMadeByTheirAddressTakesTheNameOfTheAccountThatIsTiedToThem()
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(provider);
+        var user = await testHost.CreateUser(Email);
+        var namedUser = await testHost.CreateUser("named@example.com", "Named By The Service");
+
+        await testHost.SignIn(CreateNamedIdToken(provider, Subject, Email, "Someone"), CancellationToken);
+        await testHost.SignIn(CreateNamedIdToken(provider, OtherSubject, "named@example.com", "Another Name"),
+            CancellationToken);
+
+        // a later sign-in of the same account, under another name, changes nothing
+        await testHost.SignIn(CreateNamedIdToken(provider, Subject, Email, "Someone Else Now"), CancellationToken);
+
+        await using var scope = testHost.Services.CreateAsyncScope();
+        var userProvider = scope.ServiceProvider.GetRequiredService<IUserProvider>();
+        Assert.AreEqual("Someone", (await userProvider.Get(user.UserId)).Name);
+        Assert.AreEqual("Named By The Service", (await userProvider.Get(namedUser.UserId)).Name);
+    }
+
+    // The step makes a user only of someone who is none. Whoever was made a user before, by their address,
+    // is tied to that user, as by a sign-in.
+    [TestMethod]
+    public async Task SignUpOfSomeoneWhoIsAUserTiesThatUser()
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(provider);
+        var user = await testHost.CreateUser(Email);
+
+        var signUp = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signUp.Status);
+        Assert.AreEqual(user.UserId, signUp.UserId);
+
+        await using var scope = testHost.Services.CreateAsyncScope();
+        var users = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetUsers();
+        Assert.HasCount(1, users.Items);
+    }
+
+    // The step asks what a sign-in asks: nothing it refuses makes a user, or ties one.
+    [TestMethod]
+    [DataRow("address not vouched for", nameof(OpenIdSignInStatus.EmailNotVerified))]
+    [DataRow("no token of the provider", nameof(OpenIdSignInStatus.InvalidToken))]
+    [DataRow("access token", nameof(OpenIdSignInStatus.InvalidToken))]
+    public async Task SignUpRefusesWhatASignInRefuses(string what, string expectedStatus)
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(provider);
+        var token = what switch {
+            "address not vouched for" => provider.CreateToken(new TestToken {
+                Subject = Subject,
+                Audience = TestProvider.ClientId,
+                Type = "JWT",
+                Email = Email,
+                IsEmailVerified = false
+            }),
+            "no token of the provider" => "not-a-token",
+            "access token" => provider.CreateAccessToken(Subject),
+            _ => throw new ArgumentOutOfRangeException(nameof(what))
+        };
+
+        var signUp = await testHost.SignUp(token, CancellationToken);
+        Assert.AreEqual(expectedStatus, signUp.Status);
+        Assert.IsNull(signUp.UserId);
+
+        await using var scope = testHost.Services.CreateAsyncScope();
+        var users = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetUsers();
+        Assert.IsEmpty(users.Items);
+        using var response = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task SignUpTiesNoLockedUserAndNoUserOfAnotherAccount()
+    {
+        using var provider = new TestProvider();
+        await using var testHost = await TestHost.Create(provider);
+        var lockedUser = await testHost.CreateUser(Email);
+        await using (var scope = testHost.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
+                .Update(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
+
+        var locked = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.UserDisabled), locked.Status);
+        Assert.IsNull(locked.UserId);
+
+        // it tied nothing: once the lock is off, the user is free for the account that comes then
+        await using (var scope = testHost.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
+                .Update(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(false) });
+
+        var other = await testHost.SignUp(provider.CreateIdToken(OtherSubject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), other.Status);
+        Assert.AreEqual(lockedUser.UserId, other.UserId);
+
+        // a user that an account is tied to is not a second account's, though it comes with the user's address
+        var second = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
+        Assert.AreEqual(nameof(OpenIdSignInStatus.TiedToAnotherAccount), second.Status);
+        Assert.IsNull(second.UserId);
+    }
+
     // An address ties an account only to a user that no account is tied to yet. A second account with a user's
     // address, also one the provider vouches for, is not that user.
     [TestMethod]
@@ -383,6 +550,19 @@ public class SignInTest(TestContext testContext)
         dbContext.ChangeTracker.Clear();
         await Assert.ThrowsAsync<DbUpdateException>(() =>
             AddBinding(dbContext, provider.Name, Subject, Guid.Parse(otherUser.UserId)));
+    }
+
+    // a good ID token of an account that has a name at the provider
+    private static string CreateNamedIdToken(TestProvider provider, string subject, string email, string name)
+    {
+        return provider.CreateToken(new TestToken {
+            Subject = subject,
+            Audience = TestProvider.ClientId,
+            Type = "JWT",
+            Email = email,
+            IsEmailVerified = true,
+            Name = name
+        });
     }
 
     // past the store, which looks before it writes

@@ -1,4 +1,5 @@
 using GrayMint.Authorization.UserManagement.Abstractions;
+using GrayMint.Common.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -12,7 +13,20 @@ public sealed class OpenIdSignInService(
     IUserProvider userProvider,
     IOptions<OpenIdAuthenticationOptions> options)
 {
-    public async Task<OpenIdSignInResult> SignIn(string idToken, CancellationToken cancellationToken)
+    public Task<OpenIdSignInResult> SignIn(string idToken, CancellationToken cancellationToken)
+    {
+        return SignIn(idToken, options.Value.AllowSelfRegister, cancellationToken);
+    }
+
+    // For a service whose people become users at a step of its own, such as a page where they accept its
+    // terms: as SignIn, and someone who is no user yet becomes one, whatever AllowSelfRegister says.
+    public Task<OpenIdSignInResult> SignUp(string idToken, CancellationToken cancellationToken)
+    {
+        return SignIn(idToken, isRegisterAllowed: true, cancellationToken);
+    }
+
+    private async Task<OpenIdSignInResult> SignIn(string idToken, bool isRegisterAllowed,
+        CancellationToken cancellationToken)
     {
         var identity = await idTokenReader.Read(idToken, cancellationToken);
         if (identity == null)
@@ -37,9 +51,11 @@ public sealed class OpenIdSignInService(
         if (!identity.IsEmailVerified || string.IsNullOrWhiteSpace(identity.Email))
             return Refuse(OpenIdSignInStatus.EmailNotVerified);
 
-        var user = await FindByEmail(identity.Email) ?? await Register(identity, identity.Email);
-        if (user == null)
+        var user = await FindByEmail(identity.Email);
+        if (user == null && !isRegisterAllowed)
             return Refuse(OpenIdSignInStatus.NotRegistered);
+
+        user ??= await Register(identity, identity.Email);
 
         // A locked user is tied to nobody. The account that tried while it was locked would be the user's
         // from the day the lock is taken off, whoever else comes then.
@@ -49,7 +65,7 @@ public sealed class OpenIdSignInService(
         // Only a user that no account is tied to yet. An address alone ties nobody a second time: the
         // account it named the first time is the user's, and another one with the address is not.
         if (await bindingStore.TryAdd(identity.ProviderName, identity.Subject, user.UserId, cancellationToken))
-            return Complete(user);
+            return Complete(await TakeName(user, identity));
 
         // turned away: by this same account's other sign-in, which is no error, or by another account
         userId = await bindingStore.FindUserId(identity.ProviderName, identity.Subject, cancellationToken);
@@ -73,15 +89,22 @@ public sealed class OpenIdSignInService(
                await userProvider.FindByEmail(email.ToLowerInvariant());
     }
 
-    // null where people can't become users by themselves
-    private async Task<User?> Register(OpenIdIdentity identity, string email)
+    // A user who was made by their address alone has no name. They take the name of the account that is
+    // tied to them, once: a name the service gave them, or that they have by now, stays.
+    private async Task<User> TakeName(User user, OpenIdIdentity identity)
     {
-        if (!options.Value.AllowSelfRegister)
-            return null;
+        return string.IsNullOrWhiteSpace(user.Name) && !string.IsNullOrWhiteSpace(identity.Name)
+            ? await userProvider.Update(user.UserId, new UserUpdateRequest { Name = new Patch<string?>(identity.Name) })
+            : user;
+    }
 
+    // The user is made with the address in lower case, whatever spelling the provider keeps. A service that
+    // looks for a person by an address someone typed finds them then, and makes no second user of them.
+    private async Task<User> Register(OpenIdIdentity identity, string email)
+    {
         try {
             return await userProvider.Create(new UserCreateRequest {
-                Email = email,
+                Email = email.ToLowerInvariant(),
                 Name = identity.Name,
                 IsEmailVerified = true
             });
