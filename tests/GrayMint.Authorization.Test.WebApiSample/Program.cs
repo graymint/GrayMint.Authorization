@@ -4,7 +4,7 @@ using GrayMint.Authorization.Test.ItemServices;
 using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Common.AspNetCore;
-using GrayMint.Common.Swagger;
+using GrayMint.Common.OpenApi;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.WebApiSample;
@@ -24,7 +24,7 @@ public class Program
         // common services
         services
             .AddGrayMintCommonServices(new RegisterServicesOptions())
-            .AddGrayMintSwagger();
+            .AddGrayMintOpenApi();
 
         // authentication & its controller
         builder.AddGrayMintCommonAuthorizationForApp(
@@ -54,7 +54,7 @@ public class Program
         // Add services to the container.
         var webApp = builder.Build();
         webApp.UseGrayMintCommonServices(new UseServicesOptions());
-        webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
+        webApp.UseGrayMintOpenApi(new UseOpenApiOptions { RedirectRootToUi = true });
         webApp.UseStaticFiles(new StaticFileOptions());
         // Database first: EnsureCreated creates the database itself on a fresh machine, and the
         // authorization providers below only create their own tables (they cannot create the db).

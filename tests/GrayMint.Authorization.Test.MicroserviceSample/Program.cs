@@ -3,7 +3,7 @@ using GrayMint.Authorization.Test.ItemServices;
 using GrayMint.Authorization.Test.ItemServices.Persistence;
 using GrayMint.Authorization.Test.MicroserviceSample.Services;
 using GrayMint.Common.AspNetCore;
-using GrayMint.Common.Swagger;
+using GrayMint.Common.OpenApi;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.MicroserviceSample
@@ -21,7 +21,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // common services
             services
                 .AddGrayMintCommonServices(new RegisterServicesOptions())
-                .AddGrayMintSwagger();
+                .AddGrayMintOpenApi();
 
             // authentication & its controller
             builder.AddGrayMintCommonAuthorizationForMicroservice<AuthorizationProvider>();
@@ -35,7 +35,7 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             // Add services to the container.
             var webApp = builder.Build();
             webApp.UseGrayMintCommonServices(new UseServicesOptions());
-            webApp.UseGrayMintSwagger(new UseSwaggerOptions { RedirectRootToSwaggerUi = true });
+            webApp.UseGrayMintOpenApi(new UseOpenApiOptions { RedirectRootToUi = true });
             // Database first: EnsureCreated creates the database itself on a fresh machine, and the
             // authorization providers below only create their own tables (they cannot create the db).
             await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
