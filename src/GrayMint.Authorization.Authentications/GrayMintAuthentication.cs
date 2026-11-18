@@ -326,7 +326,8 @@ public class GrayMintAuthentication(
 
     public Uri GetGoogleSignInUrl(string csrfToken, string? nonce, string redirectUrl)
     {
-        var googleClientId = _authenticationOptions.OpenIdProviders.SingleOrDefault(x => x.Name == "Google")?.Audience;
+        var googleClientId = _authenticationOptions.OpenIdProviders
+            .SingleOrDefault(x => x.Name == GrayMintAuthenticationDefaults.GoogleProviderName)?.Audience;
         ArgumentException.ThrowIfNullOrEmpty(googleClientId);
 
         const string baseUrl = "https://accounts.google.com/gsi/select";

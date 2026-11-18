@@ -37,10 +37,10 @@ dotnet add package GrayMint.Authorization
 - `Secrets`: List of additional secret keys.
 - `CacheTimeout`: The cache timeout duration.
 - `AllowUserSelfRegister`: Boolean flag to allow or disallow user self-registration.
-- `AllowUserApiKey`: Boolean flag to allow or disallow user API keys.
+- `AllowUserApiKey`: Boolean flag to allow or disallow user API keys. Without it, the service has no `api/authentication/current/reset-api-key` endpoint; bots' keys don't need it.
 - `AllowRefreshToken`: Boolean flag to allow or disallow refresh tokens.
 - `SignInRedirectUrl`: The URL to redirect to after sign-in.
-- `OpenIdProviders`: List of OpenID providers with their respective configurations.
+- `OpenIdProviders`: List of OpenID providers with their respective configurations. Google's sign-in endpoints (`api/authentication/external/google/...`) exist only with a provider named `Google`.
 - `AllowSystemApiKey`: Allows the anonymous system api-key endpoints, which take the signing secret. Unset, they work in Development only.
 
 Every access token carries an `authorization_code` claim, checked on each request so that the token can be revoked; a token without one is refused. A token meant to outlive any revocation, such as a customer token, carries `*`.
