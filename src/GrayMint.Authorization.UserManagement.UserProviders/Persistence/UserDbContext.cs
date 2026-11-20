@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using GrayMint.Authorization.Abstractions;
 using GrayMint.Authorization.UserManagement.UserProviders.Models;
-using GrayMint.Common.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -47,6 +46,10 @@ public partial class UserDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Where a database names a default (SQL Server), EF names it DF_<table>_<column> rather than the database
+        // naming it at random; PostgreSQL names none.
+        modelBuilder.Model.UseNamedDefaultConstraints(true);
+
         // add default schema only for supported databases
         if (IsSchemaSupported)
             modelBuilder.HasDefaultSchema(Schema);
@@ -58,7 +61,7 @@ public partial class UserDbContext : DbContext
                 .HasMaxLength(50);
 
             entity.Property(e => e.IsDisabled)
-                .HasDefaultValueWithConstraintName(false, "DF_User_IsDisabled");
+                .HasDefaultValue(false);
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();
@@ -67,16 +70,13 @@ public partial class UserDbContext : DbContext
             entity.HasIndex(e => e.LastName);
 
             entity.Property(e => e.IsBot)
-                .HasDefaultValue(false)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsBot");
+                .HasDefaultValue(false);
 
             entity.Property(e => e.IsEmailVerified)
-                    .HasDefaultValue(false)
-                    .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsEmailVerified");
+                    .HasDefaultValue(false);
 
             entity.Property(e => e.IsPhoneVerified)
-                .HasDefaultValue(false)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF_User_IsPhoneVerified");
+                .HasDefaultValue(false);
 
             entity.Property(e => e.ExData)
                 .HasMaxLength(int.MaxValue);
