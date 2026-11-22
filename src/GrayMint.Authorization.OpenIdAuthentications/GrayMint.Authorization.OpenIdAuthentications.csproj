@@ -8,7 +8,7 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.318" />
+		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.319" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
 	</ItemGroup>
 
