@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<OutputType>Library</OutputType>
 		<IsPackable>true</IsPackable>
 		<Description>Takes the access tokens of an OpenID Connect identity provider, and ties each account there to a local user.</Description>
@@ -8,8 +8,8 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.314" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
+		<PackageReference Include="GrayMint.Common.EntityFrameworkCore" Version="2.1.318" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -22,6 +22,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- SDK 11 adds a hot-reload browser script to each web project's Debug build, with no endpoint for it in a
+         library's scoped css bundle, and the build stops -->
+    <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>
   </PropertyGroup>
 
   <PropertyGroup>
