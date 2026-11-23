@@ -4,8 +4,8 @@
 	</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.1.319" />
-    <PackageReference Include="GrayMint.Common.OpenApi" Version="2.1.319" />
+    <PackageReference Include="GrayMint.Common.AspNetCore" Version="2.1.323" />
+    <PackageReference Include="GrayMint.Common.OpenApi" Version="2.1.323" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
   </ItemGroup>
 
