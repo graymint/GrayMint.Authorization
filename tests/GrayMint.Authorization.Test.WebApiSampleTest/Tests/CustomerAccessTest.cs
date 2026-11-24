@@ -12,14 +12,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class CustomerAccessTest(TestContext testContext)
+public class CustomerAccessTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task Get_by_customer_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         const int customerId = 2000;
 
@@ -41,6 +39,6 @@ public class CustomerAccessTest(TestContext testContext)
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         testInit.SetApiKey(apiKey);
-        await testInit.CustomerClient.GetByCustomerIdAsync(testInit.AppId, customerId, CancellationToken);
+        await testInit.CustomerClient.GetByCustomerIdAsync(testInit.AppId, customerId);
     }
 }

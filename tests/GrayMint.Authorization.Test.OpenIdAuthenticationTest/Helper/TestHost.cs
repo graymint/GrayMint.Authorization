@@ -22,21 +22,25 @@ public sealed class TestHost : IAsyncDisposable
     private readonly SqliteConnection _connection;
 
     public HttpClient Client { get; }
+
+    // the test's token, which every call of this host's takes
+    public CancellationToken CancellationToken { get; }
     public IServiceProvider Services => _app.Services;
 
-    private TestHost(WebApplication app, SqliteConnection connection)
+    private TestHost(WebApplication app, SqliteConnection connection, CancellationToken cancellationToken)
     {
         _app = app;
         _connection = connection;
+        CancellationToken = cancellationToken;
         Client = app.GetTestClient();
     }
 
-    public static Task<TestHost> Create(TestProvider provider, CancellationToken cancellationToken)
+    public static Task<TestHost> Create(TestProvider provider, CancellationToken cancellationToken = default)
     {
         return Create(new TestHostOptions { Providers = [provider] }, cancellationToken);
     }
 
-    public static async Task<TestHost> Create(TestHostOptions options, CancellationToken cancellationToken)
+    public static async Task<TestHost> Create(TestHostOptions options, CancellationToken cancellationToken = default)
     {
         // one connection that stays open: the database lives in memory for as long as it does
         var connection = new SqliteConnection("DataSource=:memory:");
@@ -75,7 +79,7 @@ public sealed class TestHost : IAsyncDisposable
         await app.Services.UseGrayMintUserProvider();
         await app.Services.UseGrayMintOpenIdAuthentication();
         await app.StartAsync(cancellationToken);
-        return new TestHost(app, connection);
+        return new TestHost(app, connection, cancellationToken);
     }
 
     // a user made by hand, as a service does before the person ever signs in
@@ -110,40 +114,39 @@ public sealed class TestHost : IAsyncDisposable
         return await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(email);
     }
 
-    public async Task RemoveUserBinding(string providerName, string subject, string userId,
-        CancellationToken cancellationToken)
+    public async Task RemoveUserBinding(string providerName, string subject, string userId)
     {
         await using var scope = Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<UserBindingStore>()
-            .Remove(providerName, subject, userId, cancellationToken);
+            .Remove(providerName, subject, userId, CancellationToken);
     }
 
     // what an application does with the ID token it got for its person
-    public Task<TestSignInResponse> SignIn(string idToken, CancellationToken cancellationToken)
+    public Task<TestSignInResponse> SignIn(string idToken)
     {
-        return Post("/sign-in", idToken, cancellationToken);
+        return Post("/sign-in", idToken);
     }
 
     // what an application does with it at its own step for becoming a user
-    public Task<TestSignInResponse> SignUp(string idToken, CancellationToken cancellationToken)
+    public Task<TestSignInResponse> SignUp(string idToken)
     {
-        return Post("/sign-up", idToken, cancellationToken);
+        return Post("/sign-up", idToken);
     }
 
-    private async Task<TestSignInResponse> Post(string path, string idToken, CancellationToken cancellationToken)
+    private async Task<TestSignInResponse> Post(string path, string idToken)
     {
-        using var response = await Client.PostAsync(path, new StringContent(idToken), cancellationToken);
+        using var response = await Client.PostAsync(path, new StringContent(idToken), CancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<TestSignInResponse>(cancellationToken) ??
+        return await response.Content.ReadFromJsonAsync<TestSignInResponse>(CancellationToken) ??
                throw new InvalidOperationException("The sign-in gave no answer.");
     }
 
     // the address that only a user may call, with the access token given
-    public async Task<HttpResponseMessage> GetMe(string accessToken, CancellationToken cancellationToken)
+    public async Task<HttpResponseMessage> GetMe(string accessToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "/me");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        return await Client.SendAsync(request, cancellationToken);
+        return await Client.SendAsync(request, CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

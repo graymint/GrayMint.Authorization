@@ -25,105 +25,103 @@ using TokenRefreshType = GrayMint.Authorization.Authentications.Dtos.RefreshToke
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class AuthenticationTest(TestContext testContext)
+public class AuthenticationTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task Foo()
     {
-        await Task.Delay(1000, CancellationToken);
-        await Task.Delay(1000, CancellationToken);
+        await Task.Delay(1000);
+        await Task.Delay(1000);
     }
 
     [TestMethod]
     public async Task LockUser()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.AddNewBot(Roles.AppWriter);
 
         // make sure the current token is working
-        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
 
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
         await userProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, cancellationToken: CancellationToken),
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId),
             "make sure the current token is not working anymore");
     }
 
     [TestMethod]
     public async Task ResetAuthUserToken()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         await testInit.AddNewBot(Roles.SystemAdmin);
-        var apiKey = await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync(CancellationToken);
+        var apiKey = await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
 
         // call api buy retrieved token
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }, CancellationToken);
+        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         //reset token
-        await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync(CancellationToken);
+        await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }, CancellationToken));
+            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
 
     [TestMethod]
     public async Task ResetSystemBotAuthToken()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var user = await testInit.AddNewBot(Roles.SystemAdmin);
 
         // call api buy retrieved token
-        var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId, CancellationToken);
+        var apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }, CancellationToken);
+        await testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
 
         //reset token
-        await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId, CancellationToken);
+        await testInit.TeamClient.ResetBotApiKeyAsync(user.UserId);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }, CancellationToken));
+            testInit.AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() }));
     }
 
     [TestMethod]
     public async Task ResetAppBotAuthToken()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.AddNewBot(Roles.AppAdmin, false);
         var userRoles =
-            await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId, userId: apiKey.UserId, cancellationToken: CancellationToken);
+            await testInit.TeamClient.ListUserRolesAsync(resourceId: testInit.AppResourceId, userId: apiKey.UserId);
 
         var userRole = userRoles.Items.Single();
         Assert.IsNotNull(userRole.User);
         Assert.IsNull(userRole.User.AccessedTime, "Newly created bot should not have AccessTime before login.");
 
         // call api buy retrieved token
-        apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId, CancellationToken);
+        apiKey = await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         testInit.SetApiKey(apiKey);
-        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
 
         //reset token
-        await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId, CancellationToken);
+        await testInit.TeamClient.ResetBotApiKeyAsync(apiKey.UserId);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId));
     }
 
     [TestMethod]
     public async Task ResetBotAuthToken_should_not_work_for_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var userRole = await testInit.AddNewUser(Roles.SystemAdmin);
         Assert.IsNotNull(userRole.User);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId, CancellationToken));
+            testInit.TeamClient.ResetBotApiKeyAsync(userRole.User.UserId));
     }
 
     [TestMethod]
     public async Task SignUp()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var userEmail = TestInit.NewEmail();
 
         // ------------
@@ -132,59 +130,59 @@ public class AuthenticationTest(TestContext testContext)
         var idToken = await testInit.CreateUnregisteredUserIdToken(userEmail);
         testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken),
+            testInit.AuthenticationClient.GetCurrentUserAsync(),
             "New user should not exist if not he hasn't registered yet");
 
         // ------------
         // Check: Register current user
         // ------------
-        var apiKey = await testInit.AuthenticationClient.SignUpAsync(new SignUpRequest { IdToken = idToken }, CancellationToken);
+        var apiKey = await testInit.AuthenticationClient.SignUpAsync(new SignUpRequest { IdToken = idToken });
         testInit.SetApiKey(apiKey);
 
-        var user = await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.AreEqual(userEmail, user.Email);
 
         // Get App Get
-        var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+        var apps = await testInit.TeamClient.ListCurrentUserResourcesAsync();
         Assert.IsEmpty(apps);
     }
 
     [TestMethod]
     public async Task SignUp_with_unverified_email_creates_no_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var userEmail = TestInit.NewEmail();
 
         // an unverified email can not sign up
         var idToken = await testInit.CreateUnregisteredUserIdToken(userEmail, isEmailVerified: false);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.SignUpAsync(new SignUpRequest { IdToken = idToken }, CancellationToken));
+            testInit.AuthenticationClient.SignUpAsync(new SignUpRequest { IdToken = idToken }));
 
         // nor did it leave a user that holds the email: it signs up once verified
         await testInit.SignUpNewUser(userEmail);
-        var user = await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.AreEqual(userEmail, user.Email);
     }
 
     [TestMethod]
     public async Task RefreshToken_should_extend_expiration()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey1 = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey1.RefreshToken);
 
         testInit.SetApiKey(apiKey1);
-        await Task.Delay(1000, CancellationToken);
+        await Task.Delay(1000);
 
         var apiKey2 = await testInit.AuthenticationClient.RefreshTokenAsync(
-            new RefreshTokenRequest { RefreshToken = apiKey1.RefreshToken.Value }, CancellationToken);
+            new RefreshTokenRequest { RefreshToken = apiKey1.RefreshToken.Value });
 
         Assert.IsNotNull(apiKey2.RefreshToken);
         testInit.SetApiKey(apiKey2);
-        await Task.Delay(1000, CancellationToken);
+        await Task.Delay(1000);
 
         var apiKey3 = await testInit.AuthenticationClient.RefreshTokenAsync(
-            new RefreshTokenRequest { RefreshToken = apiKey2.RefreshToken.Value }, CancellationToken);
+            new RefreshTokenRequest { RefreshToken = apiKey2.RefreshToken.Value });
 
         testInit.SetApiKey(apiKey3);
 
@@ -197,9 +195,9 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_refresh_a_token_more_than_long_expiration()
     {
-        using var testInit = await TestInit.Create(new Dictionary<string, string?> {
+        using var testInit = await CreateTestInit(new Dictionary<string, string?> {
             { "Auth:SessionWebTimeout", "00:00:02" }
-        }, cancellationToken: CancellationToken);
+        });
 
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
@@ -209,9 +207,9 @@ public class AuthenticationTest(TestContext testContext)
         var isAnySuccess = false;
         var ex = await Assert.ThrowsAsync<ApiException>(async () => {
             for (var i = 0; i < 5; i++) {
-                await Task.Delay(1000, CancellationToken);
+                await Task.Delay(1000);
                 var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
-                    new RefreshTokenRequest { RefreshToken = refreshToken }, CancellationToken);
+                    new RefreshTokenRequest { RefreshToken = refreshToken });
 
                 Assert.IsNotNull(renewed.RefreshToken);
                 testInit.SetApiKey(renewed);
@@ -227,17 +225,17 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task RefreshToken_with_short_expiration()
     {
-        using var testInit = await TestInit.Create(new Dictionary<string, string?> {
+        using var testInit = await CreateTestInit(new Dictionary<string, string?> {
             { "Auth:RefreshTokenWebTimeout", "00:01:00" },
             { "Auth:RefreshTokenAppTimeout", "00:10:00" }
-        }, cancellationToken: CancellationToken);
+        });
 
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsLessThanOrEqualTo(DateTime.UtcNow.AddMinutes(2), apiKey.RefreshToken.ExpirationTime);
 
         apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-            { RefreshToken = apiKey.RefreshToken.Value }, CancellationToken);
+            { RefreshToken = apiKey.RefreshToken.Value });
 
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsLessThanOrEqualTo(DateTime.UtcNow.AddMinutes(2), apiKey.RefreshToken.ExpirationTime);
@@ -246,10 +244,10 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task RefreshToken_with_long_expiration()
     {
-        using var testInit = await TestInit.Create(new Dictionary<string, string?> {
+        using var testInit = await CreateTestInit(new Dictionary<string, string?> {
             { "Auth:RefreshTokenWebTimeout", "00:01:00" },
             { "Auth:RefreshTokenAppTimeout", "00:10:00" }
-        }, cancellationToken: CancellationToken);
+        });
 
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App);
         Assert.IsNotNull(apiKey.RefreshToken);
@@ -257,7 +255,7 @@ public class AuthenticationTest(TestContext testContext)
                       apiKey.RefreshToken.ExpirationTime < DateTime.UtcNow.AddMinutes(10));
 
         apiKey = await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-            { RefreshToken = apiKey.RefreshToken.Value }, CancellationToken);
+            { RefreshToken = apiKey.RefreshToken.Value });
 
         Assert.IsNotNull(apiKey.RefreshToken);
         Assert.IsTrue(apiKey.RefreshToken.ExpirationTime > DateTime.UtcNow.AddMinutes(5) &&
@@ -267,10 +265,10 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_generate_refresh_token_if_disabled_in_settings()
     {
-        using var testInit = await TestInit.Create(new Dictionary<string, string?> {
+        using var testInit = await CreateTestInit(new Dictionary<string, string?> {
             { "Auth:AllowRefreshToken", "false" },
             { "Auth:RefreshTokenAppTimeout", "00:10:00" }
-        }, cancellationToken: CancellationToken);
+        });
 
         await TestUtil.AssertApiException<UnauthorizedAccessException>(
             testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.App));
@@ -279,35 +277,35 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_sign_in_by_refresh_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.SignUpNewUser();
 
         testInit.HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", apiKey.RefreshToken?.Value);
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken),
+            testInit.AuthenticationClient.GetCurrentUserAsync(),
             "Refresh token should not be used for sign in.");
     }
 
     [TestMethod]
     public async Task Fail_refresh_by_access_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.SignUpNewUser();
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-                { RefreshToken = apiKey.AccessToken.Value }, CancellationToken),
+                { RefreshToken = apiKey.AccessToken.Value }),
             "Access token should not be used as refresh_token.");
     }
 
     [TestMethod]
     public async Task Fail_refresh_by_id_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var idToken = await testInit.CreateUnregisteredUserIdToken();
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = idToken }, CancellationToken),
+            testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = idToken }),
             "Id token should not be used as refresh_token.");
     }
 
@@ -315,29 +313,29 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_refresh_a_revoked_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
         Assert.IsNotNull(apiKey.RefreshToken);
 
         await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-            { RefreshToken = apiKey.RefreshToken.Value }, CancellationToken);
+            { RefreshToken = apiKey.RefreshToken.Value });
 
         await testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-            { RefreshToken = apiKey.RefreshToken.Value }, CancellationToken);
+            { RefreshToken = apiKey.RefreshToken.Value });
 
-        await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync(CancellationToken);
+        await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.AuthenticationClient.RefreshTokenAsync(new RefreshTokenRequest
-                { RefreshToken = apiKey.RefreshToken.Value }, CancellationToken),
+                { RefreshToken = apiKey.RefreshToken.Value }),
             "Revoked token should not be refreshed.");
     }
 
     [TestMethod]
     public async Task Token_without_auth_code_is_refused()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var bot = await testInit.AddNewBot(Roles.AppReader);
-        await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
 
         // the same bot's token, signed with the server's own key but carrying no auth code
         var options = testInit.AuthenticationOptions;
@@ -351,14 +349,14 @@ public class AuthenticationTest(TestContext testContext)
 
         testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken));
+            testInit.TeamClient.ListCurrentUserResourcesAsync());
     }
 
     [TestMethod]
     public async Task Extra_audiences_are_accepted_but_never_issued()
     {
-        using var testInit = await TestInit.Create(
-            appSettings: new Dictionary<string, string?> { ["Auth:Audiences:0"] = "old-audience" }, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(
+            appSettings: new Dictionary<string, string?> { ["Auth:Audiences:0"] = "old-audience" });
 
         var apiKey = await testInit.SignUpNewUser();
         var user = await testInit.UserProvider.Get(apiKey.UserId);
@@ -382,17 +380,17 @@ public class AuthenticationTest(TestContext testContext)
             testInit.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             if (audience == "old-audience")
-                await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+                await testInit.TeamClient.ListCurrentUserResourcesAsync();
             else
                 await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-                    testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken));
+                    testInit.TeamClient.ListCurrentUserResourcesAsync());
         }
     }
 
     [TestMethod]
     public async Task Sign_in_keeps_only_profile_claims()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // an id token that also carries a permission and a role
         var permissionClaim = PermissionAuthorization.BuildPermissionClaim(testInit.AppResourceId, Permissions.CustomerRead);
@@ -411,14 +409,14 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Current_user_answer_hides_internal_fields()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.AddNewBot(Roles.AppReader);
         await testInit.UserProvider.Update(apiKey.UserId, new UserUpdateRequest {
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
         });
 
-        var user = await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.IsNull(user.AuthorizationCode);
         Assert.IsNull(user.Description);
         Assert.IsNull(user.ExData);
@@ -428,7 +426,7 @@ public class AuthenticationTest(TestContext testContext)
     public async Task Current_user_answer_leaves_the_providers_user_as_it_was()
     {
         var handedOutUsers = new HandedOutUsers();
-        using var testInit = await TestInit.Create(handedOutUsers: handedOutUsers, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(handedOutUsers: handedOutUsers);
 
         // a caller with a value in every field the answer hides, so hiding any of them in place shows
         var apiKey = await testInit.AddNewBot(Roles.AppReader);
@@ -439,7 +437,7 @@ public class AuthenticationTest(TestContext testContext)
 
         await testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>().UpdateAccessedTime(apiKey.UserId);
 
-        await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
+        await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.IsNotEmpty(handedOutUsers.GetAll());
         Assert.IsEmpty(handedOutUsers.GetChanged());
     }
@@ -447,7 +445,7 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Refresh_keeps_an_explicit_session_end()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var user = await testInit.SignUpNewUser(setAsCurrent: false);
 
         // a session a host ends in a minute
@@ -471,7 +469,7 @@ public class AuthenticationTest(TestContext testContext)
         var refreshToken = apiKey.RefreshToken.Value;
         for (var i = 0; i < 2; i++) {
             var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
-                new RefreshTokenRequest { RefreshToken = refreshToken }, CancellationToken);
+                new RefreshTokenRequest { RefreshToken = refreshToken });
 
             Assert.IsNotNull(renewed.RefreshToken);
             Assert.IsLessThanOrEqualTo(sessionEnd, renewed.AccessToken.ExpirationTime);
@@ -486,7 +484,7 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Refresh_token_needs_a_sign_in_time()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var user = await testInit.SignUpNewUser(setAsCurrent: false);
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         await Assert.ThrowsAsync<InvalidOperationException>(() => grayMintAuthentication.CreateApiKey(
@@ -497,28 +495,28 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Refreshing_adds_nothing_to_the_cache()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.SignUpNewUser(refreshTokenType: RefreshTokenType.Web);
 
         // two renewals first: the sign-in's refresh token carries no session end, its renewals do
-        apiKey = await RenewAndUse(testInit, apiKey, CancellationToken);
-        apiKey = await RenewAndUse(testInit, apiKey, CancellationToken);
+        apiKey = await RenewAndUse(testInit, apiKey);
+        apiKey = await RenewAndUse(testInit, apiKey);
         var count = testInit.CountCacheEntries();
         for (var i = 0; i < 5; i++)
-            apiKey = await RenewAndUse(testInit, apiKey, CancellationToken);
+            apiKey = await RenewAndUse(testInit, apiKey);
 
         Assert.AreEqual(count, testInit.CountCacheEntries());
         return;
 
         // each renewal mints new tokens, which share the entries of the ones before
-        static async Task<ApiKey> RenewAndUse(TestInit testInit, ApiKey current, CancellationToken cancellationToken)
+        static async Task<ApiKey> RenewAndUse(TestInit testInit, ApiKey current)
         {
             Assert.IsNotNull(current.RefreshToken);
             var renewed = await testInit.AuthenticationClient.RefreshTokenAsync(
-                new RefreshTokenRequest { RefreshToken = current.RefreshToken.Value }, cancellationToken);
+                new RefreshTokenRequest { RefreshToken = current.RefreshToken.Value });
 
             testInit.SetApiKey(renewed);
-            await testInit.AuthenticationClient.GetCurrentUserAsync(cancellationToken);
+            await testInit.AuthenticationClient.GetCurrentUserAsync();
             return renewed;
         }
     }
@@ -526,11 +524,11 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Roles_of_a_user_without_any_stay_cached()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var apiKey = await testInit.SignUpNewUser();
 
         // the request's own user holds no role, and that is kept, so their next requests read none
-        await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
         var memoryCache = testInit.WebApp.Services.GetRequiredService<IMemoryCache>();
         Assert.IsTrue(memoryCache.TryGetValue($"graymint:auth:userid:{Guid.Parse(apiKey.UserId)}:user-roles", out _));
     }
@@ -538,15 +536,15 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Token_of_a_deleted_user_leaves_nothing_in_the_cache()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
-        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, bot.UserId, CancellationToken);
+        await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, bot.UserId);
         var count = testInit.CountCacheEntries();
 
         // the bot went with its last role; its token is refused and keeps no answer
         testInit.SetApiKey(bot);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken));
+            testInit.TeamClient.ListCurrentUserResourcesAsync());
 
         Assert.AreEqual(count, testInit.CountCacheEntries());
     }
@@ -554,7 +552,7 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Google_redirect_takes_no_id_token_of_ours()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var idToken = await testInit.CreateUnregisteredUserIdToken();
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         await Assert.ThrowsAsync<AuthenticationException>(() =>
@@ -564,8 +562,8 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Provider_caches_follow_the_configured_timeout()
     {
-        using var testInit = await TestInit.Create(
-            appSettings: new Dictionary<string, string?> { ["Auth:CacheTimeout"] = "00:03:00" }, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(
+            appSettings: new Dictionary<string, string?> { ["Auth:CacheTimeout"] = "00:03:00" });
 
         var services = testInit.WebApp.Services;
         Assert.AreEqual(TimeSpan.FromMinutes(3),
@@ -578,7 +576,7 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task Access_time_write_reaches_the_cached_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
 
         // one request caches the user, another writes the time, each in a scope of its own
@@ -599,20 +597,20 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task System_api_key_is_off_when_disabled()
     {
-        using var testInit = await TestInit.Create(
+        using var testInit = await CreateTestInit(
             appSettings: new Dictionary<string, string?> { ["Auth:AllowSystemApiKey"] = "false" },
-            createSystemAdmin: false, cancellationToken: CancellationToken);
+            createSystemAdmin: false);
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret), CancellationToken));
+            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret)));
     }
 
     [TestMethod]
     public async Task System_api_key_refuses_a_secret_that_is_no_base64()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.TeamClient.CreateSystemApiKeyAsync("not base64!", CancellationToken));
+            testInit.TeamClient.CreateSystemApiKeyAsync("not base64!"));
     }
 
     [TestMethod]
@@ -629,8 +627,8 @@ public class AuthenticationTest(TestContext testContext)
     [TestMethod]
     public async Task System_api_key_is_off_on_staging_unless_set()
     {
-        using var testInit = await TestInit.Create(environment: "Staging", createSystemAdmin: false, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(environment: "Staging", createSystemAdmin: false);
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret), CancellationToken));
+            testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret)));
     }
 }

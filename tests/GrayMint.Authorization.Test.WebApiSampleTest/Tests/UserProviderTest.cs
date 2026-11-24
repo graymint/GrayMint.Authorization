@@ -6,14 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class UserProviderTest(TestContext testContext)
+public class UserProviderTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task Crud()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
@@ -97,7 +95,7 @@ public class UserProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_Already_exist()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();

@@ -9,14 +9,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class RoleProviderTest(TestContext testContext)
+public class RoleProviderTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task User_roles_total_counts_the_filtered_roles()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
         var resource1 = Guid.NewGuid().ToString();
@@ -33,7 +31,7 @@ public class RoleProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Removing_roles_needs_a_criterion()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
         await Assert.ThrowsAsync<ArgumentException>(() => roleProvider.RemoveUserRoles(new UserRoleCriteria()));
     }
@@ -41,7 +39,7 @@ public class RoleProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Add_remove_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // create a user
         var userCreateRequest = new UserCreateRequest {
@@ -95,11 +93,11 @@ public class RoleProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Role_added_by_another_form_of_user_id_applies_at_once()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // the bot's roles are cached by its own id
         var bot = await testInit.AddNewBot(Roles.AppReader);
-        await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+        await testInit.TeamClient.ListCurrentUserResourcesAsync();
 
         // a role added by the same id in upper case and without hyphens
         var otherFormId = Guid.Parse(bot.UserId).ToString("N").ToUpperInvariant();
@@ -107,14 +105,14 @@ public class RoleProviderTest(TestContext testContext)
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
         await roleProvider.AddUserRole(resourceId, Roles.AppReader.RoleId, otherFormId);
 
-        var resourceIds = await testInit.TeamClient.ListCurrentUserResourcesAsync(CancellationToken);
+        var resourceIds = await testInit.TeamClient.ListCurrentUserResourcesAsync();
         Assert.Contains(resourceId, resourceIds);
     }
 
     [TestMethod]
     public async Task Permissions_on_made_up_resources_are_not_kept()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
 
@@ -130,7 +128,7 @@ public class RoleProviderTest(TestContext testContext)
     [TestMethod]
     public async Task GetAuthUser()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // create a user
         var user = await testInit.UserProvider.Create(new UserCreateRequest {

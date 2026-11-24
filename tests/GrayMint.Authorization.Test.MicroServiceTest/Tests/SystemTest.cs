@@ -5,35 +5,33 @@ using GrayMint.Common.Utils;
 namespace GrayMint.Authorization.Test.MicroServiceTest.Tests;
 
 [TestClass]
-public class SystemTest(TestContext testContext)
+public class SystemTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task Create_app_by_system()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
-        await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
+        await testInit.AppsClient.CreateAppAsync();
     }
 
     [TestMethod]
     public async Task Fail_CreateApp_by_non_system_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
-        var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString(), CancellationToken);
+        using var testInit = await CreateTestInit();
+        var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString());
         testInit.SetApiKey(apiKey);
 
-        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken));
+        await TestUtil.AssertApiException(HttpStatusCode.Forbidden, testInit.AppsClient.CreateAppAsync());
     }
 
     [TestMethod]
     public async Task Fail_ResetUserAuthorization_by_non_system_user()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
-        var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString(), CancellationToken);
+        using var testInit = await CreateTestInit();
+        var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString());
         testInit.SetApiKey(apiKey);
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString(), CancellationToken));
+            testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString()));
     }
 }

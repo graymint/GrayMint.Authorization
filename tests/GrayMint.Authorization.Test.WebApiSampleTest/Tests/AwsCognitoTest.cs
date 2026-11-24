@@ -11,13 +11,10 @@ using GrayMint.Common.Utils;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class AwsCognitoTest(TestContext testContext)
+public class AwsCognitoTest : TestBase
 {
     private const string TesterEmail = "unit-tester@foo.local";
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
-    private static async Task<string> GetCredentialsAsync(string email, string password,
-        CancellationToken cancellationToken)
+    private static async Task<string> GetCredentialsAsync(string email, string password)
     {
         // ids, not words to spell-check
         // ReSharper disable StringLiteralTypo
@@ -33,7 +30,7 @@ public class AwsCognitoTest(TestContext testContext)
             Password = password
         };
 
-        var authResponse = await user.StartWithSrpAuthAsync(authRequest, cancellationToken);
+        var authResponse = await user.StartWithSrpAuthAsync(authRequest);
         var idToken = authResponse.AuthenticationResult.IdToken;
         return idToken;
     }
@@ -41,28 +38,28 @@ public class AwsCognitoTest(TestContext testContext)
     [TestMethod]
     public async Task CognitoTest()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // the tester is a system admin; a real database keeps them from an earlier run
         var testers = await testInit.TeamClient.ListUserRolesAsync(TestInit.RootResourceId,
-            roleId: Roles.SystemAdmin.RoleId, search: TesterEmail, cancellationToken: CancellationToken);
+            roleId: Roles.SystemAdmin.RoleId, search: TesterEmail);
 
         if (testers.Items.Count == 0)
             await testInit.TeamClient.AddUserByEmailAsync(TestInit.RootResourceId, Roles.SystemAdmin.RoleId,
-                TesterEmail, cancellationToken: CancellationToken);
+                TesterEmail);
 
-        var idToken = await GetCredentialsAsync("unit-tester", "Password1@", CancellationToken);
-        var apiKey = await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken }, CancellationToken);
+        var idToken = await GetCredentialsAsync("unit-tester", "Password1@");
+        var apiKey = await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken });
 
         testInit.SetApiKey(apiKey);
-        await testInit.AppsClient.ListAsync(CancellationToken);
+        await testInit.AppsClient.ListAsync();
     }
 
 
     [TestMethod]
     public async Task Failed_on_expired_token()
     {
-        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit();
 
         // a token, not words to spell-check
         // ReSharper disable StringLiteralTypo
@@ -72,6 +69,6 @@ public class AwsCognitoTest(TestContext testContext)
         // ReSharper restore StringLiteralTypo
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = expiredIdToken }, CancellationToken));
+            testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = expiredIdToken }));
     }
 }

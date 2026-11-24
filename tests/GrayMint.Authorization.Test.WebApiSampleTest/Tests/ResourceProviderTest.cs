@@ -10,17 +10,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class ResourceProviderTest(TestContext testContext)
+public class ResourceProviderTest : TestBase
 {
-    private CancellationToken CancellationToken => testContext.CancellationToken;
-
     [TestMethod]
     public async Task AppUser_access_by_hierarchy_permission()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var app1 = testInit.App.AppId;
-        var createdApp2 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
-        var createdApp3 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
+        var createdApp2 = await testInit.AppsClient.CreateAppAsync();
+        var createdApp3 = await testInit.AppsClient.CreateAppAsync();
         var app2 = createdApp2.AppId;
         var app3 = createdApp3.AppId;
 
@@ -39,7 +37,7 @@ public class ResourceProviderTest(TestContext testContext)
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app1));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app3, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(app3));
 
         // Set hierarchy
         await testInit.ResourceProvider.Update(new Resource
@@ -52,41 +50,41 @@ public class ResourceProviderTest(TestContext testContext)
         // **** Check: accept create item by System Admin
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.SystemAdmin));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         // -------------
         // **** Check: accept create item by the App Writer on app1
         // -------------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app1));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app2));
-        await testInit.ItemsClient.CreateByPermissionAsync(app3, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(app3);
 
         // -----------
         // **** Check: Refuse if caller has lower level permission
         // -----------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppWriter, resourceId: app3));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app1, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(app1));
 
         // -----------
         // **** Check: "refuse if caller does not have write permission even if it is on higher level."
         // -----------
         testInit.SetApiKey(await testInit.AddNewBot(Roles.AppReader, resourceId: app1));
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app3, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(app3));
     }
 
     [TestMethod]
     public async Task AppUser_access_by_hierarchy_permission_after_update()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var app1 = testInit.App;
-        var app2 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
-        var app3 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
-        var app4 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
-        var app5 = await testInit.AppsClient.CreateAppAsync(cancellationToken: CancellationToken);
+        var app2 = await testInit.AppsClient.CreateAppAsync();
+        var app3 = await testInit.AppsClient.CreateAppAsync();
+        var app4 = await testInit.AppsClient.CreateAppAsync();
+        var app5 = await testInit.AppsClient.CreateAppAsync();
 
         // set app parent resource 
         await testInit.ResourceProvider.Update(new Resource
@@ -119,7 +117,7 @@ public class ResourceProviderTest(TestContext testContext)
             { ResourceId = app3.AppId.ToString(), ParentResourceId = app2.AppId.ToString() });
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
 
         // -----------
         // **** Check: Should have access if it is one of its parent.
@@ -127,7 +125,7 @@ public class ResourceProviderTest(TestContext testContext)
         await testInit.ResourceProvider.Update(new Resource
             { ResourceId = app4.AppId.ToString(), ParentResourceId = app3.AppId.ToString() });
 
-        await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, cancellationToken: CancellationToken);
+        await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId);
 
         // -----------
         // **** Check: Should not have access if it is not one of its parent after moving a node in the middle
@@ -136,13 +134,13 @@ public class ResourceProviderTest(TestContext testContext)
             { ResourceId = app2.AppId.ToString(), ParentResourceId = app5.AppId.ToString() });
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
-            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId, cancellationToken: CancellationToken));
+            testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
     }
 
     [TestMethod]
     public async Task Root_must_exists()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var resource = await testInit.ResourceProvider.Get(testInit.ResourceProvider.RootResourceId);
         Assert.IsNull(resource.ParentResourceId);
     }
@@ -150,7 +148,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Crud()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var resourceProvider = testInit.ResourceProvider;
 
         // ---------
@@ -190,7 +188,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_loop_on_create()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
 
         // loop on self
         var id1 = Guid.NewGuid().ToString();
@@ -201,7 +199,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_loop_on_update()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var resourceProvider = testInit.ResourceProvider;
 
         // loop on self
@@ -238,7 +236,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Delete_Recursive()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var resourceProvider = testInit.ResourceProvider;
 
         // ---------
@@ -273,7 +271,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Delete_resource_must_delete_all_its_roles()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         var resourceProvider = testInit.ResourceProvider;
 
         // ---------
@@ -315,7 +313,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_removing_the_root()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId));
     }
@@ -323,7 +321,7 @@ public class ResourceProviderTest(TestContext testContext)
     [TestMethod]
     public async Task Fail_updating_root()
     {
-        using var testInit = await TestInit.Create(useResourceProvider: true, cancellationToken: CancellationToken);
+        using var testInit = await CreateTestInit(useResourceProvider: true);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId }));
     }
