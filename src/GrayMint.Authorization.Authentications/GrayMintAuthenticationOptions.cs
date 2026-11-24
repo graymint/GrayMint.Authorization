@@ -38,7 +38,7 @@ public class GrayMintAuthenticationOptions
     public string? Audience { get; init; }
 
     // also accepted, never issued: lets a service move its tokens to a new Audience while old ones live
-    public string[] Audiences { get; init; } = [];
+    public IReadOnlyList<string> Audiences { get; init; } = [];
     public TimeSpan CacheTimeout { get; init; } = TimeSpan.FromMinutes(10);
     public TimeSpan OpenIdConfigTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public TimeSpan IdTokenTimeout { get; init; } = TimeSpan.FromMinutes(15);
@@ -51,7 +51,7 @@ public class GrayMintAuthenticationOptions
     public bool AllowUserApiKey { get; init; }
     public Uri? SignInRedirectUrl { get; init; }
     public bool AllowRefreshToken { get; init; }
-    public OpenIdProvider[] OpenIdProviders { get; init; } = [];
+    public IReadOnlyList<OpenIdProvider> OpenIdProviders { get; init; } = [];
 
     // the anonymous system api-key endpoints take the signing secret as a password: off outside Development
     // unless set, so a deployed host, staging too, turns them on only to mint a token

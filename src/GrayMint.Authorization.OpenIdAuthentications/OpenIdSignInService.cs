@@ -35,7 +35,7 @@ public sealed class OpenIdSignInService(
         // someone who came before is found by the provider's id of the account, whatever its address is now
         var userId = await bindingStore.FindUserId(identity.ProviderName, identity.Subject, cancellationToken);
         if (userId != null) {
-            var tiedUser = await userProvider.FindById(userId);
+            var tiedUser = await userProvider.FindById(userId, cancellationToken);
             if (tiedUser != null)
                 return Complete(tiedUser);
 
@@ -51,11 +51,11 @@ public sealed class OpenIdSignInService(
         if (!identity.IsEmailVerified || string.IsNullOrWhiteSpace(identity.Email))
             return Refuse(OpenIdSignInStatus.EmailNotVerified);
 
-        var user = await FindByEmail(identity.Email);
+        var user = await FindByEmail(identity.Email, cancellationToken);
         if (user == null && !isRegisterAllowed)
             return Refuse(OpenIdSignInStatus.NotRegistered);
 
-        user ??= await Register(identity, identity.Email);
+        user ??= await Register(identity, identity.Email, cancellationToken);
 
         // A locked user is tied to nobody. The account that tried while it was locked would be the user's
         // from the day the lock is taken off, whoever else comes then.
@@ -65,7 +65,7 @@ public sealed class OpenIdSignInService(
         // Only a user that no account is tied to yet. An address alone ties nobody a second time: the
         // account it named the first time is the user's, and another one with the address is not.
         if (await bindingStore.TryAdd(identity.ProviderName, identity.Subject, user.UserId, cancellationToken))
-            return Complete(await TakeName(user, identity));
+            return Complete(await TakeName(user, identity, cancellationToken));
 
         // turned away: by this same account's other sign-in, which is no error, or by another account
         userId = await bindingStore.FindUserId(identity.ProviderName, identity.Subject, cancellationToken);
@@ -83,35 +83,37 @@ public sealed class OpenIdSignInService(
 
     // An address is found as it is written, and then in lower case: whoever made the user by hand may have
     // written it so, while the provider keeps the spelling its person chose.
-    private async Task<User?> FindByEmail(string email)
+    private async Task<User?> FindByEmail(string email, CancellationToken cancellationToken)
     {
-        return await userProvider.FindByEmail(email) ??
-               await userProvider.FindByEmail(email.ToLowerInvariant());
+        return await userProvider.FindByEmail(email, cancellationToken) ??
+               await userProvider.FindByEmail(email.ToLowerInvariant(), cancellationToken);
     }
 
     // A user who was made by their address alone has no name. They take the name of the account that is
     // tied to them, once: a name the service gave them, or that they have by now, stays.
-    private async Task<User> TakeName(User user, OpenIdIdentity identity)
+    private async Task<User> TakeName(User user, OpenIdIdentity identity, CancellationToken cancellationToken)
     {
         return string.IsNullOrWhiteSpace(user.Name) && !string.IsNullOrWhiteSpace(identity.Name)
-            ? await userProvider.Update(user.UserId, new UserUpdateRequest { Name = new Patch<string?>(identity.Name) })
+            ? await userProvider.Update(user.UserId, new UserUpdateRequest { Name = new Patch<string?>(identity.Name) },
+                cancellationToken)
             : user;
     }
 
     // The user is made with the address in lower case, whatever spelling the provider keeps. A service that
     // looks for a person by an address someone typed finds them then, and makes no second user of them.
-    private async Task<User> Register(OpenIdIdentity identity, string email)
+    private async Task<User> Register(OpenIdIdentity identity, string email, CancellationToken cancellationToken)
     {
         try {
             return await userProvider.Create(new UserCreateRequest {
                 Email = email.ToLowerInvariant(),
                 Name = identity.Name,
                 IsEmailVerified = true
-            });
+            }, cancellationToken);
         }
         catch (DbUpdateException) {
             // the person's other sign-in made the user in the same moment, if it is there now
-            return await FindByEmail(email) ?? throw new InvalidOperationException("The user could not be made.");
+            return await FindByEmail(email,
+                cancellationToken) ?? throw new InvalidOperationException("The user could not be made.");
         }
     }
 

@@ -24,13 +24,13 @@ public class ResourceProviderTest : TestBase
 
         // set app parent resource 
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app1.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app1.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId }, TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app2.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app2.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId }, TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app3.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app3.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId }, TestCt);
 
         // -------------
         // Check: Failed if there is no hierarchy 
@@ -41,10 +41,10 @@ public class ResourceProviderTest : TestBase
 
         // Set hierarchy
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app2.ToString(), ParentResourceId = app1.ToString() });
+            { ResourceId = app2.ToString(), ParentResourceId = app1.ToString() }, TestCt);
 
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app3.ToString(), ParentResourceId = app2.ToString() });
+            { ResourceId = app3.ToString(), ParentResourceId = app2.ToString() }, TestCt);
 
         // -------------
         // **** Check: accept create item by System Admin
@@ -88,19 +88,24 @@ public class ResourceProviderTest : TestBase
 
         // set app parent resource 
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app1.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app1.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId },
+                TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app2.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app2.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId },
+                TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app3.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app3.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId },
+                TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app4.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app4.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId },
+                TestCt);
 
         await testInit.ResourceProvider.Add(new Resource
-            { ResourceId = app5.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId });
+            { ResourceId = app5.AppId.ToString(), ParentResourceId = testInit.ResourceProvider.RootResourceId },
+                TestCt);
 
         // -----------
         // **** Check:  Should not have access if user have not access on its parent or itself.
@@ -111,10 +116,10 @@ public class ResourceProviderTest : TestBase
 
         // Set hierarchy
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app2.AppId.ToString(), ParentResourceId = app1.AppId.ToString() });
+            { ResourceId = app2.AppId.ToString(), ParentResourceId = app1.AppId.ToString() }, TestCt);
 
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app3.AppId.ToString(), ParentResourceId = app2.AppId.ToString() });
+            { ResourceId = app3.AppId.ToString(), ParentResourceId = app2.AppId.ToString() }, TestCt);
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
@@ -123,7 +128,7 @@ public class ResourceProviderTest : TestBase
         // **** Check: Should have access if it is one of its parent.
         // -----------
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app4.AppId.ToString(), ParentResourceId = app3.AppId.ToString() });
+            { ResourceId = app4.AppId.ToString(), ParentResourceId = app3.AppId.ToString() }, TestCt);
 
         await testInit.ItemsClient.CreateByPermissionAsync(app4.AppId);
 
@@ -131,7 +136,7 @@ public class ResourceProviderTest : TestBase
         // **** Check: Should not have access if it is not one of its parent after moving a node in the middle
         // -----------
         await testInit.ResourceProvider.Update(new Resource
-            { ResourceId = app2.AppId.ToString(), ParentResourceId = app5.AppId.ToString() });
+            { ResourceId = app2.AppId.ToString(), ParentResourceId = app5.AppId.ToString() }, TestCt);
 
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.ItemsClient.CreateByPermissionAsync(app4.AppId));
@@ -141,7 +146,7 @@ public class ResourceProviderTest : TestBase
     public async Task Root_must_exists()
     {
         using var testInit = await CreateTestInit(useResourceProvider: true);
-        var resource = await testInit.ResourceProvider.Get(testInit.ResourceProvider.RootResourceId);
+        var resource = await testInit.ResourceProvider.Get(testInit.ResourceProvider.RootResourceId, TestCt);
         Assert.IsNull(resource.ParentResourceId);
     }
 
@@ -154,16 +159,16 @@ public class ResourceProviderTest : TestBase
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() }, TestCt);
         var resource2 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
-        });
+        }, TestCt);
 
         // ---------
         // Check: Get
         // ---------
-        resource2 = await resourceProvider.Get(resource2.ResourceId);
+        resource2 = await resourceProvider.Get(resource2.ResourceId, TestCt);
         Assert.AreEqual(resource1.ResourceId, resource2.ParentResourceId);
 
         // ---------
@@ -172,17 +177,17 @@ public class ResourceProviderTest : TestBase
         resource2 = await resourceProvider.Update(new Resource {
             ResourceId = resource2.ResourceId,
             ParentResourceId = resource1.ParentResourceId
-        });
+        }, TestCt);
 
         Assert.AreEqual(resource1.ParentResourceId, resource2.ParentResourceId);
-        resource2 = await resourceProvider.Get(resource2.ResourceId);
+        resource2 = await resourceProvider.Get(resource2.ResourceId, TestCt);
         Assert.AreEqual(resource1.ParentResourceId, resource2.ParentResourceId);
 
         // ---------
         // Check: Delete
         // ---------
-        await resourceProvider.Remove(resource2.ResourceId);
-        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource2.ResourceId));
+        await resourceProvider.Remove(resource2.ResourceId, TestCt);
+        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource2.ResourceId, TestCt));
     }
 
     [TestMethod]
@@ -193,7 +198,7 @@ public class ResourceProviderTest : TestBase
         // loop on self
         var id1 = Guid.NewGuid().ToString();
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            testInit.ResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 }));
+            testInit.ResourceProvider.Add(new Resource { ResourceId = id1, ParentResourceId = id1 }, TestCt));
     }
 
     [TestMethod]
@@ -203,34 +208,34 @@ public class ResourceProviderTest : TestBase
         var resourceProvider = testInit.ResourceProvider;
 
         // loop on self
-        var resource = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() }, TestCt);
         await Assert.ThrowsAsync<InvalidOperationException>(() => resourceProvider.Update(new Resource
-            { ResourceId = resource.ResourceId, ParentResourceId = resource.ResourceId }));
+            { ResourceId = resource.ResourceId, ParentResourceId = resource.ResourceId }, TestCt));
 
         // deep loop
         var resource1 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resourceProvider.RootResourceId
-        });
+        }, TestCt);
 
         var resource2 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
-        });
+        }, TestCt);
 
         await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
-        });
+        }, TestCt);
 
         var resource4 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
-        });
+        }, TestCt);
 
         // loop through the children
         await Assert.ThrowsAsync<InvalidOperationException>(() => resourceProvider.Update(new Resource
-            { ResourceId = resource1.ResourceId, ParentResourceId = resource4.ResourceId }));
+            { ResourceId = resource1.ResourceId, ParentResourceId = resource4.ResourceId }, TestCt));
     }
 
     [TestMethod]
@@ -242,30 +247,30 @@ public class ResourceProviderTest : TestBase
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() }, TestCt);
         var resource2 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
-        });
+        }, TestCt);
 
         var resource21 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
-        });
+        }, TestCt);
 
         var resource22 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource2.ResourceId
-        });
+        }, TestCt);
 
 
         // ---------
         // Check: Delete
         // ---------
-        await resourceProvider.Remove(resource1.ResourceId);
-        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource2.ResourceId));
-        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource21.ResourceId));
-        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource22.ResourceId));
+        await resourceProvider.Remove(resource1.ResourceId, TestCt);
+        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource2.ResourceId, TestCt));
+        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource21.ResourceId, TestCt));
+        await TestUtil.AssertNotExistsException(resourceProvider.Get(resource22.ResourceId, TestCt));
     }
 
     [TestMethod]
@@ -277,11 +282,11 @@ public class ResourceProviderTest : TestBase
         // ---------
         // Check: Create
         // ---------
-        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() });
+        var resource1 = await resourceProvider.Add(new Resource { ResourceId = Guid.NewGuid().ToString() }, TestCt);
         var resource2 = await resourceProvider.Add(new Resource {
             ResourceId = Guid.NewGuid().ToString(),
             ParentResourceId = resource1.ResourceId
-        });
+        }, TestCt);
 
 
         // create a user
@@ -293,19 +298,19 @@ public class ResourceProviderTest : TestBase
             Description = Guid.NewGuid().ToString()
         };
 
-        var user = await userProvider.Create(userCreateRequest);
+        var user = await userProvider.Create(userCreateRequest, TestCt);
 
         // assign role
         var userRoleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await userRoleProvider.AddUserRole(resource2.ResourceId, Roles.AppAdmin.RoleId, user.UserId);
+        await userRoleProvider.AddUserRole(resource2.ResourceId, Roles.AppAdmin.RoleId, user.UserId, TestCt);
 
         // get user roles
-        var userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        var userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId }, TestCt);
         Assert.Contains(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId, userRoles);
 
         // delete and get user roles again
-        await testInit.ResourceProvider.Remove(resource2.ResourceId);
-        userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        await testInit.ResourceProvider.Remove(resource2.ResourceId, TestCt);
+        userRoles = await userRoleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId }, TestCt);
         Assert.DoesNotContain(x => x.Role.RoleId == Roles.AppAdmin.RoleId && x.ResourceId == resource2.ResourceId,
             userRoles);
     }
@@ -315,7 +320,7 @@ public class ResourceProviderTest : TestBase
     {
         using var testInit = await CreateTestInit(useResourceProvider: true);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId));
+            testInit.ResourceProvider.Remove(testInit.ResourceProvider.RootResourceId, TestCt));
     }
 
     [TestMethod]
@@ -323,6 +328,7 @@ public class ResourceProviderTest : TestBase
     {
         using var testInit = await CreateTestInit(useResourceProvider: true);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId }));
+            testInit.ResourceProvider.Update(new Resource { ResourceId = testInit.ResourceProvider.RootResourceId },
+            TestCt));
     }
 }

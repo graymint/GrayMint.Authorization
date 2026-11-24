@@ -17,13 +17,13 @@ public class MicroserviceAuthorizationService(
 {
     private readonly GrayMintAuthenticationOptions _authenticationOptions = authenticationOptions.Value;
 
-    public async Task<ApiKey> ResetApiKey(ClaimsPrincipal claimsPrincipal)
+    public async Task<ApiKey> ResetApiKey(ClaimsPrincipal claimsPrincipal, CancellationToken cancellationToken)
     {
         var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
                      ?? throw new UnauthorizedAccessException("Could not find user id in claims.");
 
-        await authorizationProvider.RestAuthorizationCode(claimsPrincipal);
-        var authorizationCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+        await authorizationProvider.ResetAuthorizationCode(claimsPrincipal, cancellationToken);
+        var authorizationCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal, cancellationToken);
 
         userAuthorizationCache.ClearUserItems(userId);
 
@@ -37,12 +37,12 @@ public class MicroserviceAuthorizationService(
                 ValidateAuthCode = true,
                 ValidateSubject = false
             }
-        });
+        }, cancellationToken);
 
         return apiKey;
     }
 
-    public async Task<ApiKey> CreateSystemApiKey(string secret)
+    public async Task<ApiKey> CreateSystemApiKey(string secret, CancellationToken cancellationToken)
     {
         // checked before the secret, so a server where it is off never even compares it
         if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsDevelopment()))
@@ -53,7 +53,8 @@ public class MicroserviceAuthorizationService(
 
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, AuthorizationConstants.SystemUserId));
-        var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity))
+        var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(claimsIdentity),
+            cancellationToken)
                                 ?? throw new KeyNotFoundException("Could not find authorization code for system user.");
 
         claimsIdentity = new ClaimsIdentity();
@@ -65,7 +66,7 @@ public class MicroserviceAuthorizationService(
                 ValidateAuthCode = true,
                 ValidateSubject = false
             }
-        });
+        }, cancellationToken);
 
         return apiKey;
     }

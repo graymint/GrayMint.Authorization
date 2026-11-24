@@ -129,7 +129,7 @@ public class TeamControllerTest : TestBase
         foreach (var permission in Roles.AppReader.Permissions)
             Assert.Contains(permission, permissions);
 
-        Assert.HasCount(Roles.AppReader.Permissions.Length, permissions);
+        Assert.HasCount(Roles.AppReader.Permissions.Count, permissions);
     }
 
     [TestMethod]
@@ -419,7 +419,7 @@ public class TeamControllerTest : TestBase
             Email = TestInit.NewEmail(),
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
         var added = await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, user.UserId);
         var listed = await testInit.TeamClient.ListUserRolesAsync(testInit.AppResourceId, userId: user.UserId);
@@ -452,17 +452,17 @@ public class TeamControllerTest : TestBase
             IsPhoneVerified = true,
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
         var bot = await testInit.AddNewBot(Roles.AppReader, setAsCurrent: false);
         await testInit.UserProvider.Update(bot.UserId, new UserUpdateRequest {
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>();
-        await userProvider.UpdateAccessedTime(user.UserId);
-        await userProvider.UpdateAccessedTime(bot.UserId);
+        await userProvider.UpdateAccessedTime(user.UserId, TestCt);
+        await userProvider.UpdateAccessedTime(bot.UserId, TestCt);
 
         // the person hidden on the app's team and in full on the system's, and the bot updated
         await testInit.TeamClient.AddUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, user.UserId);
@@ -495,7 +495,7 @@ public class TeamControllerTest : TestBase
         }
 
         testInit.HttpClient.DefaultRequestHeaders.Authorization = adminAuthorization;
-        var storedPerson = await testInit.UserProvider.Get(person.UserId);
+        var storedPerson = await testInit.UserProvider.Get(person.UserId, TestCt);
         Assert.IsNotNull(storedPerson.AccessedTime);
 
         // the person's last use tells of their other teams too; a bot's is its team's own
@@ -522,7 +522,7 @@ public class TeamControllerTest : TestBase
             testInit.TeamClient.AddUserByEmailAsync(TestInit.RootResourceId, Roles.AppReader.RoleId, email));
 
         // refused before an account was made for the email
-        Assert.IsNull(await testInit.UserProvider.FindByEmail(email));
+        Assert.IsNull(await testInit.UserProvider.FindByEmail(email, TestCt));
     }
 
     [TestMethod]
@@ -678,12 +678,12 @@ public class TeamControllerTest : TestBase
         var personApiKey = await testInit.SignUpNewUser(email, setAsCurrent: false);
         var userRole = await testInit.TeamClient.AddUserByEmailAsync(testInit.AppResourceId, Roles.AppReader.RoleId, email);
         await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, userRole.UserId);
-        Assert.IsNotNull(await testInit.UserProvider.FindById(personApiKey.UserId));
+        Assert.IsNotNull(await testInit.UserProvider.FindById(personApiKey.UserId, TestCt));
 
         // an account an email add made, never used, goes with its last role
         var unused = await testInit.AddNewUser(Roles.AppReader);
         await testInit.TeamClient.RemoveUserAsync(testInit.AppResourceId, Roles.AppReader.RoleId, unused.UserId);
-        Assert.IsNull(await testInit.UserProvider.FindById(unused.UserId));
+        Assert.IsNull(await testInit.UserProvider.FindById(unused.UserId, TestCt));
     }
 
     [TestMethod]

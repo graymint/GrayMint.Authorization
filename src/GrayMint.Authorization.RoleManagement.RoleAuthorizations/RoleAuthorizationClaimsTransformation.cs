@@ -10,13 +10,17 @@ internal class RoleAuthorizationClaimsTransformation(
     IAuthorizationProvider authorizationProvider)
     : IClaimsTransformation
 {
+    // ASP.NET gives a claims transformation no token: this chain starts here
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        var userId = await authorizationProvider.GetUserId(principal);
+        var cancellationToken = CancellationToken.None;
+        var userId = await authorizationProvider.GetUserId(principal, cancellationToken);
         if (userId == null)
             return principal;
 
-        var userRoles = await roleAuthorizationProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
+        var userRoles = await roleAuthorizationProvider.GetUserRoles(new UserRoleCriteria { UserId = userId },
+            cancellationToken);
+
 
         // Add the following claims
         // /resources/*/RoleName

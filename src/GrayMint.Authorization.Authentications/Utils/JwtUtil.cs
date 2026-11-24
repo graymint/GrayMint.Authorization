@@ -7,7 +7,7 @@ namespace GrayMint.Authorization.Authentications.Utils;
 public static class JwtUtil
 {
     public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string subject,
-        string email, string[]? roles)
+        string email, IReadOnlyList<string>? roles)
     {
         return CreateSymmetricJwt(key, issuer, audience, subject, email, null, roles);
     }
@@ -22,7 +22,8 @@ public static class JwtUtil
     }
 
     public static string CreateSymmetricJwt(byte[] key, string issuer, string audience, string? subject = null,
-        string? email = null, Claim[]? claims = null, string[]? roles = null, DateTime? expirationTime = null)
+        string? email = null, IReadOnlyList<Claim>? claims = null, IReadOnlyList<string>? roles = null,
+        DateTime? expirationTime = null)
     {
         var claimIdentity = new ClaimsIdentity(claims);
         ClaimUtil.SetClaim(claimIdentity, ClaimUtil.CreateClaimTime("iat", UtcNow));

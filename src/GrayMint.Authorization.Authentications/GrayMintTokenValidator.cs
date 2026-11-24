@@ -42,7 +42,9 @@ public class GrayMintTokenValidator(
 
     /// <param name="claimsPrincipal">Must have been already been validated</param>
     /// <param name="tokenUsage">the tokenUsage claim must be this value if it is not null</param>
-    public async Task PostValidate(ClaimsPrincipal claimsPrincipal, string? tokenUsage = null)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public async Task PostValidate(ClaimsPrincipal claimsPrincipal, string? tokenUsage = null,
+        CancellationToken cancellationToken = default)
     {
         if (claimsPrincipal.FindFirst(JwtRegisteredClaimNames.Jti) == null)
             throw new AuthenticationException("Can not find jti in token.");
@@ -66,7 +68,7 @@ public class GrayMintTokenValidator(
         var userIdCacheKey = $"graymint:auth:token:userid:{tokenKey}";
         var userId = await memoryCache.GetOrCreateAsync(userIdCacheKey, async entry => {
             entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
-            var id = await authorizationProvider.GetUserId(claimsPrincipal);
+            var id = await authorizationProvider.GetUserId(claimsPrincipal, cancellationToken);
             if (id != null)
                 userAuthorizationCache.AddUserItem(id, entry);
             else
@@ -88,9 +90,9 @@ public class GrayMintTokenValidator(
             // get authCode and manage cache; a user's code is tied to the user before it is read
             var authCode = userId != null
                 ? await userAuthorizationCache.GetOrCreateUserItemAsync(userId, $"token:auth-code:{tokenKey}",
-                    entry => CreateAuthCodeEntry(entry, claimsPrincipal))
+                    entry => CreateAuthCodeEntry(entry, claimsPrincipal, cancellationToken))
                 : await memoryCache.GetOrCreateAsync($"graymint:auth:token:auth-code:{tokenKey}",
-                    entry => CreateAuthCodeEntry(entry, claimsPrincipal));
+                    entry => CreateAuthCodeEntry(entry, claimsPrincipal, cancellationToken));
 
             if (string.IsNullOrEmpty(authCode))
                 throw new AuthenticationException($"Could not find {GrayMintClaimTypes.AuthCode} in token.");
@@ -103,13 +105,14 @@ public class GrayMintTokenValidator(
         if (userId != null)
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, userId);
 
-        await authorizationProvider.OnAuthenticated(claimsPrincipal);
+        await authorizationProvider.OnAuthenticated(claimsPrincipal, cancellationToken);
     }
 
-    private async Task<string?> CreateAuthCodeEntry(ICacheEntry entry, ClaimsPrincipal claimsPrincipal)
+    private async Task<string?> CreateAuthCodeEntry(ICacheEntry entry, ClaimsPrincipal claimsPrincipal,
+        CancellationToken cancellationToken)
     {
         entry.SetAbsoluteExpiration(authenticationOptions.Value.CacheTimeout);
-        var authCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal);
+        var authCode = await authorizationProvider.GetAuthorizationCode(claimsPrincipal, cancellationToken);
 
         // no code isn't kept: the check fails on it anyway, and the tokens of a user gone would each keep one
         if (string.IsNullOrEmpty(authCode))
@@ -125,31 +128,34 @@ public class GrayMintTokenValidator(
         return url;
     }
 
-    private Task<OpenIdConnectConfiguration> GetOpenIdConnectConfigurationByIssuer(string issuer)
+    private Task<OpenIdConnectConfiguration> GetOpenIdConnectConfigurationByIssuer(string issuer,
+        CancellationToken cancellationToken)
     {
         issuer = EnsureHttps(issuer);
-        return GetOpenIdConnectConfiguration($"{issuer}/.well-known/openid-configuration");
+        return GetOpenIdConnectConfiguration($"{issuer}/.well-known/openid-configuration", cancellationToken);
     }
 
-    private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url)
+    private async Task<OpenIdConnectConfiguration> GetOpenIdConnectConfiguration(string url,
+        CancellationToken cancellationToken)
     {
         var openIdConfig = await memoryCache.GetOrCreateAsync(url, entry => {
             var configurationManager =
                 new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
 
             entry.SetAbsoluteExpiration(authenticationOptions.Value.OpenIdConfigTimeout);
-            return configurationManager.GetConfigurationAsync();
+            return configurationManager.GetConfigurationAsync(cancellationToken);
         }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
 
         return openIdConfig;
     }
 
-    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider)
+    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider,
+        CancellationToken cancellationToken)
     {
         var issuer = openIdProvider.Issuer ?? openIdProvider.Issuers.FirstOrDefault() ??
             throw new Exception($"Could not find any issuer for {openIdProvider.Name}");
 
-        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
+        var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer, cancellationToken);
         var validationParameters = new TokenValidationParameters {
             ValidateIssuer = true,
             ValidIssuer = openIdProvider.Issuer,
@@ -174,13 +180,13 @@ public class GrayMintTokenValidator(
         return claimsIdentity;
     }
 
-    public async Task<ClaimsIdentity> ValidateGrayMintToken(string token)
+    public async Task<ClaimsIdentity> ValidateGrayMintToken(string token, CancellationToken cancellationToken)
     {
         try {
             var tokenHandler = new JwtSecurityTokenHandler();
             var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
             var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
-            await PostValidate(claimsPrincipal);
+            await PostValidate(claimsPrincipal, cancellationToken: cancellationToken);
 
             var claimIdentity = new ClaimsIdentity(claimsPrincipal.Claims);
             return claimIdentity;
@@ -197,7 +203,7 @@ public class GrayMintTokenValidator(
     }
 
     // an identity provider's id token only, never one of ours
-    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken)
+    public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, CancellationToken cancellationToken)
     {
         try {
             var issuer = new JwtSecurityTokenHandler().ReadToken(idToken).Issuer;
@@ -205,7 +211,7 @@ public class GrayMintTokenValidator(
                                  ?? throw new AuthenticationException(
                                      $"Could not find any provider for this issuer. {issuer}");
 
-            var claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
+            var claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider, cancellationToken);
             return claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id)
                 ? claimsIdentity
                 : throw new AuthenticationException("This is not an id token.");
@@ -215,11 +221,11 @@ public class GrayMintTokenValidator(
         }
     }
 
-    public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
+    public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken, CancellationToken cancellationToken)
     {
         try {
             var issuer = new JwtSecurityTokenHandler().ReadToken(idToken).Issuer;
-            var claimsIdentity = await ValidateTokenOfIssuer(idToken, issuer);
+            var claimsIdentity = await ValidateTokenOfIssuer(idToken, issuer, cancellationToken);
             return claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id)
                 ? claimsIdentity
                 : throw new AuthenticationException("This is not an id token.");
@@ -229,14 +235,15 @@ public class GrayMintTokenValidator(
         }
     }
 
-    private Task<ClaimsIdentity> ValidateTokenOfIssuer(string idToken, string issuer)
+    private Task<ClaimsIdentity> ValidateTokenOfIssuer(string idToken, string issuer,
+        CancellationToken cancellationToken)
     {
         var openIdProvider = FindOpenIdProvider(issuer);
         if (openIdProvider != null)
-            return ValidateOpenIdToken(idToken, openIdProvider);
+            return ValidateOpenIdToken(idToken, openIdProvider, cancellationToken);
 
         return issuer == authenticationOptions.Value.Issuer
-            ? ValidateGrayMintToken(idToken)
+            ? ValidateGrayMintToken(idToken, cancellationToken)
             : throw new AuthenticationException($"Could not find any provider for this issuer. {issuer}");
     }
 }

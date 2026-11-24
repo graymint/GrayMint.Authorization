@@ -7,28 +7,28 @@ namespace GrayMint.Authorization.UserManagement.UserProviders;
 
 public class AuthorizationProvider(IUserProvider userProvider) : IAuthorizationProvider
 {
-    public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal)
+    public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal);
+        var userId = await GetUserId(principal, cancellationToken);
         if (userId is null)
             return null;
 
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
         return user.AuthorizationCode;
     }
 
-    public async Task<string?> GetUserId(ClaimsPrincipal principal)
+    public async Task<string?> GetUserId(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var userId = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
         if (userId != null) {
-            var user = await userProvider.FindById(userId);
+            var user = await userProvider.FindById(userId, cancellationToken);
             if (user != null)
                 return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
         }
 
         var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
         if (emailClaim != null) {
-            var user = await userProvider.FindByEmail(emailClaim.Value);
+            var user = await userProvider.FindByEmail(emailClaim.Value, cancellationToken);
             if (user != null)
                 return !user.IsDisabled ? user.UserId : throw new UnauthorizedAccessException("User is locked.");
         }
@@ -36,23 +36,24 @@ public class AuthorizationProvider(IUserProvider userProvider) : IAuthorizationP
         return null;
     }
 
-    public async Task OnAuthenticated(ClaimsPrincipal principal)
+    public async Task OnAuthenticated(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal);
+        var userId = await GetUserId(principal, cancellationToken);
         if (userId is null)
             return;
 
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
 
         if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60)) {
             if (userProvider is UserProvider userProvider2)
-                await userProvider2.UpdateAccessedTime(user.UserId);
+                await userProvider2.UpdateAccessedTime(user.UserId, cancellationToken);
         }
     }
 
-    public async Task RestAuthorizationCode(ClaimsPrincipal principal)
+    public async Task ResetAuthorizationCode(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal) ?? throw new NotExistsException("Could not find userId.");
-        await userProvider.ResetAuthorizationCode(userId);
+        var userId = await GetUserId(principal,
+            cancellationToken) ?? throw new NotExistsException("Could not find userId.");
+        await userProvider.ResetAuthorizationCode(userId, cancellationToken);
     }
 }

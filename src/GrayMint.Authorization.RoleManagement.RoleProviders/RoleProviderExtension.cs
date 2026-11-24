@@ -30,11 +30,11 @@ public static class RoleProviderExtension
     }
 
     public static async Task<IServiceProvider> UseGrayMintRoleProvider(
-        this IServiceProvider serviceProvider)
+        this IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<RoleDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, cancellationToken);
         return serviceProvider;
     }
 }

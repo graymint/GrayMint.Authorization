@@ -18,15 +18,16 @@ public class AuthenticationService(
 {
     public Uri? SignInRedirectUrl => authenticationOptions.Value.SignInRedirectUrl;
 
-    public async Task<string> GetUserId(ClaimsPrincipal user)
+    public async Task<string> GetUserId(ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        var userId = await authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
+        var userId = await authorizationProvider.GetUserId(user,
+            cancellationToken) ?? throw new UnregisteredUserException();
         return userId;
     }
 
-    public async Task<User> GetUser(string userId)
+    public async Task<User> GetUser(string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
         var ret = user.Clone();
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
@@ -39,21 +40,21 @@ public class AuthenticationService(
         return ret;
     }
 
-    public async Task<User> ResetAuthorizationCode(string userId)
+    public async Task<User> ResetAuthorizationCode(string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.Get(userId);
-        await userProvider.ResetAuthorizationCode(user.UserId);
+        var user = await userProvider.Get(userId, cancellationToken);
+        await userProvider.ResetAuthorizationCode(user.UserId, cancellationToken);
         return user;
     }
 
-    public async Task<ApiKey> ResetApiKey(string userId)
+    public async Task<ApiKey> ResetApiKey(string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
 
         if (!authenticationOptions.Value.AllowUserApiKey)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
-        await userProvider.ResetAuthorizationCode(user.UserId);
+        await userProvider.ResetAuthorizationCode(user.UserId, cancellationToken);
 
         var claimIdentity = new ClaimsIdentity();
         claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
@@ -61,12 +62,13 @@ public class AuthenticationService(
             .CreateApiKey(claimIdentity, new ApiKeyOptions {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13),
                 RefreshTokenType = RefreshTokenType.None
-            });
+            }, cancellationToken);
 
         return apiKey;
     }
 
-    private async Task UpdateUserByClaims(User user, ClaimsPrincipal claimsPrincipal)
+    private async Task UpdateUserByClaims(User user, ClaimsPrincipal claimsPrincipal,
+        CancellationToken cancellationToken)
     {
         var updateRequest = new UserUpdateRequest();
         var isUpdated = false;
@@ -115,42 +117,43 @@ public class AuthenticationService(
         }
 
         if (isUpdated)
-            await userProvider.Update(user.UserId, updateRequest);
+            await userProvider.Update(user.UserId, updateRequest, cancellationToken);
     }
 
-    public async Task<ApiKey> SignIn(SignInRequest signInRequest)
+    public async Task<ApiKey> SignIn(SignInRequest signInRequest, CancellationToken cancellationToken)
     {
         var apiKey = await grayMintAuthentication
-            .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType);
+            .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType, cancellationToken);
 
         if (apiKey.UserId is null)
             throw new Exception("SignIn should not return null UserId.");
 
         if (apiKey.AccessToken.ClaimsPrincipal is not null) {
-            var user = await userProvider.Get(apiKey.UserId);
-            await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal);
+            var user = await userProvider.Get(apiKey.UserId, cancellationToken);
+            await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal, cancellationToken);
         }
 
         return apiKey;
     }
 
-    public async Task<ApiKey> SignUp(SignUpRequest signUpRequest)
+    public async Task<ApiKey> SignUp(SignUpRequest signUpRequest, CancellationToken cancellationToken)
     {
         if (!authenticationOptions.Value.AllowUserSelfRegister)
             throw new UnauthorizedAccessException("Self-Register is not enabled.");
 
-        var claimsIdentity = await grayMintAuthentication.ValidateSignInIdToken(signUpRequest.IdToken);
+        var claimsIdentity = await grayMintAuthentication.ValidateSignInIdToken(signUpRequest.IdToken,
+            cancellationToken);
         var claimsPrincipal = ClaimUtil.CreateClaimsPrincipal(claimsIdentity);
 
         var email =
             claimsPrincipal.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value.ToLower()
             ?? throw new UnauthorizedAccessException("Could not find user's email claim!");
 
-        var user = await userProvider.Create(new UserCreateRequest { Email = email });
-        await UpdateUserByClaims(user, claimsPrincipal);
+        var user = await userProvider.Create(new UserCreateRequest { Email = email }, cancellationToken);
+        await UpdateUserByClaims(user, claimsPrincipal, cancellationToken);
 
         var apiKey = await grayMintAuthentication.SignIn(
-            signUpRequest.IdToken, signUpRequest.RefreshTokenType);
+            signUpRequest.IdToken, signUpRequest.RefreshTokenType, cancellationToken);
 
         return apiKey;
     }

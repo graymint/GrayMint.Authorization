@@ -24,19 +24,19 @@ public sealed class OpenIdUserResolver(UserBindingStore bindingStore, IAuthoriza
 
         // The user as it is now. Only the very user the account is tied to will do: a provider of users may
         // look further than the id, such as for an address the token carries, and an address ties nobody.
-        var foundUserId = await FindUserId(principal);
+        var foundUserId = await FindUserId(principal, cancellationToken);
         if (foundUserId != userId)
             return false;
 
-        await authorizationProvider.OnAuthenticated(principal);
+        await authorizationProvider.OnAuthenticated(principal, cancellationToken);
         return true;
     }
 
     // null for a locked user, which the provider of users says by an exception of this kind
-    private async Task<string?> FindUserId(ClaimsPrincipal principal)
+    private async Task<string?> FindUserId(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         try {
-            return await authorizationProvider.GetUserId(principal);
+            return await authorizationProvider.GetUserId(principal, cancellationToken);
         }
         catch (UnauthorizedAccessException) {
             return null;

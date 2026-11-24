@@ -76,8 +76,8 @@ public sealed class TestHost : IAsyncDisposable
         app.MapPost("/sign-up",
             (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService, isSignUp: true));
 
-        await app.Services.UseGrayMintUserProvider();
-        await app.Services.UseGrayMintOpenIdAuthentication();
+        await app.Services.UseGrayMintUserProvider(cancellationToken);
+        await app.Services.UseGrayMintOpenIdAuthentication(cancellationToken);
         await app.StartAsync(cancellationToken);
         return new TestHost(app, connection, cancellationToken);
     }
@@ -87,31 +87,32 @@ public sealed class TestHost : IAsyncDisposable
     {
         await using var scope = Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-            .Create(new UserCreateRequest { Email = email, Name = name });
+            .Create(new UserCreateRequest { Email = email, Name = name }, CancellationToken);
     }
 
     public async Task<User> UpdateUser(string userId, UserUpdateRequest request)
     {
         await using var scope = Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().Update(userId, request);
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().Update(userId, request,
+            CancellationToken);
     }
 
     public async Task RemoveUser(string userId)
     {
         await using var scope = Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<IUserProvider>().Remove(userId);
+        await scope.ServiceProvider.GetRequiredService<IUserProvider>().Remove(userId, CancellationToken);
     }
 
     public async Task<User?> FindUserByEmail(string email)
     {
         await using var scope = Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().FindByEmail(email);
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().FindByEmail(email, CancellationToken);
     }
 
     public async Task<User> GetUserByEmail(string email)
     {
         await using var scope = Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(email);
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(email, CancellationToken);
     }
 
     public async Task RemoveUserBinding(string providerName, string subject, string userId)

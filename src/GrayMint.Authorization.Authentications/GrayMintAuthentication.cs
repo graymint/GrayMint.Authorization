@@ -55,10 +55,12 @@ public class GrayMintAuthentication(
     }
 
     public async Task<AuthenticationHeaderValue> CreateAuthenticationHeader(
-        ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null, DateTime? expirationTime = null)
+        ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null, DateTime? expirationTime = null,
+        CancellationToken cancellationToken = default)
     {
         expirationTime ??= JwtUtil.UtcNow + _authenticationOptions.AccessTokenTimeout;
-        var accessToken = await CreateToken(claimsIdentity, validateOptions, TokenUse.Access, expirationTime.Value);
+        var accessToken = await CreateToken(claimsIdentity, validateOptions, TokenUse.Access, expirationTime.Value,
+            cancellationToken);
         return new AuthenticationHeaderValue(accessToken.Scheme, accessToken.Value);
     }
 
@@ -75,7 +77,8 @@ public class GrayMintAuthentication(
         };
     }
 
-    public async Task<ApiKey> CreateApiKey(ClaimsIdentity claimsIdentity, ApiKeyOptions? options = null)
+    public async Task<ApiKey> CreateApiKey(ClaimsIdentity claimsIdentity, ApiKeyOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
         options ??= new ApiKeyOptions();
 
@@ -90,10 +93,10 @@ public class GrayMintAuthentication(
             claimsIdentity,
             options.ValidateOptions,
             TokenUse.Access,
-            accessTokenExpirationTime);
+            accessTokenExpirationTime, cancellationToken);
 
         var refreshToken = options.RefreshTokenType != RefreshTokenType.None
-            ? await CreateRefreshToken(claimsIdentity, options, accessToken)
+            ? await CreateRefreshToken(claimsIdentity, options, accessToken, cancellationToken)
             : null;
 
         var ret = new ApiKey {
@@ -106,7 +109,7 @@ public class GrayMintAuthentication(
     }
 
     private async Task<Token> CreateRefreshToken(ClaimsIdentity claimsIdentity, ApiKeyOptions options,
-        Token accessToken)
+        Token accessToken, CancellationToken cancellationToken)
     {
         if (!_authenticationOptions.AllowRefreshToken)
             throw new UnauthorizedAccessException("Refresh token is not available on the server.");
@@ -136,25 +139,27 @@ public class GrayMintAuthentication(
             claimsIdentity: claimsIdentity,
             options.ValidateOptions,
             tokenUse: TokenUse.Refresh,
-            expTime: refreshTokenExpirationTime);
+            expTime: refreshTokenExpirationTime, cancellationToken: cancellationToken);
     }
 
 
     public async Task<Token> CreateToken(ClaimsIdentity claimsIdentity, ValidateOptions? tokenOptions, string tokenUse,
-        DateTime expTime)
+        DateTime expTime, CancellationToken cancellationToken)
     {
         claimsIdentity = claimsIdentity.Clone();
         tokenOptions ??= new ValidateOptions();
 
         if (claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub) == null) {
-            var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+            var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity),
+                cancellationToken);
             if (userId != null)
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(JwtRegisteredClaimNames.Sub, userId));
         }
 
         if (claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode) == null) {
             var authCode =
-                await authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity));
+                await authorizationProvider.GetAuthorizationCode(ClaimUtil.CreateClaimsPrincipal(claimsIdentity),
+                cancellationToken);
 
             if (!string.IsNullOrEmpty(authCode))
                 ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.AuthCode, authCode));
@@ -193,14 +198,14 @@ public class GrayMintAuthentication(
         if (tokenOptions.ValidateAuthCode) {
             var authCode = claimsIdentity.FindFirst(x => x.Type == GrayMintClaimTypes.AuthCode)?.Value;
             if (string.IsNullOrEmpty(authCode) ||
-                await authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal) != authCode)
+                await authorizationProvider.GetAuthorizationCode(token.ClaimsPrincipal, cancellationToken) != authCode)
                 throw new AuthenticationException("Could not validate AuthorizationCode.");
         }
 
         if (tokenOptions.ValidateSubject) {
             var subject = claimsIdentity.FindFirst(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
             if (string.IsNullOrEmpty(subject) ||
-                await authorizationProvider.GetUserId(token.ClaimsPrincipal) != subject)
+                await authorizationProvider.GetUserId(token.ClaimsPrincipal, cancellationToken) != subject)
                 throw new AuthenticationException("Could not validate UserId.");
         }
 
@@ -209,9 +214,9 @@ public class GrayMintAuthentication(
 
     // a used refresh token stays valid until it expires: rotating them would cost a database write per refresh,
     // and resetting the user's authorization code ends them all
-    public async Task<ApiKey> RefreshToken(string refreshToken)
+    public async Task<ApiKey> RefreshToken(string refreshToken, CancellationToken cancellationToken)
     {
-        var claimsIdentity = await grayMintIdTokenValidator.ValidateGrayMintToken(refreshToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateGrayMintToken(refreshToken, cancellationToken);
         if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Refresh))
             throw new AuthenticationException("This is not a refresh token.");
 
@@ -253,16 +258,16 @@ public class GrayMintAuthentication(
                 RefreshTokenType = refreshTokenType,
                 RefreshTokenExpirationTime = newExpTime,
                 RefreshTokenMaxExpirationTime = authEndTime
-            });
+            }, cancellationToken);
 
         return apiKey;
     }
 
     // An id token a user may sign in or sign up with: a sign-up claims the token's email for good,
     // so an unverified one must fail before anything is saved.
-    public async Task<ClaimsIdentity> ValidateSignInIdToken(string idToken)
+    public async Task<ClaimsIdentity> ValidateSignInIdToken(string idToken, CancellationToken cancellationToken)
     {
-        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateIdToken(idToken, cancellationToken);
 
         if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
             throw new AuthenticationException("This is not an id token.");
@@ -272,11 +277,13 @@ public class GrayMintAuthentication(
             : throw new AuthenticationException("Email has not been verified.");
     }
 
-    public async Task<ApiKey> SignIn(string idToken, RefreshTokenType refreshTokenType)
+    public async Task<ApiKey> SignIn(string idToken, RefreshTokenType refreshTokenType,
+        CancellationToken cancellationToken)
     {
-        var claimsIdentity = await ValidateSignInIdToken(idToken);
+        var claimsIdentity = await ValidateSignInIdToken(idToken, cancellationToken);
 
-        var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity))
+        var userId = await authorizationProvider.GetUserId(ClaimUtil.CreateClaimsPrincipal(claimsIdentity),
+            cancellationToken)
                      ?? throw new UnregisteredUserException();
 
         // our token keeps only the profile claims; anything else the identity provider sent, such as a role
@@ -290,27 +297,28 @@ public class GrayMintAuthentication(
             new ApiKeyOptions {
                 ValidateOptions = new ValidateOptions { ValidateAuthCode = true, ValidateSubject = true },
                 RefreshTokenType = refreshTokenType
-            });
+            }, cancellationToken);
 
         return apiKey;
     }
 
-    public async Task<Token> CreateIdToken(ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null)
+    public async Task<Token> CreateIdToken(ClaimsIdentity claimsIdentity, ValidateOptions? validateOptions = null,
+        CancellationToken cancellationToken = default)
     {
         var expirationTime = JwtUtil.UtcNow + _authenticationOptions.IdTokenTimeout;
-        var token = await CreateToken(claimsIdentity, validateOptions, TokenUse.Id, expirationTime);
+        var token = await CreateToken(claimsIdentity, validateOptions, TokenUse.Id, expirationTime, cancellationToken);
         return token;
     }
 
-    public async Task<Uri> GetSignInRedirectUrl(string idToken, string? csrfToken)
+    public async Task<Uri> GetSignInRedirectUrl(string idToken, string? csrfToken, CancellationToken cancellationToken)
     {
         if (_authenticationOptions.SignInRedirectUrl == null)
             throw new InvalidOperationException(
                 "TeamController:SignInRedirectUrl has not been configured in app settings.");
 
         // an identity provider's token only: one of ours would renew itself here, each copy with a new sign-in time
-        var claimsIdentity = await grayMintIdTokenValidator.ValidateOpenIdToken(idToken);
-        var token = await CreateIdToken(claimsIdentity);
+        var claimsIdentity = await grayMintIdTokenValidator.ValidateOpenIdToken(idToken, cancellationToken);
+        var token = await CreateIdToken(claimsIdentity, cancellationToken: cancellationToken);
 
         var uriBuilder = new UriBuilder(_authenticationOptions.SignInRedirectUrl);
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);

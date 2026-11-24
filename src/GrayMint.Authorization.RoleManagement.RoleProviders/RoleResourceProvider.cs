@@ -5,7 +5,7 @@ namespace GrayMint.Authorization.RoleManagement.RoleProviders;
 
 internal class RoleResourceProvider : IRoleResourceProvider
 {
-    public Task<string?> GetParentResourceId(string resourceId)
+    public Task<string?> GetParentResourceId(string resourceId, CancellationToken cancellationToken)
     {
         var res = resourceId == AuthorizationConstants.RootResourceId ? null : AuthorizationConstants.RootResourceId;
 

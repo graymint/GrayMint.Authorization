@@ -53,11 +53,12 @@ public static class OpenIdAuthenticationExtension
     }
 
     // makes the tables where they are missing; a service whose database login may not, leaves that to its setup
-    public static async Task<IServiceProvider> UseGrayMintOpenIdAuthentication(this IServiceProvider serviceProvider)
+    public static async Task<IServiceProvider> UseGrayMintOpenIdAuthentication(this IServiceProvider serviceProvider,
+        CancellationToken cancellationToken)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, cancellationToken);
         return serviceProvider;
     }
 

@@ -38,8 +38,8 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             webApp.UseGrayMintOpenApi(new UseOpenApiOptions { RedirectRootToUi = true });
             // Database first: EnsureCreated creates the database itself on a fresh machine, and the
             // authorization providers below only create their own tables (they cannot create the db).
-            await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
-            await webApp.UseGrayMinCommonAuthorizationForMicroservice();
+            await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args, CancellationToken.None);
+            await webApp.UseGrayMintCommonAuthorizationForMicroservice();
 
             await GrayMintApp.RunAsync(webApp, args);
         }

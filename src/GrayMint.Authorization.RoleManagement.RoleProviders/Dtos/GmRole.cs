@@ -6,9 +6,9 @@ namespace GrayMint.Authorization.RoleManagement.RoleProviders.Dtos;
 public class GmRole : Role
 {
     public required bool IsRoot { get; init; }
-    public required string[] Permissions { get; init; }
+    public required IReadOnlyList<string> Permissions { get; init; }
 
-    public static GmRole[] GetAll(Type type)
+    public static IReadOnlyList<GmRole> GetAll(Type type)
     {
         var properties = type
             .GetProperties(BindingFlags.Public | BindingFlags.Static)

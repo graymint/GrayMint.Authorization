@@ -14,15 +14,17 @@ public class AuthorizationProvider(
 {
     private readonly AppOptions _appOptions = appSettings.Value;
 
-    public Task<string?> GetUserId(ClaimsPrincipal principal)
+    public Task<string?> GetUserId(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
         return Task.FromResult(userId);
     }
 
-    public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal)
+    public async Task<string?> GetAuthorizationCode(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal) ?? throw new NotExistsException("Could not find userId.");
+        var userId = await GetUserId(principal, cancellationToken) ??
+                     throw new NotExistsException("Could not find userId.");
+
 
         if (userId == AuthorizationConstants.SystemUserId)
             return _appOptions.SystemAuthorizationCode;
@@ -31,9 +33,11 @@ public class AuthorizationProvider(
         return authorizationCode;
     }
 
-    public async Task OnAuthenticated(ClaimsPrincipal principal)
+    public async Task OnAuthenticated(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal) ?? throw new NotExistsException("Could not find userId.");
+        var userId = await GetUserId(principal, cancellationToken) ??
+                     throw new NotExistsException("Could not find userId.");
+
         var claimsIdentity = principal.Identities.First();
 
         if (userId == AuthorizationConstants.SystemUserId) {
@@ -52,9 +56,11 @@ public class AuthorizationProvider(
         }
     }
 
-    public async Task RestAuthorizationCode(ClaimsPrincipal principal)
+    public async Task ResetAuthorizationCode(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userId = await GetUserId(principal) ?? throw new NotExistsException("Could not find userId.");
+        var userId = await GetUserId(principal, cancellationToken) ??
+                     throw new NotExistsException("Could not find userId.");
+
         if (userId == AuthorizationConstants.SystemUserId)
             throw new NotSupportedException("Could not update system authorization code.");
 

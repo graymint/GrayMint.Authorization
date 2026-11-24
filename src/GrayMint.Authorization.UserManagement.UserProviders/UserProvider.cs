@@ -18,7 +18,7 @@ public class UserProvider(
     IMemoryCache memoryCache)
     : IUserProvider
 {
-    public async Task<User> Create(UserCreateRequest request)
+    public async Task<User> Create(UserCreateRequest request, CancellationToken cancellationToken)
     {
         var res = await userDbContext.Users.AddAsync(new UserModel {
             UserId = Guid.NewGuid(),
@@ -37,17 +37,17 @@ public class UserProvider(
             Phone = request.Phone?.Trim(),
             IsBot = request.IsBot,
             ExData = request.ExData
-        });
+        }, cancellationToken);
 
-        await userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync(cancellationToken);
 
         memoryCache.Remove(GetCacheKeyForEmail(request.Email));
         return res.Entity.ToDto();
     }
 
-    public async Task<User> Update(string userId, UserUpdateRequest request)
+    public async Task<User> Update(string userId, UserUpdateRequest request, CancellationToken cancellationToken)
     {
-        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId), cancellationToken);
         if (request.Name != null) user.Name = request.Name?.Value?.Trim();
         if (request.FirstName != null) user.FirstName = request.FirstName?.Value?.Trim();
         if (request.LastName != null) user.LastName = request.LastName?.Value?.Trim();
@@ -60,19 +60,19 @@ public class UserProvider(
         if (request.ExData != null) user.ExData = request.ExData;
         if (request.Email != null) user.Email = request.Email.Value.Trim();
 
-        await userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync(cancellationToken);
         userAuthorizationCache.ClearUserItems(userId);
         return user.ToDto();
     }
 
-    public async Task<User?> FindById(string userId)
+    public async Task<User?> FindById(string userId, CancellationToken cancellationToken)
     {
-        var user = await FindUserModel(userId);
+        var user = await FindUserModel(userId, cancellationToken);
         return user?.ToDto();
     }
 
     // the cached user; an id of no one isn't kept, so made-up ids can't grow the cache
-    private Task<UserModel?> FindUserModel(string userId)
+    private Task<UserModel?> FindUserModel(string userId, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(userId, out var uid))
             return Task.FromResult<UserModel?>(null);
@@ -80,7 +80,7 @@ public class UserProvider(
         return userAuthorizationCache.GetOrCreateUserItemAsync(userId, "provider:user-model",
             async entry => {
                 entry.SetAbsoluteExpiration(userProviderOptions.Value.CacheTimeout);
-                var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid);
+                var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.UserId == uid, cancellationToken);
                 if (user == null)
                     UserAuthorizationCache.RefuseEntry(entry);
 
@@ -88,60 +88,62 @@ public class UserProvider(
             });
     }
 
-    public async Task<User> Get(string userId)
+    public async Task<User> Get(string userId, CancellationToken cancellationToken)
     {
-        var user = await FindById(userId) ?? throw new NotExistsException("There is no user with the given id.");
+        var user = await FindById(userId,
+            cancellationToken) ?? throw new NotExistsException("There is no user with the given id.");
         return user;
     }
 
-    public async Task UpdateAccessedTime(string userId)
+    public async Task UpdateAccessedTime(string userId, CancellationToken cancellationToken)
     {
         var accessedTime = DateTime.UtcNow;
         var userGuid = Guid.Parse(userId);
         await userDbContext.Users
             .Where(x => x.UserId == userGuid)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AccessedTime, accessedTime));
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AccessedTime, accessedTime), cancellationToken);
 
         // the cached user takes the new time too, or each request until that copy expires would write it again
-        var user = await FindUserModel(userId);
+        var user = await FindUserModel(userId, cancellationToken);
         user?.AccessedTime = accessedTime;
     }
 
-    public async Task Remove(string userId)
+    public async Task Remove(string userId, CancellationToken cancellationToken)
     {
         userDbContext.ChangeTracker.Clear();
 
-        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId), cancellationToken);
         userDbContext.Users.Remove(user);
-        await userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync(cancellationToken);
         userAuthorizationCache.ClearUserItems(userId);
     }
 
-    public async Task ResetAuthorizationCode(string userId)
+    public async Task ResetAuthorizationCode(string userId, CancellationToken cancellationToken)
     {
-        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId), cancellationToken);
         user.AuthCode = Guid.NewGuid().ToString();
-        await userDbContext.SaveChangesAsync();
+        await userDbContext.SaveChangesAsync(cancellationToken);
         userAuthorizationCache.ClearUserItems(userId);
     }
 
-    public async Task<User?> FindByEmail(string email)
+    public async Task<User?> FindByEmail(string email, CancellationToken cancellationToken)
     {
         email = email.Trim();
-        var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email);
+        var user = await userDbContext.Users.SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
         return user?.ToDto();
     }
 
-    public async Task<User> GetByEmail(string email)
+    public async Task<User> GetByEmail(string email, CancellationToken cancellationToken)
     {
-        var user = await FindByEmail(email) ?? throw new NotExistsException("There is no user with the given email.");
+        var user = await FindByEmail(email,
+            cancellationToken) ?? throw new NotExistsException("There is no user with the given email.");
         return user;
     }
 
     public async Task<ListResult<User>> GetUsers(
         string? search = null, string? firstName = null, string? lastName = null,
         IEnumerable<string>? userIds = null, bool? isBot = null,
-        int recordIndex = 0, int? recordCount = null)
+        int recordIndex = 0, int? recordCount = null, CancellationToken cancellationToken = default)
     {
         search = search?.Trim();
         recordCount ??= int.MaxValue;
@@ -151,7 +153,7 @@ public class UserProvider(
         // differs between providers (SQLite compares case-sensitively)
         var userIdGuids = userIds?.Select(Guid.Parse).ToArray();
 
-        await using var trans = await userDbContext.WithNoLockTransaction();
+        await using var trans = await userDbContext.WithNoLockTransaction(cancellationToken);
         var query = userDbContext.Users
             .Where(x =>
                 (isBot == null || x.IsBot == isBot) &&
@@ -169,10 +171,12 @@ public class UserProvider(
             .OrderBy(x => x.Email)
             .Skip(recordIndex)
             .Take(recordCount ?? int.MaxValue)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         var ret = new ListResult<User> {
-            TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
+            TotalCount = results.Length < recordCount
+                ? recordIndex + results.Length
+                : await query.CountAsync(cancellationToken),
             Items = results.Select(x => x.ToDto()).ToArray()
         };
 

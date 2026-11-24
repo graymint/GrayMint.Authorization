@@ -93,11 +93,11 @@ services.AddItemServices();
 ```csharp
 var webApp = builder.Build();
 webApp.UseGrayMintCommonServices();
-await webApp.UseGrayMinCommonAuthorizationForApp();
-await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
+await webApp.UseGrayMintCommonAuthorizationForApp(CancellationToken.None);
+await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args, CancellationToken.None);
 
 if (appOptions.UseResourceProvider)
-    await webApp.Services.UseGrayMintResourceProvider();
+    await webApp.Services.UseGrayMintResourceProvider(CancellationToken.None);
 
 await GrayMintApp.RunAsync(webApp, args);
 ```

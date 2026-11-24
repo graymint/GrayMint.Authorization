@@ -89,7 +89,7 @@ public class SignInTest : TestBase
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signIn.Status);
 
         await using var scope = openHost.Services.CreateAsyncScope();
-        var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email);
+        var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email, TestCt);
         Assert.AreEqual(user.UserId, signIn.UserId);
         Assert.AreEqual("Someone", user.Name);
         Assert.IsTrue(user.IsEmailVerified);
@@ -155,7 +155,7 @@ public class SignInTest : TestBase
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), result.Status);
 
         await using var scope = testHost.Services.CreateAsyncScope();
-        var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email);
+        var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email, TestCt);
         Assert.AreEqual(result.UserId, user.UserId);
         Assert.AreEqual(Email, user.Email);
     }
@@ -179,9 +179,9 @@ public class SignInTest : TestBase
 
         await using var scope = testHost.Services.CreateAsyncScope();
         var userProvider = scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        var tiedUser = await userProvider.Get(user.UserId);
+        var tiedUser = await userProvider.Get(user.UserId, TestCt);
         Assert.AreEqual("Someone", tiedUser.Name);
-        var tiedNamedUser = await userProvider.Get(namedUser.UserId);
+        var tiedNamedUser = await userProvider.Get(namedUser.UserId, TestCt);
         Assert.AreEqual("Named By The Service", tiedNamedUser.Name);
     }
 

@@ -32,11 +32,12 @@ public static class ResourceProviderExtension
         }
     }
 
-    public static async Task<IServiceProvider> UseGrayMintResourceProvider(this IServiceProvider serviceProvider)
+    public static async Task<IServiceProvider> UseGrayMintResourceProvider(this IServiceProvider serviceProvider,
+        CancellationToken cancellationToken)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ResourceDbContext>();
-        await EfCoreUtil.EnsureTablesCreated(dbContext.Database);
+        await EfCoreUtil.EnsureTablesCreated(dbContext.Database, cancellationToken);
         return serviceProvider;
     }
 }

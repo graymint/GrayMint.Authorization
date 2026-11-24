@@ -2,5 +2,5 @@
 
 public interface IRoleResourceProvider
 {
-    Task<string?> GetParentResourceId(string resourceId);
+    Task<string?> GetParentResourceId(string resourceId, CancellationToken cancellationToken);
 }

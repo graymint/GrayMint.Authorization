@@ -6,5 +6,5 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Dtos;
 public class TeamUser
 {
     public required User User { get; init; }
-    public required Role[] Roles { get; init; }
+    public required IReadOnlyList<Role> Roles { get; init; }
 }

@@ -58,10 +58,10 @@ public class Program
         webApp.UseStaticFiles(new StaticFileOptions());
         // Database first: EnsureCreated creates the database itself on a fresh machine, and the
         // authorization providers below only create their own tables (they cannot create the db).
-        await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args);
-        await webApp.UseGrayMinCommonAuthorizationForApp();
+        await webApp.Services.UseGrayMintDatabaseCommand<AppDbContext>(args, CancellationToken.None);
+        await webApp.UseGrayMintCommonAuthorizationForApp(CancellationToken.None);
         if (appOptions.UseResourceProvider)
-            await webApp.Services.UseGrayMintResourceProvider();
+            await webApp.Services.UseGrayMintResourceProvider(CancellationToken.None);
 
         await GrayMintApp.RunAsync(webApp, args);
     }

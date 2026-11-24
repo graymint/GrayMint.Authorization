@@ -57,7 +57,7 @@ public static class MicroserviceAuthorizationExtension
         }
     }
 
-    public static Task UseGrayMinCommonAuthorizationForMicroservice(this WebApplication webApplication)
+    public static Task UseGrayMintCommonAuthorizationForMicroservice(this WebApplication webApplication)
     {
         webApplication.UseAuthentication();
         webApplication.UseAuthorization();

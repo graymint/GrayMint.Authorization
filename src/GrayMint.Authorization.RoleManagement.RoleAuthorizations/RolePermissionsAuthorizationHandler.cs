@@ -2,6 +2,7 @@
 using GrayMint.Authorization.PermissionAuthorizations;
 using GrayMint.Authorization.RoleManagement.Abstractions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 namespace GrayMint.Authorization.RoleManagement.RoleAuthorizations;
 
@@ -23,9 +24,11 @@ internal class RolePermissionsAuthorizationHandler(IRoleAuthorizationProvider ro
             if (string.IsNullOrEmpty(userId))
                 return;
 
+            // the request's token where the resource is its HttpContext; a check made outside a request has none
+            var cancellationToken = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
             var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
-            var userPermissions =
-                await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+            var userPermissions = await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId,
+                userId: userId, cancellationToken);
 
             var claims = userPermissions.Select(permission =>
                 PermissionAuthorization.BuildPermissionClaim(resourceId, permission));

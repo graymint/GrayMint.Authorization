@@ -28,12 +28,13 @@ public class AuthorizationController(MicroserviceAuthorizationService microservi
     /// is on, as it is in Development when unset.
     /// </remarks>
     /// <param name="secret">The service's signing secret, as base64.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The system's API key.</returns>
     [HttpPost("system/api-key")]
     [AllowAnonymous]
-    public virtual Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
+    public virtual Task<ApiKey> CreateSystemApiKey([FromForm] string secret, CancellationToken cancellationToken)
     {
-        return microserviceAuthorizationService.CreateSystemApiKey(secret);
+        return microserviceAuthorizationService.CreateSystemApiKey(secret, cancellationToken);
     }
 
     /// <summary>
@@ -44,16 +45,17 @@ public class AuthorizationController(MicroserviceAuthorizationService microservi
     /// working, and the answer is the user's new API key.
     /// </remarks>
     /// <param name="userId">The user whose API key to replace.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The user's new API key, shown only here.</returns>
     [HttpPost("system/reset-user-api-key")]
-    public virtual Task<ApiKey> ResetUserApiKey(string userId)
+    public virtual Task<ApiKey> ResetUserApiKey(string userId, CancellationToken cancellationToken)
     {
         if (User.FindFirstValue(ClaimTypes.NameIdentifier) != AuthorizationConstants.SystemUserId)
             throw new UnauthorizedAccessException("Only system user can reset other user api key.");
 
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId));
-        return microserviceAuthorizationService.ResetApiKey(new ClaimsPrincipal(claimsIdentity));
+        return microserviceAuthorizationService.ResetApiKey(new ClaimsPrincipal(claimsIdentity), cancellationToken);
     }
 
     /// <summary>
@@ -66,8 +68,8 @@ public class AuthorizationController(MicroserviceAuthorizationService microservi
     /// </remarks>
     /// <returns>Your new API key, shown only here.</returns>
     [HttpPost("current/reset-api-key")]
-    public virtual Task<ApiKey> ResetCurrentUserApiKey()
+    public virtual Task<ApiKey> ResetCurrentUserApiKey(CancellationToken cancellationToken)
     {
-        return microserviceAuthorizationService.ResetApiKey(User);
+        return microserviceAuthorizationService.ResetApiKey(User, cancellationToken);
     }
 }

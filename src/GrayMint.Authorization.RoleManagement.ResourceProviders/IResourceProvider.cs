@@ -5,8 +5,8 @@ namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 public interface IResourceProvider
 {
     string RootResourceId { get; }
-    Task<Resource> Add(Resource resource);
-    Task<Resource> Update(Resource resource);
-    Task<Resource> Get(string resourceId);
-    Task Remove(string resourceId);
+    Task<Resource> Add(Resource resource, CancellationToken cancellationToken);
+    Task<Resource> Update(Resource resource, CancellationToken cancellationToken);
+    Task<Resource> Get(string resourceId, CancellationToken cancellationToken);
+    Task Remove(string resourceId, CancellationToken cancellationToken);
 }

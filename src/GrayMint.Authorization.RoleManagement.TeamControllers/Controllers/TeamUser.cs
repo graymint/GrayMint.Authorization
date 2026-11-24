@@ -12,5 +12,5 @@ public class TeamUser<TUser, TRole>
     /// <summary>
     /// Their roles on the resource.
     /// </summary>
-    public required TRole[] Roles { get; init; }
+    public required IReadOnlyList<TRole> Roles { get; init; }
 }

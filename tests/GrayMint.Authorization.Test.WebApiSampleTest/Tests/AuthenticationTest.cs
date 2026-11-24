@@ -44,7 +44,7 @@ public class AuthenticationTest : TestBase
         await testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId);
 
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        await userProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true });
+        await userProvider.Update(apiKey.UserId, new UserUpdateRequest { IsDisabled = true }, TestCt);
 
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.ItemsClient.CreateByPermissionAsync(testInit.AppId),
@@ -359,7 +359,7 @@ public class AuthenticationTest : TestBase
             appSettings: new Dictionary<string, string?> { ["Auth:Audiences:0"] = "old-audience" });
 
         var apiKey = await testInit.SignUpNewUser();
-        var user = await testInit.UserProvider.Get(apiKey.UserId);
+        var user = await testInit.UserProvider.Get(apiKey.UserId, TestCt);
         var options = testInit.AuthenticationOptions;
 
         // our own tokens carry the main audience only
@@ -414,7 +414,7 @@ public class AuthenticationTest : TestBase
         await testInit.UserProvider.Update(apiKey.UserId, new UserUpdateRequest {
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
         var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.IsNull(user.AuthorizationCode);
@@ -433,9 +433,10 @@ public class AuthenticationTest : TestBase
         await testInit.UserProvider.Update(apiKey.UserId, new UserUpdateRequest {
             Description = Guid.NewGuid().ToString(),
             ExData = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
-        await testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>().UpdateAccessedTime(apiKey.UserId);
+        await testInit.Scope.ServiceProvider.GetRequiredService<UserProvider>().UpdateAccessedTime(apiKey.UserId,
+            TestCt);
 
         await testInit.AuthenticationClient.GetCurrentUserAsync();
         Assert.IsNotEmpty(handedOutUsers.GetAll());
@@ -556,7 +557,7 @@ public class AuthenticationTest : TestBase
         var idToken = await testInit.CreateUnregisteredUserIdToken();
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
         await Assert.ThrowsAsync<AuthenticationException>(() =>
-            grayMintAuthentication.GetSignInRedirectUrl(idToken, Guid.NewGuid().ToString()));
+            grayMintAuthentication.GetSignInRedirectUrl(idToken, Guid.NewGuid().ToString(), TestCt));
     }
 
     [TestMethod]
@@ -577,20 +578,20 @@ public class AuthenticationTest : TestBase
     public async Task Access_time_write_reaches_the_cached_user()
     {
         using var testInit = await CreateTestInit();
-        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
+        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() }, TestCt);
 
         // one request caches the user, another writes the time, each in a scope of its own
         using var readScope = testInit.WebApp.Services.CreateScope();
         var readUserProvider = readScope.ServiceProvider.GetRequiredService<IUserProvider>();
-        var cachedUser = await readUserProvider.Get(user.UserId);
+        var cachedUser = await readUserProvider.Get(user.UserId, TestCt);
         Assert.IsNull(cachedUser.AccessedTime);
 
         using var writeScope = testInit.WebApp.Services.CreateScope();
         var writeUserProvider = (UserProvider)writeScope.ServiceProvider.GetRequiredService<IUserProvider>();
-        await writeUserProvider.UpdateAccessedTime(user.UserId);
+        await writeUserProvider.UpdateAccessedTime(user.UserId, TestCt);
 
         // the cached user takes the written time too, or each request until it expires would write again
-        cachedUser = await readUserProvider.Get(user.UserId);
+        cachedUser = await readUserProvider.Get(user.UserId, TestCt);
         Assert.IsNotNull(cachedUser.AccessedTime);
     }
 

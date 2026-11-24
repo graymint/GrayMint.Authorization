@@ -29,7 +29,7 @@ public class UserProviderTest : TestBase
             ExData = "zz"
         };
 
-        var user = await userProvider.Create(request);
+        var user = await userProvider.Create(request, TestCt);
         Assert.AreEqual(request.Email, user.Email);
         Assert.AreEqual(request.Name, user.Name);
         Assert.AreEqual(request.FirstName, user.FirstName);
@@ -45,7 +45,7 @@ public class UserProviderTest : TestBase
         Assert.AreNotEqual(string.Empty, user.AuthorizationCode.Trim());
 
         // Get
-        var user2 = await userProvider.Get(user.UserId);
+        var user2 = await userProvider.Get(user.UserId, TestCt);
         Assert.AreEqual(user.Email, user2.Email);
         Assert.AreEqual(user.FirstName, user2.FirstName);
         Assert.AreEqual(user.LastName, user2.LastName);
@@ -54,7 +54,7 @@ public class UserProviderTest : TestBase
         Assert.AreEqual(user.CreatedTime, user2.CreatedTime);
         Assert.AreEqual(user.UserId, user2.UserId);
 
-        var user3 = await userProvider.GetByEmail(request.Email);
+        var user3 = await userProvider.GetByEmail(request.Email, TestCt);
         Assert.AreEqual(user.UserId, user3.UserId);
         Assert.AreEqual(user.FirstName, user3.FirstName);
 
@@ -73,10 +73,10 @@ public class UserProviderTest : TestBase
             ExData = Guid.NewGuid().ToString()
         };
 
-        await userProvider.Update(user.UserId, updateRequest);
+        await userProvider.Update(user.UserId, updateRequest, TestCt);
 
         // Get
-        var user4 = await userProvider.Get(user.UserId);
+        var user4 = await userProvider.Get(user.UserId, TestCt);
         Assert.AreEqual(user4.Email, updateRequest.Email.Value);
         Assert.AreEqual(user4.Name, updateRequest.Name.Value);
         Assert.AreEqual(user4.FirstName, updateRequest.FirstName.Value);
@@ -87,9 +87,9 @@ public class UserProviderTest : TestBase
         Assert.AreEqual(user4.AuthorizationCode, user.AuthorizationCode);
 
         // Remove
-        await userProvider.Remove(user.UserId);
+        await userProvider.Remove(user.UserId, TestCt);
         await TestUtil.AssertNotExistsException(
-            userProvider.Get(user.UserId));
+            userProvider.Get(user.UserId, TestCt));
     }
 
     [TestMethod]
@@ -106,10 +106,10 @@ public class UserProviderTest : TestBase
             Description = Guid.NewGuid().ToString()
         };
 
-        await userProvider.Create(request);
+        await userProvider.Create(request, TestCt);
 
         // AlreadyExists exception
         await TestUtil.AssertAlreadyExistsException(
-            userProvider.Create(request));
+            userProvider.Create(request, TestCt));
     }
 }

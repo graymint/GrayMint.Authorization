@@ -15,9 +15,9 @@ public class TeamController(
 {
     [Authorize]
     [HttpGet("users/current/apps")]
-    public async Task<IEnumerable<App>> ListCurrentUserApps()
+    public async Task<IEnumerable<App>> ListCurrentUserApps(CancellationToken cancellationToken)
     {
-        var resourceIds = await ListCurrentUserResources();
+        var resourceIds = await ListCurrentUserResources(cancellationToken);
 
         var appIds = resourceIds
             .Where(x => x != GetRootResourceId())

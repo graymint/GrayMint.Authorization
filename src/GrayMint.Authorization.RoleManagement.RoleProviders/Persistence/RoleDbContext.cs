@@ -21,10 +21,10 @@ public class RoleDbContext : DbContext
     {
     }
 
-    public async Task<IDbContextTransaction?> WithNoLockTransaction()
+    public async Task<IDbContextTransaction?> WithNoLockTransaction(CancellationToken cancellationToken)
     {
         return Database.CurrentTransaction == null && Database.IsRelational()
-            ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted)
+            ? await Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted, cancellationToken)
             : null;
     }
 

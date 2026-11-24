@@ -15,15 +15,16 @@ public class RoleProviderTest : TestBase
     public async Task User_roles_total_counts_the_filtered_roles()
     {
         using var testInit = await CreateTestInit();
-        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() });
+        var user = await testInit.UserProvider.Create(new UserCreateRequest { Email = TestInit.NewEmail() }, TestCt);
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
         var resource1 = Guid.NewGuid().ToString();
-        await roleProvider.AddUserRole(resource1, Roles.AppAdmin.RoleId, user.UserId);
-        await roleProvider.AddUserRole(Guid.NewGuid().ToString(), Roles.AppAdmin.RoleId, user.UserId);
+        await roleProvider.AddUserRole(resource1, Roles.AppAdmin.RoleId, user.UserId, TestCt);
+        await roleProvider.AddUserRole(Guid.NewGuid().ToString(), Roles.AppAdmin.RoleId, user.UserId, TestCt);
 
         // a full page of one resource's roles counts that resource's, not all of the user's
         var userRoles = await roleProvider.GetUserRoles(
-            new UserRoleCriteria { UserId = user.UserId, ResourceId = resource1 }, recordIndex: 0, recordCount: 1);
+            new UserRoleCriteria { UserId = user.UserId, ResourceId = resource1 }, recordIndex: 0, recordCount: 1,
+            cancellationToken: TestCt);
 
         Assert.AreEqual(1, userRoles.TotalCount);
     }
@@ -33,7 +34,7 @@ public class RoleProviderTest : TestBase
     {
         using var testInit = await CreateTestInit();
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await Assert.ThrowsAsync<ArgumentException>(() => roleProvider.RemoveUserRoles(new UserRoleCriteria()));
+        await Assert.ThrowsAsync<ArgumentException>(() => roleProvider.RemoveUserRoles(new UserRoleCriteria(), TestCt));
     }
 
     [TestMethod]
@@ -49,7 +50,7 @@ public class RoleProviderTest : TestBase
             Description = Guid.NewGuid().ToString()
         };
 
-        var user = await testInit.UserProvider.Create(userCreateRequest);
+        var user = await testInit.UserProvider.Create(userCreateRequest, TestCt);
 
         // create a role
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
@@ -58,34 +59,34 @@ public class RoleProviderTest : TestBase
         // Add the user to roles
         var resource1 = Guid.NewGuid().ToString();
         var resource2 = Guid.NewGuid().ToString();
-        await roleProvider.AddUserRole(resource1, role.RoleId, user.UserId);
-        await roleProvider.AddUserRole(resource2, role.RoleId, user.UserId);
+        await roleProvider.AddUserRole(resource1, role.RoleId, user.UserId, TestCt);
+        await roleProvider.AddUserRole(resource2, role.RoleId, user.UserId, TestCt);
 
         // Check user Roles
-        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId }, TestCt);
         Assert.HasCount(2, userRoles);
         Assert.Contains(x => x.ResourceId == resource1 && x.Role.RoleName == role.RoleName, userRoles);
         Assert.Contains(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName, userRoles);
 
         // Check user Roles
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resource1, RoleId = role.RoleId });
+            { ResourceId = resource1, RoleId = role.RoleId }, TestCt);
 
         Assert.HasCount(1, userRoles);
         Assert.Contains(x => x.ResourceId == resource1 && x.Role.RoleName == role.RoleName, userRoles);
 
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resource2, RoleId = role.RoleId });
+            { ResourceId = resource2, RoleId = role.RoleId }, TestCt);
 
         Assert.HasCount(1, userRoles);
         Assert.Contains(x => x.ResourceId == resource2 && x.Role.RoleName == role.RoleName, userRoles);
 
         // Remove
         await roleProvider.RemoveUserRoles(new UserRoleCriteria
-            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
+            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId }, TestCt);
 
         userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId });
+            { ResourceId = resource1, RoleId = role.RoleId, UserId = user.UserId }, TestCt);
 
         Assert.IsEmpty(userRoles);
     }
@@ -103,7 +104,7 @@ public class RoleProviderTest : TestBase
         var otherFormId = Guid.Parse(bot.UserId).ToString("N").ToUpperInvariant();
         var resourceId = Guid.NewGuid().ToString();
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await roleProvider.AddUserRole(resourceId, Roles.AppReader.RoleId, otherFormId);
+        await roleProvider.AddUserRole(resourceId, Roles.AppReader.RoleId, otherFormId, TestCt);
 
         var resourceIds = await testInit.TeamClient.ListCurrentUserResourcesAsync();
         Assert.Contains(resourceId, resourceIds);
@@ -117,10 +118,10 @@ public class RoleProviderTest : TestBase
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
 
         // the first lookup may cache the bot's own roles; the made-up resources after it add nothing
-        await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId);
+        await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId, TestCt);
         var count = testInit.CountCacheEntries();
         for (var i = 0; i < 20; i++)
-            Assert.IsEmpty(await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId));
+            Assert.IsEmpty(await roleProvider.GetUserPermissions(Guid.NewGuid().ToString(), bot.UserId, TestCt));
 
         Assert.AreEqual(count, testInit.CountCacheEntries());
     }
@@ -140,7 +141,7 @@ public class RoleProviderTest : TestBase
             FirstName = Guid.NewGuid().ToString(),
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()
-        });
+        }, TestCt);
 
         var systemRole = Roles.SystemAdmin;
         var role1 = Roles.AppAdmin;
@@ -148,23 +149,23 @@ public class RoleProviderTest : TestBase
 
         // Add the user to roles
         var roleProvider = testInit.Scope.ServiceProvider.GetRequiredService<IRoleProvider>();
-        await roleProvider.AddUserRole(AuthorizationConstants.RootResourceId, systemRole.RoleId, user.UserId);
-        await roleProvider.AddUserRole("1", role1.RoleId, user.UserId);
-        await roleProvider.AddUserRole("1", role2.RoleId, user.UserId);
+        await roleProvider.AddUserRole(AuthorizationConstants.RootResourceId, systemRole.RoleId, user.UserId, TestCt);
+        await roleProvider.AddUserRole("1", role1.RoleId, user.UserId, TestCt);
+        await roleProvider.AddUserRole("1", role2.RoleId, user.UserId, TestCt);
 
         // check authorization code
         var identity = new ClaimsIdentity();
         if (user.Email != null)
             identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         var authorizationProvider = testInit.Scope.ServiceProvider.GetRequiredService<IAuthorizationProvider>();
-        var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity));
+        var userId = await authorizationProvider.GetUserId(new ClaimsPrincipal(identity), TestCt);
         Assert.IsNotNull(userId);
-        user = await testInit.UserProvider.Get(userId);
-        var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(identity));
+        user = await testInit.UserProvider.Get(userId, TestCt);
+        var authorizationCode = await authorizationProvider.GetAuthorizationCode(new ClaimsPrincipal(identity), TestCt);
         Assert.AreEqual(user.AuthorizationCode, authorizationCode);
 
         // check user role
-        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId });
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = user.UserId }, TestCt);
         Assert.HasCount(3, userRoles);
         Assert.Contains(
             x => x.ResourceId == AuthorizationConstants.RootResourceId && x.Role.RoleName == systemRole.RoleName,

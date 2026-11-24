@@ -7,13 +7,13 @@ namespace GrayMint.Authorization.RoleManagement.ResourceProviders;
 
 internal class RoleResourceProvider(ResourceDbContext resourceDbContext) : IRoleResourceProvider
 {
-    public async Task<string?> GetParentResourceId(string resourceId)
+    public async Task<string?> GetParentResourceId(string resourceId, CancellationToken cancellationToken)
     {
         if (resourceId == AuthorizationConstants.RootResourceId)
             return null;
 
         var resource = await resourceDbContext.Resources
-            .SingleAsync(x => x.ResourceId == resourceId);
+            .SingleAsync(x => x.ResourceId == resourceId, cancellationToken);
 
         return resource.ParentResourceId;
     }

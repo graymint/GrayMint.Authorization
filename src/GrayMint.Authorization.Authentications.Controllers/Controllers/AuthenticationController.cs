@@ -36,10 +36,10 @@ public class AuthenticationController(
     /// <returns>The signed-in user.</returns>
     [HttpGet("current")]
     [Authorize]
-    public virtual async Task<User> GetCurrentUser()
+    public virtual async Task<User> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var userId = await authenticationService.GetUserId(User);
-        var ret = await authenticationService.GetUser(userId);
+        var userId = await authenticationService.GetUserId(User, cancellationToken);
+        var ret = await authenticationService.GetUser(userId, cancellationToken);
         return ret;
     }
 
@@ -51,10 +51,10 @@ public class AuthenticationController(
     /// </remarks>
     [HttpPost("current/signout-all")]
     [Authorize]
-    public virtual async Task SignOutAll()
+    public virtual async Task SignOutAll(CancellationToken cancellationToken)
     {
-        var userId = await authenticationService.GetUserId(User);
-        await authenticationService.ResetAuthorizationCode(userId);
+        var userId = await authenticationService.GetUserId(User, cancellationToken);
+        await authenticationService.ResetAuthorizationCode(userId, cancellationToken);
     }
 
     /// <summary>
@@ -67,10 +67,10 @@ public class AuthenticationController(
     /// <returns>The new API key, shown only here.</returns>
     [HttpPost("current/reset-api-key")]
     [Authorize]
-    public virtual async Task<ApiKey> ResetCurrentUserApiKey()
+    public virtual async Task<ApiKey> ResetCurrentUserApiKey(CancellationToken cancellationToken)
     {
-        var userId = await authenticationService.GetUserId(User);
-        var res = await authenticationService.ResetApiKey(userId);
+        var userId = await authenticationService.GetUserId(User, cancellationToken);
+        var res = await authenticationService.ResetApiKey(userId, cancellationToken);
         return res;
     }
 
@@ -82,12 +82,13 @@ public class AuthenticationController(
     /// exist already: a new user signs up instead. The account's name and picture follow the token's.
     /// </remarks>
     /// <param name="request">The ID token, and which refresh token to get with the access token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The API key.</returns>
     [HttpPost("signin")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignIn(SignInRequest request)
+    public virtual async Task<ApiKey> SignIn(SignInRequest request, CancellationToken cancellationToken)
     {
-        var apiKey = await authenticationService.SignIn(request);
+        var apiKey = await authenticationService.SignIn(request, cancellationToken);
         return apiKey;
     }
 
@@ -99,12 +100,13 @@ public class AuthenticationController(
     /// themselves.
     /// </remarks>
     /// <param name="request">The ID token, and which refresh token to get with the access token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The API key.</returns>
     [HttpPost("signup")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> SignUp(SignUpRequest request)
+    public virtual async Task<ApiKey> SignUp(SignUpRequest request, CancellationToken cancellationToken)
     {
-        var apiKey = await authenticationService.SignUp(request);
+        var apiKey = await authenticationService.SignUp(request, cancellationToken);
         return apiKey;
     }
 
@@ -116,12 +118,13 @@ public class AuthenticationController(
     /// everywhere.
     /// </remarks>
     /// <param name="request">The refresh token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A new API key.</returns>
     [HttpPost("refresh-token")]
     [AllowAnonymous]
-    public virtual async Task<ApiKey> RefreshToken(RefreshTokenRequest request)
+    public virtual async Task<ApiKey> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        var apiKey = await grayMintAuthentication.RefreshToken(request.RefreshToken);
+        var apiKey = await grayMintAuthentication.RefreshToken(request.RefreshToken, cancellationToken);
         return apiKey;
     }
 
@@ -135,16 +138,17 @@ public class AuthenticationController(
     /// </remarks>
     [HttpPost("external/google/signin-handler")]
     [AllowAnonymous]
-    public async Task<IActionResult> GoogleSignInHandler()
+    public async Task<IActionResult> GoogleSignInHandler(CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
-        var queryString = await reader.ReadToEndAsync();
+        var queryString = await reader.ReadToEndAsync(cancellationToken);
 
         var queryDictionary = HttpUtility.ParseQueryString(queryString);
         var externalIdToken =
             queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
 
-        var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"]);
+        var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"],
+            cancellationToken);
         return Redirect(url.ToString());
     }
 

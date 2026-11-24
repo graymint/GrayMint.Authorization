@@ -40,11 +40,12 @@ public class TeamService(
         return permissions.Contains(RolePermissions.RoleWriteOwner);
     }
 
-    public async Task<User> UpdateBot(string userId, TeamUpdateBotParam updateParam)
+    public async Task<User> UpdateBot(string userId, TeamUpdateBotParam updateParam,
+        CancellationToken cancellationToken)
     {
         var user = await userProvider.Update(userId, new UserUpdateRequest {
             FirstName = updateParam.Name
-        });
+        }, cancellationToken);
 
         return HideInternalFields(user);
     }
@@ -101,7 +102,8 @@ public class TeamService(
                 searchGuid == userGuid);
     }
 
-    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
+    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam,
+        CancellationToken cancellationToken)
     {
         if (!_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
@@ -111,9 +113,10 @@ public class TeamService(
             Email = email,
             FirstName = addParam.Name,
             IsBot = true
-        });
+        }, cancellationToken);
 
-        await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
+        await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId,
+            cancellationToken: cancellationToken);
 
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
@@ -123,25 +126,25 @@ public class TeamService(
                     ValidateAuthCode = true
                 },
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
-            });
+            }, cancellationToken);
 
         return apiKey;
     }
 
-    public async Task<ApiKey> ResetBotApiKey(string userId)
+    public async Task<ApiKey> ResetBotApiKey(string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
 
         if (!user.IsBot)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
-        await userProvider.ResetAuthorizationCode(user.UserId);
+        await userProvider.ResetAuthorizationCode(user.UserId, cancellationToken);
 
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions {
                 AccessTokenExpirationTime = JwtUtil.UtcNow.AddYears(13)
-            });
+            }, cancellationToken);
 
         return apiKey;
     }
@@ -149,7 +152,7 @@ public class TeamService(
     // the person is on the team at once, with no invitation to accept, which would need an invitation store and an
     // email server: their profile stays hidden from the team until their first request instead
     public async Task<TeamUserRole> AddUserByEmail(string resourceId, string roleId, string email,
-        ClaimsPrincipal? caller = null)
+        ClaimsPrincipal? caller = null, CancellationToken cancellationToken = default)
     {
         // a role the resource can't hold fails before an account is made for the email
         var roles = await roleProvider.GetRoles(resourceId);
@@ -157,17 +160,17 @@ public class TeamService(
             throw new InvalidOperationException("This role can not be added on this resource.");
 
         email = NormalizeEmail(email);
-        var user = await userProvider.FindByEmail(email);
-        user ??= await userProvider.Create(new UserCreateRequest { Email = email });
-        return await AddUser(resourceId, roleId, user.UserId, caller);
+        var user = await userProvider.FindByEmail(email, cancellationToken);
+        user ??= await userProvider.Create(new UserCreateRequest { Email = email }, cancellationToken);
+        return await AddUser(resourceId, roleId, user.UserId, caller, cancellationToken);
     }
 
     // takes away the user's other roles on the resource unless AllowUserMultiRole; given the caller, it first
     // checks their rights over the very roles it takes away, or an admin could strip an owner by a lesser role
     public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId,
-        ClaimsPrincipal? caller = null)
+        ClaimsPrincipal? caller = null, CancellationToken cancellationToken = default)
     {
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
         if (user.IsBot && !_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
 
@@ -175,7 +178,7 @@ public class TeamService(
         userId = user.UserId;
 
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
-            { ResourceId = resourceId, UserId = userId });
+            { ResourceId = resourceId, UserId = userId }, cancellationToken);
 
         if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
@@ -189,18 +192,20 @@ public class TeamService(
             foreach (var userRole in replacedRoles)
                 await VerifyWritePermissionOnRole(caller, resourceId, userRole.Role.RoleId);
 
-        await roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
+        await roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId,
+            cancellationToken: cancellationToken);
 
         foreach (var userRole in replacedRoles)
-            await RemoveUser(resourceId, userRole.Role.RoleId, userId);
+            await RemoveUser(resourceId, userRole.Role.RoleId, userId, cancellationToken);
 
-        var userRoleList = await GetUserRoles(resourceId: resourceId, roleId: roleId, userId: userId);
+        var userRoleList = await GetUserRoles(resourceId: resourceId, roleId: roleId, userId: userId,
+            cancellationToken: cancellationToken);
         return userRoleList.Items.Single(x => x.UserId == userId);
     }
 
-    public Task<User?> FindUserByEmail(string email)
+    public Task<User?> FindUserByEmail(string email, CancellationToken cancellationToken)
     {
-        return userProvider.FindByEmail(NormalizeEmail(email));
+        return userProvider.FindByEmail(NormalizeEmail(email), cancellationToken);
     }
 
     // as sign-up stores it, so an added email answers in one form whether or not an account held it
@@ -209,15 +214,16 @@ public class TeamService(
         return email.Trim().ToLowerInvariant();
     }
 
-    public async Task<string> GetUserId(ClaimsPrincipal user)
+    public async Task<string> GetUserId(ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        var userId = await authorizationProvider.GetUserId(user) ?? throw new UnregisteredUserException();
+        var userId = await authorizationProvider.GetUserId(user,
+            cancellationToken) ?? throw new UnregisteredUserException();
         return userId;
     }
 
-    public async Task<User> GetUser(string userId)
+    public async Task<User> GetUser(string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
 
         //AccessedTime should not be set for user due security reason and sharing user account among projects,
         var ret = user.Clone();
@@ -225,24 +231,26 @@ public class TeamService(
         return ret;
     }
 
-    public Task<string[]> GetUserPermissions(string resourceId, string userId)
+    public Task<IReadOnlyList<string>> GetUserPermissions(string resourceId, string userId,
+        CancellationToken cancellationToken)
     {
-        return roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+        return roleProvider.GetUserPermissions(resourceId: resourceId, userId: userId,
+            cancellationToken: cancellationToken);
     }
 
     public async Task<ListResult<TeamUserRole>> GetUserRoles(
         string? resourceId = null, string? roleId = null, string? userId = null,
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
-        int recordIndex = 0, int? recordCount = null)
+        int recordIndex = 0, int? recordCount = null, CancellationToken cancellationToken = default)
     {
         var userRoleList = await roleProvider.GetUserRoles(
-            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
+            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId }, cancellationToken);
 
         // get users of userRoles; on a resource's team, one who hasn't used it yet shows by email only; users and
         // roles are matched by lookup, not by scans, so a large team costs no more than its size
         var rolesByUser = userRoleList.ToLookup(x => x.UserId);
         var userList = await userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
-            userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
+            userIds: userRoleList.Select(x => x.UserId), isBot: isBot, cancellationToken: cancellationToken);
 
         var users = userList.Items
             .Select(x => new {
@@ -276,27 +284,28 @@ public class TeamService(
         return ret;
     }
 
-    public async Task<TeamUser> GetUser(string resourceId, string userId)
+    public async Task<TeamUser> GetUser(string resourceId, string userId, CancellationToken cancellationToken)
     {
-        var user = await userProvider.FindById(userId);
-        return await GetTeamUser(resourceId, user);
+        var user = await userProvider.FindById(userId, cancellationToken);
+        return await GetTeamUser(resourceId, user, cancellationToken);
     }
 
-    public async Task<TeamUser> GetUserByEmail(string resourceId, string email)
+    public async Task<TeamUser> GetUserByEmail(string resourceId, string email, CancellationToken cancellationToken)
     {
-        var user = await userProvider.FindByEmail(NormalizeEmail(email));
-        return await GetTeamUser(resourceId, user);
+        var user = await userProvider.FindByEmail(NormalizeEmail(email), cancellationToken);
+        return await GetTeamUser(resourceId, user, cancellationToken);
     }
 
     // a resource's readers find only its own team, not even learning whether anyone else exists;
     // the root resource's readers already read every team, so they find any user
-    private async Task<TeamUser> GetTeamUser(string resourceId, User? user)
+    private async Task<TeamUser> GetTeamUser(string resourceId, User? user, CancellationToken cancellationToken)
     {
         var userRoles = user != null
-            ? await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId })
+            ? await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = user.UserId },
+                cancellationToken)
             : [];
 
-        if (user == null || (userRoles.Length == 0 && resourceId != GetRootResourceId()))
+        if (user == null || (userRoles.Count == 0 && resourceId != GetRootResourceId()))
             throw new NotExistsException("There is no such user in this resource.");
 
         return new TeamUser {
@@ -305,27 +314,27 @@ public class TeamService(
         };
     }
 
-    public async Task RemoveUser(string resourceId, string roleId, string userId)
+    public async Task RemoveUser(string resourceId, string roleId, string userId, CancellationToken cancellationToken)
     {
         await roleProvider.RemoveUserRoles(
-            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
+            new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId }, cancellationToken);
 
         // with its last role goes a bot, or an account an email add made and no one has used; a person who has
         // signed in keeps theirs, as leaving one team must not delete them
-        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = userId });
-        if (userRoles.Length > 0)
+        var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { UserId = userId }, cancellationToken);
+        if (userRoles.Count > 0)
             return;
 
         // read, then deleted, left so: a first sign-in, or another team's add, at that very moment can still lose
         // the account, costing a new sign-up, or a new add (that team keeps a role without a user)
-        var user = await userProvider.Get(userId);
+        var user = await userProvider.Get(userId, cancellationToken);
         if (user.IsBot || (user.AccessedTime == null && !user.IsEmailVerified))
-            await DeleteUser(userId);
+            await DeleteUser(userId, cancellationToken);
     }
 
-    public Task DeleteUser(string userId)
+    public Task DeleteUser(string userId, CancellationToken cancellationToken)
     {
-        return userProvider.Remove(userId);
+        return userProvider.Remove(userId, cancellationToken);
     }
 
     public async Task<IEnumerable<Role>> GetRoles(string resourceId)
@@ -334,7 +343,7 @@ public class TeamService(
         return roles;
     }
 
-    public async Task<ApiKey> CreateSystemApiKey(string secret)
+    public async Task<ApiKey> CreateSystemApiKey(string secret, CancellationToken cancellationToken)
     {
         // checked before the secret, so a server where it is off never even compares it
         if (!_authenticationOptions.IsSystemApiKeyAllowed(hostEnvironment.IsDevelopment()))
@@ -354,7 +363,7 @@ public class TeamService(
 
             if (permissions.Contains(RolePermissions.RoleWrite)) {
                 var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId,
-                    new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
+                    new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" }, cancellationToken);
 
                 return apiKey;
             }
@@ -380,11 +389,12 @@ public class TeamService(
             throw new UnauthorizedAccessException();
     }
 
-    public async Task<TeamUserRole[]> VerifyWritePermissionOnUser(ClaimsPrincipal caller, string resourceId,
-        string userId)
+    public async Task<IReadOnlyList<TeamUserRole>> VerifyWritePermissionOnUser(ClaimsPrincipal caller,
+        string resourceId, string userId, CancellationToken cancellationToken)
     {
         // check user permission over all the user roles on this resource
-        var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId);
+        var userRoles = await GetUserRoles(resourceId: resourceId, userId: userId,
+            cancellationToken: cancellationToken);
         if (!userRoles.Items.Any())
             throw new UnauthorizedAccessException();
 
@@ -408,17 +418,18 @@ public class TeamService(
 
     // can not change its own owner role unless it has global TeamWrite permission
     public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, string userId,
-        string targetRoleId, bool isAdding)
+        string targetRoleId, bool isAdding, CancellationToken cancellationToken)
     {
         if (_teamControllersOptions.AllowOwnerSelfRemove)
             return;
 
         // only the caller's own roles, however the id is written
-        var callerUserId = await authorizationProvider.GetUserId(caller);
+        var callerUserId = await authorizationProvider.GetUserId(caller, cancellationToken);
         if (!IsSameUserId(callerUserId, userId))
             return;
 
-        var callerUserRoles = await GetUserRoles(resourceId: resourceId, userId: callerUserId);
+        var callerUserRoles = await GetUserRoles(resourceId: resourceId, userId: callerUserId,
+            cancellationToken: cancellationToken);
         if (!await HasOwnerRole(resourceId, callerUserRoles.Items))
             return;
 

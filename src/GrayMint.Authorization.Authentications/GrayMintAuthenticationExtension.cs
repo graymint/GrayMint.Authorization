@@ -44,7 +44,7 @@ public static class GrayMintAuthenticationExtension
                             var principal = context.Principal ??
                                             throw new AuthenticationException("Principal has not been validated.");
 
-                            await tokenValidator.PostValidate(principal, TokenUse.Access);
+                            await tokenValidator.PostValidate(principal, TokenUse.Access, context.HttpContext.RequestAborted);
                         }
                         catch (Exception ex) {
                             context.Fail(ex.Message);

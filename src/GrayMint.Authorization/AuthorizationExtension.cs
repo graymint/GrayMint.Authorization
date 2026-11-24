@@ -18,7 +18,7 @@ public static class AuthorizationExtension
 {
     extension(WebApplicationBuilder builder)
     {
-        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(IReadOnlyList<GmRole> roles,
             string authenticationOptionsSectionName = "Auth",
             string teamControllerOptionsSectionName = "TeamController",
             bool? isProduction = null)
@@ -39,7 +39,7 @@ public static class AuthorizationExtension
             return builder;
         }
 
-        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+        public WebApplicationBuilder AddGrayMintCommonAuthorizationForApp(IReadOnlyList<GmRole> roles,
             Action<DbContextOptionsBuilder> dbOptionsAction,
             string authenticationOptionsSectionName = "Auth",
             string teamControllerOptionsSectionName = "TeamController",
@@ -58,7 +58,7 @@ public static class AuthorizationExtension
 
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+        public IServiceCollection AddGrayMintCommonAuthorizationForApp(IReadOnlyList<GmRole> roles,
             Action<DbContextOptionsBuilder> dbOptionsAction,
             GrayMintAuthenticationOptions authenticationOptions,
             TeamControllerOptions? teamControllerOptions,
@@ -69,7 +69,7 @@ public static class AuthorizationExtension
                 .AddGrayMintCommonProviderDb(dbOptionsAction);
         }
 
-        public IServiceCollection AddGrayMintCommonAuthorizationForApp(GmRole[] roles,
+        public IServiceCollection AddGrayMintCommonAuthorizationForApp(IReadOnlyList<GmRole> roles,
             GrayMintAuthenticationOptions authenticationOptions,
             TeamControllerOptions? teamControllerOptions,
             bool isProduction)
@@ -117,11 +117,12 @@ public static class AuthorizationExtension
         }
     }
 
-    public static async Task UseGrayMinCommonAuthorizationForApp(this WebApplication webApplication)
+    public static async Task UseGrayMintCommonAuthorizationForApp(this WebApplication webApplication,
+        CancellationToken cancellationToken)
     {
         webApplication.UseAuthentication();
         webApplication.UseAuthorization();
-        await webApplication.Services.UseGrayMintUserProvider();
-        await webApplication.Services.UseGrayMintRoleProvider();
+        await webApplication.Services.UseGrayMintUserProvider(cancellationToken);
+        await webApplication.Services.UseGrayMintRoleProvider(cancellationToken);
     }
 }

@@ -31,10 +31,10 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <returns>The resources' ids.</returns>
     [Authorize]
     [HttpGet("users/current/resources")]
-    public async Task<IEnumerable<string>> ListCurrentUserResources()
+    public async Task<IEnumerable<string>> ListCurrentUserResources(CancellationToken cancellationToken)
     {
-        var userId = await teamService.GetUserId(User);
-        var userRoles = await teamService.GetUserRoles(userId: userId);
+        var userId = await teamService.GetUserId(User, cancellationToken);
+        var userRoles = await teamService.GetUserRoles(userId: userId, cancellationToken: cancellationToken);
         var resourceIds = userRoles.Items
             .Select(x => x.ResourceId)
             .Distinct();
@@ -46,13 +46,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// List your permissions on a resource
     /// </summary>
     /// <param name="resourceId">The resource's id.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The permissions your roles there give you.</returns>
     [Authorize]
     [HttpGet("users/current/resources/{resourceId}/permissions")]
-    public async Task<IEnumerable<string>> ListCurrentUserPermissions(string resourceId)
+    public async Task<IEnumerable<string>> ListCurrentUserPermissions(string resourceId,
+        CancellationToken cancellationToken)
     {
-        var userId = await teamService.GetUserId(User);
-        var permissions = await teamService.GetUserPermissions(resourceId, userId);
+        var userId = await teamService.GetUserId(User, cancellationToken);
+        var permissions = await teamService.GetUserPermissions(resourceId, userId, cancellationToken);
         return permissions;
     }
 
@@ -64,14 +66,15 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// role on.
     /// </remarks>
     /// <param name="userId">The bot's user id.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The bot's new API key, shown only here.</returns>
     [HttpPost("users/{userId}/bot/reset-api-key")]
-    public async Task<ApiKey> ResetBotApiKey(string userId)
+    public async Task<ApiKey> ResetBotApiKey(string userId, CancellationToken cancellationToken)
     {
         // a reset racing the bot's add to another resource may hand out a key with that resource's rights: no more
         // than a key reset just before the add gets, as a key acts with the bot's roles wherever it is added
-        await VerifyWritePermissionOnBot(userId);
-        var res = await teamService.ResetBotApiKey(userId);
+        await VerifyWritePermissionOnBot(userId, cancellationToken);
+        var res = await teamService.ResetBotApiKey(userId, cancellationToken);
         return res;
     }
 
@@ -83,12 +86,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// </remarks>
     /// <param name="userId">The bot's user id.</param>
     /// <param name="updateParam">The bot's new name.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The bot.</returns>
     [HttpPatch("users/{userId}/bot")]
-    public async Task<TUser> UpdateBot(string userId, TeamUpdateBotParam updateParam)
+    public async Task<TUser> UpdateBot(string userId, TeamUpdateBotParam updateParam,
+        CancellationToken cancellationToken)
     {
-        await VerifyWritePermissionOnBot(userId);
-        var user = await teamService.UpdateBot(userId, updateParam);
+        await VerifyWritePermissionOnBot(userId, cancellationToken);
+        var user = await teamService.UpdateBot(userId, updateParam, cancellationToken);
         return ToDto(user);
     }
 
@@ -120,18 +125,19 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <param name="isBot">Only the bots, or only the people.</param>
     /// <param name="recordIndex">How many items to skip.</param>
     /// <param name="recordCount">How many items to return at most.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A page of the team.</returns>
     [HttpGet("resources/{resourceId}/user-roles")]
     public async Task<ListResult<TUserRole>> ListUserRoles(string resourceId,
         string? roleId = null, string? userId = null,
         string? search = null, bool? isBot = null,
-        int recordIndex = 0, int? recordCount = null)
+        int recordIndex = 0, int? recordCount = null, CancellationToken cancellationToken = default)
     {
         await VerifyReadPermissionOnRole(resourceId);
         var userRoles = await teamService.GetUserRoles(resourceId: ToResourceId(resourceId),
             roleId: roleId, userId: userId,
             search: search, isBot: isBot,
-            recordIndex: recordIndex, recordCount: recordCount);
+            recordIndex: recordIndex, recordCount: recordCount, cancellationToken: cancellationToken);
 
         var ret = new ListResult<TUserRole> {
             TotalCount = userRoles.TotalCount,
@@ -146,12 +152,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// </summary>
     /// <param name="resourceId">The resource's id.</param>
     /// <param name="userId">The member's user id.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The member, with their roles on the resource.</returns>
     [HttpGet("resources/{resourceId}/users/{userId}")]
-    public async Task<TeamUser<TUser, TRole>> GetUser(string resourceId, string userId)
+    public async Task<TeamUser<TUser, TRole>> GetUser(string resourceId, string userId,
+        CancellationToken cancellationToken)
     {
         await VerifyReadPermissionOnRole(resourceId);
-        var userByEmail = await teamService.GetUser(resourceId, userId);
+        var userByEmail = await teamService.GetUser(resourceId, userId, cancellationToken);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
             Roles = userByEmail.Roles.Select(ToDto).ToArray()
@@ -165,12 +173,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// </summary>
     /// <param name="resourceId">The resource's id.</param>
     /// <param name="email">The member's email.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The member, with their roles on the resource.</returns>
     [HttpGet("resources/{resourceId}/users/email:{email}")]
-    public async Task<TeamUser<TUser, TRole>> GetUserByEmail(string resourceId, string email)
+    public async Task<TeamUser<TUser, TRole>> GetUserByEmail(string resourceId, string email,
+        CancellationToken cancellationToken)
     {
         await VerifyReadPermissionOnRole(resourceId);
-        var userByEmail = await teamService.GetUserByEmail(resourceId, email);
+        var userByEmail = await teamService.GetUserByEmail(resourceId, email, cancellationToken);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
             Roles = userByEmail.Roles.Select(ToDto).ToArray()
@@ -190,12 +200,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <param name="resourceId">The resource's id.</param>
     /// <param name="roleId">The bot's role.</param>
     /// <param name="addParam">The bot's name.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The bot's API key, shown only here.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/bots")]
-    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
+    public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam,
+        CancellationToken cancellationToken)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        var res = await teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam);
+        var res = await teamService.AddNewBot(ToResourceId(resourceId), roleId, addParam, cancellationToken);
         return res;
     }
 
@@ -211,19 +223,20 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <param name="roleId">The role to give.</param>
     /// <param name="email">The person's email.</param>
     /// <param name="addParam">Nothing yet; leave it out.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>Their role on the resource.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/users/email:{email}")]
     public async Task<TUserRole> AddUserByEmail(string resourceId, string roleId, string email,
-        TeamAddEmailParam? addParam = null)
+        TeamAddEmailParam? addParam = null, CancellationToken cancellationToken = default)
     {
         _ = addParam; //reserved
 
-        var user = await teamService.FindUserByEmail(email);
+        var user = await teamService.FindUserByEmail(email, cancellationToken);
         if (user != null)
-            return await AddUser(resourceId, roleId, user.UserId);
+            return await AddUser(resourceId, roleId, user.UserId, cancellationToken);
 
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        var res = await teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email, User);
+        var res = await teamService.AddUserByEmail(ToResourceId(resourceId), roleId, email, User, cancellationToken);
         return ToDto(res);
     }
 
@@ -238,22 +251,24 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <param name="resourceId">The resource's id.</param>
     /// <param name="roleId">The role to give.</param>
     /// <param name="userId">The user's id.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>Their role on the resource.</returns>
     [HttpPost("resources/{resourceId}/roles/{roleId}/users/{userId}")]
-    public async Task<TUserRole> AddUser(string resourceId, string roleId, string userId)
+    public async Task<TUserRole> AddUser(string resourceId, string roleId, string userId,
+        CancellationToken cancellationToken)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
         // any user may be added to a resource, so the user needs no write check; a bot does, below
-        await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
+        await VerifyAppOwnerPolicy(resourceId, userId, roleId, true, cancellationToken);
 
         // check write permission on bot; the answers tell no one, a bot out of reach and a person apart, left so:
         // ids are random, so only someone who shared a team with that person knows one, and saw them there
-        var user = await teamService.GetUser(userId);
+        var user = await teamService.GetUser(userId, cancellationToken);
         if (user.IsBot)
-            await VerifyWritePermissionOnBot(userId: userId);
+            await VerifyWritePermissionOnBot(userId: userId, cancellationToken: cancellationToken);
 
         // the caller's rights over the roles the new one replaces are checked on the very roles it removes
-        var res = await teamService.AddUser(ToResourceId(resourceId), roleId, userId, User);
+        var res = await teamService.AddUser(ToResourceId(resourceId), roleId, userId, User, cancellationToken);
         return ToDto(res);
     }
 
@@ -266,13 +281,14 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// <param name="resourceId">The resource's id.</param>
     /// <param name="roleId">The role to take away.</param>
     /// <param name="userId">The user's id.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     [HttpDelete("resources/{resourceId}/roles/{roleId}/users/{userId}")]
-    public async Task RemoveUser(string resourceId, string roleId, string userId)
+    public async Task RemoveUser(string resourceId, string roleId, string userId, CancellationToken cancellationToken)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        await VerifyWritePermissionOnUser(resourceId, userId);
-        await VerifyAppOwnerPolicy(resourceId, userId, roleId, false);
-        await teamService.RemoveUser(ToResourceId(resourceId), roleId, userId);
+        await VerifyWritePermissionOnUser(resourceId, userId, cancellationToken);
+        await VerifyAppOwnerPolicy(resourceId, userId, roleId, false, cancellationToken);
+        await teamService.RemoveUser(ToResourceId(resourceId), roleId, userId, cancellationToken);
     }
 
     /// <summary>
@@ -282,27 +298,28 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     /// A new bot with the system role that can change teams, from the service's secret. The service may not allow it.
     /// </remarks>
     /// <param name="secret">The service's secret, as a form field.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The new bot's API key, shown only here.</returns>
     [HttpPost("system/api-key")]
     [AllowAnonymous]
-    public async Task<ApiKey> CreateSystemApiKey([FromForm] string secret)
+    public async Task<ApiKey> CreateSystemApiKey([FromForm] string secret, CancellationToken cancellationToken)
     {
-        var res = await teamService.CreateSystemApiKey(secret);
+        var res = await teamService.CreateSystemApiKey(secret, cancellationToken);
         return res;
     }
 
-    private async Task VerifyWritePermissionOnBot(string userId)
+    private async Task VerifyWritePermissionOnBot(string userId, CancellationToken cancellationToken)
     {
         // one bare 403 for all but a bot in the caller's full reach, so the answer tells nothing of a user out of
         // reach, nor whether a teammate who is no bot belongs elsewhere too
-        var userRoles = await teamService.GetUserRoles(userId: userId);
+        var userRoles = await teamService.GetUserRoles(userId: userId, cancellationToken: cancellationToken);
         if (userRoles.Items.FirstOrDefault()?.User is not { IsBot: true })
             throw new UnauthorizedAccessException();
 
         // the caller needs write rights over every resource of the bot
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
-            await teamService.VerifyWritePermissionOnUser(User, resId, userId);
+            await teamService.VerifyWritePermissionOnUser(User, resId, userId, cancellationToken);
     }
 
     private static string ToResourceId(string resourceId)
@@ -315,9 +332,10 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return teamService.VerifyRoleReadPermission(User, ToResourceId(resourceId));
     }
 
-    protected Task<TeamUserRole[]> VerifyWritePermissionOnUser(string resourceId, string userId)
+    protected Task<IReadOnlyList<TeamUserRole>> VerifyWritePermissionOnUser(string resourceId, string userId,
+        CancellationToken cancellationToken)
     {
-        return teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId);
+        return teamService.VerifyWritePermissionOnUser(User, ToResourceId(resourceId), userId, cancellationToken);
     }
 
     protected Task VerifyWritePermissionOnRole(string resourceId, string roleId)
@@ -325,9 +343,11 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return teamService.VerifyWritePermissionOnRole(User, ToResourceId(resourceId), roleId);
     }
 
-    protected Task VerifyAppOwnerPolicy(string resourceId, string userId, string targetRoleId, bool isAdding)
+    protected Task VerifyAppOwnerPolicy(string resourceId, string userId, string targetRoleId, bool isAdding,
+        CancellationToken cancellationToken)
     {
-        return teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding);
+        return teamService.VerifyAppOwnerPolicy(User, ToResourceId(resourceId), userId, targetRoleId, isAdding,
+            cancellationToken);
     }
 
     protected string GetRootResourceId()

@@ -16,84 +16,86 @@ public class ResourceProvider(
 {
     public string RootResourceId => AuthorizationConstants.RootResourceId;
 
-    public async Task<Resource> Add(Resource resource)
+    public async Task<Resource> Add(Resource resource, CancellationToken cancellationToken)
     {
         resourceDbContext.ChangeTracker.Clear();
         resource.ParentResourceId ??= RootResourceId;
-        var effectedResourceIds = await ValidateResourceParent(resource);
+        var effectedResourceIds = await ValidateResourceParent(resource, cancellationToken);
 
-        var entry = await resourceDbContext.Resources.AddAsync(resource.ToModel());
-        await resourceDbContext.SaveChangesAsync();
+        var entry = await resourceDbContext.Resources.AddAsync(resource.ToModel(), cancellationToken);
+        await resourceDbContext.SaveChangesAsync(cancellationToken);
 
-        await ClearResourceCache(effectedResourceIds);
+        await ClearResourceCache(effectedResourceIds, cancellationToken);
         return entry.Entity.ToDto();
     }
 
-    public async Task<Resource> Update(Resource resource)
+    public async Task<Resource> Update(Resource resource, CancellationToken cancellationToken)
     {
         resourceDbContext.ChangeTracker.Clear();
         resource.ParentResourceId ??= RootResourceId;
         if (resource.ResourceId == RootResourceId)
             throw new InvalidOperationException("Root resource cannot be updated.");
 
-        var curResource = await Get(resource.ResourceId);
-        var effectedResourceIdsSrc = await ValidateResourceParent(curResource);
-        var effectedResourceIdsDes = await ValidateResourceParent(resource);
+        var curResource = await Get(resource.ResourceId, cancellationToken);
+        var effectedResourceIdsSrc = await ValidateResourceParent(curResource, cancellationToken);
+        var effectedResourceIdsDes = await ValidateResourceParent(resource, cancellationToken);
 
         var entry = resourceDbContext.Resources.Update(resource.ToModel());
-        await resourceDbContext.SaveChangesAsync();
+        await resourceDbContext.SaveChangesAsync(cancellationToken);
 
         // invalidate users in parent sources and destination
-        await ClearResourceCache(effectedResourceIdsDes);
-        await ClearResourceCache(effectedResourceIdsSrc);
+        await ClearResourceCache(effectedResourceIdsDes, cancellationToken);
+        await ClearResourceCache(effectedResourceIdsSrc, cancellationToken);
         return entry.Entity.ToDto();
     }
 
 
-    public async Task<Resource> Get(string resourceId)
+    public async Task<Resource> Get(string resourceId, CancellationToken cancellationToken)
     {
         var resource = await resourceDbContext.Resources
             .AsNoTracking()
-            .SingleAsync(x => x.ResourceId == resourceId);
+            .SingleAsync(x => x.ResourceId == resourceId, cancellationToken);
 
         return resource.ToDto() ?? throw new KeyNotFoundException();
     }
 
-    public async Task Remove(string resourceId)
+    public async Task Remove(string resourceId, CancellationToken cancellationToken)
     {
         resourceDbContext.ChangeTracker.Clear();
         if (resourceId == AuthorizationConstants.RootResourceId)
             throw new InvalidOperationException("Root resource cannot be deleted.");
 
         var resource = await resourceDbContext.Resources
-            .SingleAsync(x => x.ResourceId == resourceId);
+            .SingleAsync(x => x.ResourceId == resourceId, cancellationToken);
 
-        var effectedResourceIds = await ValidateResourceParent(resource.ToDto());
+        var effectedResourceIds = await ValidateResourceParent(resource.ToDto(), cancellationToken);
 
         var deletedItems = new List<ResourceModel>();
-        await DeleteRecursive(resource, deletedItems);
-        await resourceDbContext.SaveChangesAsync();
+        await DeleteRecursive(resource, deletedItems, cancellationToken);
+        await resourceDbContext.SaveChangesAsync(cancellationToken);
 
-        await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId });
-        await ClearResourceCache(effectedResourceIds);
+        await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId }, cancellationToken);
+        await ClearResourceCache(effectedResourceIds, cancellationToken);
     }
 
-    private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources)
+    private async Task DeleteRecursive(ResourceModel resource, ICollection<ResourceModel> resources,
+        CancellationToken cancellationToken)
     {
         var children = await resourceDbContext.Resources
             .AsNoTracking()
             .Where(x => x.ParentResourceId == resource.ResourceId)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         foreach (var child in children)
-            await DeleteRecursive(child, resources);
+            await DeleteRecursive(child, resources, cancellationToken);
 
         resources.Add(resource);
         resourceDbContext.Resources.Remove(resource);
     }
 
     // return this resource and parent resource ids
-    private async Task<IReadOnlyList<string>> ValidateResourceParent(Resource resource)
+    private async Task<IReadOnlyList<string>> ValidateResourceParent(Resource resource,
+        CancellationToken cancellationToken)
     {
         var parentIds = new List<string>();
         if (resource is { ResourceId: AuthorizationConstants.RootResourceId, ParentResourceId: not null })
@@ -104,16 +106,17 @@ public class ResourceProvider(
             if (parentIds.Contains(resource.ParentResourceId))
                 throw new InvalidOperationException("Loop detected in resource hierarchy.");
 
-            resource = await Get(resource.ParentResourceId);
+            resource = await Get(resource.ParentResourceId, cancellationToken);
         }
 
         return parentIds;
     }
 
-    private async Task ClearResourceCache(IEnumerable<string> resourceIds)
+    private async Task ClearResourceCache(IEnumerable<string> resourceIds, CancellationToken cancellationToken)
     {
         foreach (var resourceId in resourceIds) {
-            var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId });
+            var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria { ResourceId = resourceId },
+                cancellationToken);
             foreach (var userRole in userRoles)
                 userAuthorizationCache.ClearUserItems(userRole.UserId);
         }

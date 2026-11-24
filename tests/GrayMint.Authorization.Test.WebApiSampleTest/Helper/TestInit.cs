@@ -202,7 +202,8 @@ public class TestInit : IDisposable
 
         // add app as the resource
         if (useResourceProvider)
-            await testInit.ResourceProvider.Add(new Resource { ResourceId = testInit.AppId.ToString() });
+            await testInit.ResourceProvider.Add(new Resource { ResourceId = testInit.AppId.ToString() },
+                cancellationToken);
 
         return testInit;
     }
