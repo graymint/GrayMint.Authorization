@@ -19,17 +19,17 @@ internal class RolePermissionsAuthorizationHandler(IRoleAuthorizationProvider ro
             if (context.User.Identity?.IsAuthenticated == false)
                 return;
 
-            // get userId
             var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return;
 
-            // Add UserPermissions to claims
             var resourceId = PermissionAuthorizationHandler.GetResourceId(context.Resource, requirement.ResourceRoute);
             var userPermissions =
                 await roleAuthorizationProvider.GetUserPermissions(resourceId: resourceId, userId: userId);
+
             var claims = userPermissions.Select(permission =>
                 PermissionAuthorization.BuildPermissionClaim(resourceId, permission));
+
             var identity = new ClaimsIdentity(claims);
             context.User.AddIdentity(identity);
         }

@@ -101,6 +101,7 @@ public class UserAuthorizationCache(IMemoryCache memoryCache)
     {
         var res = await GetOrCreateUserItemAsync(userId, itemKey, factory)
                   ?? throw new KeyNotFoundException($"The required {itemKey} does not exist in UserAuthorizationCache");
+
         return res;
     }
 

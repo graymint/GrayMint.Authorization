@@ -39,8 +39,10 @@ public class AuthorizationProvider(
         if (userId == AuthorizationConstants.SystemUserId) {
             claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
                 Permissions.AppCreate));
+
             claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
                 Permissions.AppRead));
+
             claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
                 Permissions.AppWrite));
         }

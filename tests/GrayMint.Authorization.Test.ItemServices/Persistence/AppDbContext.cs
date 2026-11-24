@@ -3,11 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.Test.ItemServices.Persistence;
 
-// ReSharper disable once PartialTypeWithSinglePart
-public partial class AppDbContext : DbContext
+public class AppDbContext : DbContext
 {
-    public virtual DbSet<AppModel> Apps { get; set; } = null!;
-    public virtual DbSet<ItemModel> Items { get; set; } = null!;
+    public virtual DbSet<AppModel> Apps => Set<AppModel>();
+    public virtual DbSet<ItemModel> Items => Set<ItemModel>();
 
     public AppDbContext()
     {
@@ -29,13 +28,7 @@ public partial class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<ItemModel>(entity => { entity.HasKey(e => e.ItemId); });
-
-        // ReSharper disable once InvocationIsSkipped
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    // ReSharper disable once PartialMethodWithSinglePart
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

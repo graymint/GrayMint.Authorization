@@ -74,17 +74,14 @@ public static class AuthorizationExtension
             TeamControllerOptions? teamControllerOptions,
             bool isProduction)
         {
-            // authentication & its controller
             services
                 .AddGrayMintAuthenticationController()
                 .AddAuthentication()
                 .AddGrayMintAuthentication(authenticationOptions, isProduction);
 
-            // authorization & its controller
             services
                 .AddGrayMintRoleAuthorization()
                 .AddAuthorization(options => {
-                    // create default policy
                     var policyBuilder = new AuthorizationPolicyBuilder();
                     policyBuilder.RequireAuthenticatedUser();
                     policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
@@ -99,7 +96,6 @@ public static class AuthorizationExtension
             services
                 .AddGrayMintUserProvider(new UserProviderOptions { CacheTimeout = authenticationOptions.CacheTimeout });
 
-            // roles & its controller
             services
                 .AddGrayMintTeamController(teamControllerOptions)
                 .AddGrayMintRoleProvider(
@@ -113,7 +109,6 @@ public static class AuthorizationExtension
 
         public IServiceCollection AddGrayMintCommonProviderDb(Action<DbContextOptionsBuilder> dbOptionsAction)
         {
-            // add database contexts
             services
                 .AddGrayMintUserProviderDb(dbOptionsAction)
                 .AddGrayMintRoleProviderDb(dbOptionsAction);

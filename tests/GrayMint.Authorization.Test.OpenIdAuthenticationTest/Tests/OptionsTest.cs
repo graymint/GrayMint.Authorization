@@ -36,6 +36,7 @@ public class OptionsTest
         var provider = new OpenIdProviderOptions {
             Name = "main", Issuer = "http://localhost:5280/", Audience = "files", AllowInsecureHttp = true
         };
+
         Create(provider).Validate();
     }
 
@@ -47,6 +48,7 @@ public class OptionsTest
         Assert.Throws<InvalidOperationException>(() => Create(
             CreateProvider("main", "https://id.example.com/"),
             CreateProvider("main", "https://other.example.com/")).Validate());
+
         Assert.Throws<InvalidOperationException>(() => Create(
             CreateProvider("main", "https://id.example.com/"),
             CreateProvider("other", "https://id.example.com/")).Validate());
@@ -58,11 +60,13 @@ public class OptionsTest
         var noAlgorithm = new OpenIdProviderOptions {
             Name = "main", Issuer = "https://id.example.com/", Audience = "files", Algorithms = []
         };
+
         Assert.Throws<InvalidOperationException>(() => Create(noAlgorithm).Validate());
 
         var emptyClient = new OpenIdProviderOptions {
             Name = "main", Issuer = "https://id.example.com/", Audience = "files", ClientIds = ["app", ""]
         };
+
         Assert.Throws<InvalidOperationException>(() => Create(emptyClient).Validate());
     }
 
@@ -73,6 +77,7 @@ public class OptionsTest
             Providers = [CreateProvider("main", "https://id.example.com/")],
             CacheTimeout = TimeSpan.Zero
         };
+
         Assert.Throws<InvalidOperationException>(options.Validate);
     }
 

@@ -12,20 +12,22 @@ namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 // An authentication endpoint exists only where the service's settings let it work: Google's sign-in needs an identity
 // provider named Google, and a user's own API key needs AllowUserApiKey. The rest of the sign-in doesn't depend on them.
 [TestClass]
-public class AuthenticationActionTest
+public class AuthenticationActionTest(TestContext testContext)
 {
+    private CancellationToken CancellationToken => testContext.CancellationToken;
+
     private const string GooglePaths = "api/authentication/external/google/";
     private const string UserApiKeyPath = "api/authentication/current/reset-api-key";
 
     [TestMethod]
     public async Task Google_sign_in_where_a_Google_provider_is_set_up()
     {
-        using var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
         var googleProvider = testInit.AuthenticationOptions.OpenIdProviders
             .Single(x => x.Name == GrayMintAuthenticationDefaults.GoogleProviderName);
 
         // Google's page, for the provider's audience as its client id
-        var signInUrl = new Uri(await testInit.AuthenticationClient.GetGoogleSignInUrlAsync("csrf-token"));
+        var signInUrl = new Uri(await testInit.AuthenticationClient.GetGoogleSignInUrlAsync("csrf-token", cancellationToken: CancellationToken));
         Assert.AreEqual("accounts.google.com", signInUrl.Host);
         Assert.AreEqual(googleProvider.Audience, HttpUtility.ParseQueryString(signInUrl.Query)["client_id"]);
 
@@ -38,32 +40,35 @@ public class AuthenticationActionTest
         // the sample's first provider is its Google one; under another name the service has none
         using var testInit = await TestInit.Create(new Dictionary<string, string?> {
             ["Auth:OpenIdProviders:0:Name"] = "NotGoogle"
-        });
-        Assert.IsFalse(testInit.AuthenticationOptions.OpenIdProviders
-            .Any(x => x.Name == GrayMintAuthenticationDefaults.GoogleProviderName));
+        }, cancellationToken: CancellationToken);
+
+        Assert.DoesNotContain(x => x.Name == GrayMintAuthenticationDefaults.GoogleProviderName,
+            testInit.AuthenticationOptions.OpenIdProviders);
 
         await TestUtil.AssertApiException(HttpStatusCode.NotFound,
-            testInit.AuthenticationClient.GetGoogleSignInUrlAsync("csrf-token"));
+            testInit.AuthenticationClient.GetGoogleSignInUrlAsync("csrf-token", cancellationToken: CancellationToken));
+
         await TestUtil.AssertApiException(HttpStatusCode.NotFound,
-            testInit.AuthenticationClient.GoogleSignInHandlerAsync());
-        Assert.IsFalse(ApiPaths(testInit).Any(IsGooglePath), "Neither is in the API description.");
+            testInit.AuthenticationClient.GoogleSignInHandlerAsync(CancellationToken));
+
+        Assert.DoesNotContain(IsGooglePath, ApiPaths(testInit), "Neither is in the API description.");
 
         // signing up and in stays
         await testInit.SignUpNewUser();
-        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
         Assert.IsFalse(string.IsNullOrEmpty(user.Email));
     }
 
     [TestMethod]
     public async Task User_api_key_where_allowed()
     {
-        using var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
         Assert.IsTrue(testInit.AuthenticationOptions.AllowUserApiKey);
         await testInit.SignUpNewUser();
 
-        var apiKey = await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync();
+        var apiKey = await testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync(CancellationToken);
         testInit.SetApiKey(apiKey);
-        await testInit.AuthenticationClient.GetCurrentUserAsync();
+        await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
 
         Assert.Contains(UserApiKeyPath, ApiPaths(testInit), "It is in the API description.");
     }
@@ -73,19 +78,21 @@ public class AuthenticationActionTest
     {
         using var testInit = await TestInit.Create(new Dictionary<string, string?> {
             ["Auth:AllowUserApiKey"] = "false"
-        });
+        }, cancellationToken: CancellationToken);
+
         Assert.IsFalse(testInit.AuthenticationOptions.AllowUserApiKey);
         await testInit.SignUpNewUser();
 
         await TestUtil.AssertApiException(HttpStatusCode.NotFound,
-            testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync());
+            testInit.AuthenticationClient.ResetCurrentUserApiKeyAsync(CancellationToken));
+
         Assert.DoesNotContain(UserApiKeyPath, ApiPaths(testInit), "It isn't in the API description.");
 
         // a bot's key, which its team gives, doesn't need it
         var bot = await testInit.AddNewBot(Roles.SystemAdmin);
-        var botApiKey = await testInit.TeamClient.ResetBotApiKeyAsync(bot.UserId);
+        var botApiKey = await testInit.TeamClient.ResetBotApiKeyAsync(bot.UserId, CancellationToken);
         testInit.SetApiKey(botApiKey);
-        await testInit.AuthenticationClient.GetCurrentUserAsync();
+        await testInit.AuthenticationClient.GetCurrentUserAsync(CancellationToken);
     }
 
     private static bool IsGooglePath(string path) =>

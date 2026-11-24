@@ -55,6 +55,7 @@ public sealed class UserBindingStore(
             UserId = userGuid,
             CreatedTime = DateTime.UtcNow
         };
+
         dbContext.UserBindings.Add(binding);
         try {
             await dbContext.SaveChangesAsync(cancellationToken);

@@ -7,9 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GrayMint.Authorization.Test.WebApiSample.Controllers;
 
-// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
-[Route("/api/apps/{appId}/items")]
+[Route("/api/apps/{appId:int}/items")]
 public class ItemsController(ItemService itemService)
     : ControllerBase
 {

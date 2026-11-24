@@ -30,9 +30,9 @@ namespace GrayMint.Authorization.Test.MicroserviceSample
             if (builder.Configuration["IgnoreDb"] != "1")
                 services.AddDbContext<AppDbContext>(options =>
                     options.UseSqlServer(builder.Configuration.GetConnectionString("AppDatabase")));
+
             services.AddItemServices();
 
-            // Add services to the container.
             var webApp = builder.Build();
             webApp.UseGrayMintCommonServices(new UseServicesOptions());
             webApp.UseGrayMintOpenApi(new UseOpenApiOptions { RedirectRootToUi = true });

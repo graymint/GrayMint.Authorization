@@ -99,6 +99,7 @@ public sealed class TestProvider : IDisposable
             Expires = expires,
             SigningCredentials = token.SigningCredentials ?? GetSigningCredentials()
         };
+
         foreach (var audience in token.OtherAudiences)
             descriptor.Audiences.Add(audience);
 
@@ -111,12 +112,14 @@ public sealed class TestProvider : IDisposable
         var header = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new Dictionary<string, object> {
             ["alg"] = "none", ["typ"] = OpenIdAuthenticationDefaults.AccessTokenType
         }));
+
         var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new Dictionary<string, object> {
             ["iss"] = Issuer,
             ["aud"] = ServiceAudience,
             ["sub"] = subject,
             ["exp"] = DateTimeOffset.UtcNow.AddMinutes(20).ToUnixTimeSeconds()
         }));
+
         return $"{header}.{payload}.";
     }
 
@@ -156,6 +159,7 @@ public sealed class TestProvider : IDisposable
                 ["e"] = Base64UrlEncoder.Encode(parameters.Exponent)
             };
         }).ToArray();
+
         return CreateJson(new Dictionary<string, object> { ["keys"] = keys });
     }
 

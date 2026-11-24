@@ -4,7 +4,6 @@ using GrayMint.Authorization.OpenIdAuthentications;
 using GrayMint.Authorization.Test.OpenIdAuthenticationTest.Helper;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Common.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GrayMint.Authorization.Test.OpenIdAuthenticationTest.Tests;
@@ -22,7 +21,7 @@ public class AccessTokenTest(TestContext testContext)
     public async Task AccessTokenOfATiedAccountIsItsUsers()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
@@ -37,7 +36,7 @@ public class AccessTokenTest(TestContext testContext)
     public async Task AccountThatIsTiedToNoUserIsRefused()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         await testHost.CreateUser(Email);
 
         using var response = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
@@ -62,7 +61,7 @@ public class AccessTokenTest(TestContext testContext)
     {
         using var provider = new TestProvider();
         using var stranger = new TestProvider("stranger");
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
@@ -72,6 +71,7 @@ public class AccessTokenTest(TestContext testContext)
             Audience = TestProvider.ServiceAudience,
             Type = OpenIdAuthenticationDefaults.AccessTokenType
         };
+
         var accessToken = what switch {
             // made for another service of the same provider
             "audience" => provider.CreateToken(new TestToken { Subject = Subject, Audience = "another.service", Type = good.Type }),
@@ -101,16 +101,14 @@ public class AccessTokenTest(TestContext testContext)
     public async Task LockedUserIsRefused()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         var accessToken = provider.CreateAccessToken(Subject);
         using var before = await testHost.GetMe(accessToken, CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, before.StatusCode);
 
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
+        await testHost.UpdateUser(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
 
         using var after = await testHost.GetMe(accessToken, CancellationToken);
         Assert.AreEqual(HttpStatusCode.Unauthorized, after.StatusCode);
@@ -122,13 +120,12 @@ public class AccessTokenTest(TestContext testContext)
     public async Task AccountWhoseUserIsGoneIsNobodyElse()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.CreateUser("other@example.com");
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>().Remove(user.UserId);
+        await testHost.RemoveUser(user.UserId);
 
         // the other user's address, under the name a token carries it by and under the one users are found by
         var accessToken = provider.CreateToken(new TestToken {
@@ -138,6 +135,7 @@ public class AccessTokenTest(TestContext testContext)
             Email = "other@example.com",
             Claims = new Dictionary<string, object> { [ClaimTypes.Email] = "other@example.com" }
         });
+
         using var response = await testHost.GetMe(accessToken, CancellationToken);
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -148,7 +146,7 @@ public class AccessTokenTest(TestContext testContext)
     public async Task TokenSignedWithANewKeyOfTheProviderIsTaken()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         using var before = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
@@ -173,7 +171,7 @@ public class AccessTokenTest(TestContext testContext)
     {
         using var provider = new TestProvider();
         using var stranger = new TestProvider("stranger");
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var forged = stranger.CreateToken(new TestToken {
             Subject = Subject,
             Audience = TestProvider.ServiceAudience,
@@ -198,7 +196,7 @@ public class AccessTokenTest(TestContext testContext)
     {
         using var first = new TestProvider("first");
         using var second = new TestProvider("second");
-        await using var testHost = await TestHost.Create(new TestHostOptions { Providers = [first, second] });
+        await using var testHost = await TestHost.Create(new TestHostOptions { Providers = [first, second] }, CancellationToken);
         var firstUser = await testHost.CreateUser(Email);
         var secondUser = await testHost.CreateUser("other@example.com");
         await testHost.SignIn(first.CreateIdToken(Subject, Email), CancellationToken);
@@ -216,6 +214,7 @@ public class AccessTokenTest(TestContext testContext)
             Type = OpenIdAuthenticationDefaults.AccessTokenType,
             Issuer = second.Issuer
         });
+
         using var forgedResponse = await testHost.GetMe(forged, CancellationToken);
         Assert.AreEqual(HttpStatusCode.Unauthorized, forgedResponse.StatusCode);
     }

@@ -12,7 +12,6 @@ public class ItemService(AppDbContext appDbContext)
     {
         createRequest ??= new ItemCreateRequest { ItemName = Guid.NewGuid().ToString() };
 
-        // Create App
         var itemEntry = await appDbContext.Items.AddAsync(new ItemModel {
             AppId = appId,
             ItemName = createRequest.ItemName
@@ -39,13 +38,13 @@ public class ItemService(AppDbContext appDbContext)
         return item.ToDto();
     }
 
-    public async Task<Item[]> List(int appId)
+    public async Task<IReadOnlyList<Item>> List(int appId)
     {
         var items = await appDbContext.Items
             .Where(x => x.AppId == appId)
             .ToArrayAsync();
 
-        return [.. items.Select(x => x.ToDto())];
+        return items.Select(x => x.ToDto()).ToArray();
     }
 
     public async Task Delete(int appId, int itemId)

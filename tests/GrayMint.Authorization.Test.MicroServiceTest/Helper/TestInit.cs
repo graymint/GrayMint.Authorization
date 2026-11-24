@@ -19,21 +19,27 @@ public class TestInit : IDisposable
     // { "UseSqlite": false } to run against the real database from appsettings.json.
     private static readonly bool UseSqlite = TestSettings.UseSqlite;
     private readonly SqliteConnection? _sqliteConnection;
+    private readonly CancellationToken _cancellationToken;
+    private App? _app;
+    private ApiKey? _systemAdminApiKey;
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
-    public App App { get; private set; } = null!;
+    public App App => _app ?? throw new InvalidOperationException("The app is made when the test starts.");
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
     public string RootResourceId => "*";
     public AppsClient AppsClient => new(HttpClient);
     public ItemsClient ItemsClient => new(HttpClient);
     public AuthorizationClient AuthorizationClient => new(HttpClient);
-    public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
+    public ApiKey SystemAdminApiKey =>
+        _systemAdminApiKey ?? throw new InvalidOperationException("The system admin is made when the test starts.");
 
-    private TestInit(Dictionary<string, string?> appSettings, string environment)
+    private TestInit(Dictionary<string, string?> appSettings, string environment, CancellationToken cancellationToken)
     {
+        _cancellationToken = cancellationToken;
+
         // IgnoreDb tells the sample's Program to skip its SqlServer registration; the context is
         // then re-registered below on the shared SQLite connection.
         if (UseSqlite) {
@@ -66,11 +72,12 @@ public class TestInit : IDisposable
 
     private async Task Init()
     {
-        SystemAdminApiKey =
-            await AuthorizationClient.CreateSystemApiKeyAsync("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        HttpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
-        App = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        _systemAdminApiKey = await AuthorizationClient.CreateSystemApiKeyAsync(
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", _cancellationToken);
+
+        SetApiKey(_systemAdminApiKey);
+        _app = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() },
+            _cancellationToken);
     }
 
     public void SetApiKey(ApiKey apiKey)
@@ -81,10 +88,11 @@ public class TestInit : IDisposable
 
     public static async Task<TestInit> Create(
         Dictionary<string, string?>? appSettings = null,
-        string environment = "Development")
+        string environment = "Development",
+        CancellationToken cancellationToken = default)
     {
         appSettings ??= [];
-        var testInit = new TestInit(appSettings, environment);
+        var testInit = new TestInit(appSettings, environment, cancellationToken);
         await testInit.Init();
 
         return testInit;

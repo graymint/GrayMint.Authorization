@@ -6,12 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class UserProviderTest
+public class UserProviderTest(TestContext testContext)
 {
+    private CancellationToken CancellationToken => testContext.CancellationToken;
+
     [TestMethod]
     public async Task Crud()
     {
-        using var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
@@ -72,6 +74,7 @@ public class UserProviderTest
             IsDisabled = false,
             ExData = Guid.NewGuid().ToString()
         };
+
         await userProvider.Update(user.UserId, updateRequest);
 
         // Get
@@ -94,7 +97,7 @@ public class UserProviderTest
     [TestMethod]
     public async Task Fail_Already_exist()
     {
-        using var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
 
         // Create
         var userProvider = testInit.Scope.ServiceProvider.GetRequiredService<IUserProvider>();
@@ -104,6 +107,7 @@ public class UserProviderTest
             LastName = Guid.NewGuid().ToString(),
             Description = Guid.NewGuid().ToString()
         };
+
         await userProvider.Create(request);
 
         // AlreadyExists exception

@@ -19,7 +19,7 @@ public class ItemsController(ItemService itemService) : ControllerBase
 
     [HttpGet]
     [AuthorizeAppIdPermission(Permissions.AppRead)]
-    public Task<Item[]> List(int appId)
+    public Task<IReadOnlyList<Item>> List(int appId)
     {
         return itemService.List(appId);
     }

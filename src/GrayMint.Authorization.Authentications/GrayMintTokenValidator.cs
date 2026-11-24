@@ -54,11 +54,9 @@ public class GrayMintTokenValidator(
         if (!string.IsNullOrEmpty(sub) && claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier) != null)
             AuthorizationUtil.UpdateNameIdentifier(claimsPrincipal, sub);
 
-        // get token version
         var tokenVersionStr = claimsPrincipal.Claims.SingleOrDefault(x => x.Type == GrayMintClaimTypes.Version)?.Value;
         var tokenVersion = tokenVersionStr != null ? int.Parse(tokenVersionStr) : 1;
 
-        // check token usage
         if (tokenVersion > 1 && tokenUsage != null &&
             !claimsPrincipal.HasClaim(GrayMintClaimTypes.TokenUse, tokenUsage))
             throw new AuthenticationException(
@@ -138,6 +136,7 @@ public class GrayMintTokenValidator(
         var openIdConfig = await memoryCache.GetOrCreateAsync(url, entry => {
             var configurationManager =
                 new ConfigurationManager<OpenIdConnectConfiguration>(url, new OpenIdConnectConfigurationRetriever());
+
             entry.SetAbsoluteExpiration(authenticationOptions.Value.OpenIdConfigTimeout);
             return configurationManager.GetConfigurationAsync();
         }) ?? throw new AuthenticationException($"Could not retrieve OpenId config. EndPoint: {url}");
@@ -147,9 +146,9 @@ public class GrayMintTokenValidator(
 
     public async Task<ClaimsIdentity> ValidateOpenIdToken(string idToken, OpenIdProvider openIdProvider)
     {
-        // Set the parameters for token validation
         var issuer = openIdProvider.Issuer ?? openIdProvider.Issuers.FirstOrDefault() ??
             throw new Exception($"Could not find any issuer for {openIdProvider.Name}");
+
         var openIdConfig = await GetOpenIdConnectConfigurationByIssuer(issuer);
         var validationParameters = new TokenValidationParameters {
             ValidateIssuer = true,
@@ -168,7 +167,7 @@ public class GrayMintTokenValidator(
         var jwtToken = (JwtSecurityToken)token;
         var claimsIdentity = new ClaimsIdentity(jwtToken.Claims);
 
-        // check if this token is an id token
+        // a provider's token that names a person is taken as its id token
         if (claimsIdentity.HasClaim(x => x.Type is JwtRegisteredClaimNames.Email or JwtRegisteredClaimNames.Name))
             ClaimUtil.SetClaim(claimsIdentity, new Claim(GrayMintClaimTypes.TokenUse, TokenUse.Id));
 
@@ -178,7 +177,6 @@ public class GrayMintTokenValidator(
     public async Task<ClaimsIdentity> ValidateGrayMintToken(string token)
     {
         try {
-            // Set the parameters for token validation
             var tokenHandler = new JwtSecurityTokenHandler();
             var validationParameters = GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions.Value);
             var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
@@ -188,8 +186,6 @@ public class GrayMintTokenValidator(
             return claimIdentity;
         }
         catch (SecurityTokenException ex) {
-            // Handle specific security token exceptions and
-            // convert them to AuthenticationException
             throw new AuthenticationException(ex.Message, ex);
         }
     }
@@ -210,10 +206,9 @@ public class GrayMintTokenValidator(
                                      $"Could not find any provider for this issuer. {issuer}");
 
             var claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
-            if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
-                throw new AuthenticationException("This is not an id token.");
-
-            return claimsIdentity;
+            return claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id)
+                ? claimsIdentity
+                : throw new AuthenticationException("This is not an id token.");
         }
         catch (Exception ex) {
             throw new AuthenticationException(ex.Message);
@@ -223,30 +218,25 @@ public class GrayMintTokenValidator(
     public virtual async Task<ClaimsIdentity> ValidateIdToken(string idToken)
     {
         try {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var securityToken = tokenHandler.ReadToken(idToken);
-
-            ClaimsIdentity claimsIdentity;
-            var openIdProvider = FindOpenIdProvider(securityToken.Issuer);
-
-            if (openIdProvider != null)
-                claimsIdentity = await ValidateOpenIdToken(idToken, openIdProvider);
-
-            else if (securityToken.Issuer == authenticationOptions.Value.Issuer)
-                claimsIdentity = await ValidateGrayMintToken(idToken);
-
-            else
-                throw new AuthenticationException(
-                    $"Could not find any provider for this issuer. {securityToken.Issuer}");
-
-            // check if this token is an id token
-            if (!claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id))
-                throw new AuthenticationException("This is not an id token.");
-
-            return claimsIdentity;
+            var issuer = new JwtSecurityTokenHandler().ReadToken(idToken).Issuer;
+            var claimsIdentity = await ValidateTokenOfIssuer(idToken, issuer);
+            return claimsIdentity.HasClaim(GrayMintClaimTypes.TokenUse, TokenUse.Id)
+                ? claimsIdentity
+                : throw new AuthenticationException("This is not an id token.");
         }
         catch (Exception ex) {
             throw new AuthenticationException(ex.Message);
         }
+    }
+
+    private Task<ClaimsIdentity> ValidateTokenOfIssuer(string idToken, string issuer)
+    {
+        var openIdProvider = FindOpenIdProvider(issuer);
+        if (openIdProvider != null)
+            return ValidateOpenIdToken(idToken, openIdProvider);
+
+        return issuer == authenticationOptions.Value.Issuer
+            ? ValidateGrayMintToken(idToken)
+            : throw new AuthenticationException($"Could not find any provider for this issuer. {issuer}");
     }
 }

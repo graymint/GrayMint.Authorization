@@ -12,7 +12,6 @@ public class AppService(AppDbContext appDbContext)
     {
         createRequest ??= new AppCreateRequest { AppName = Guid.NewGuid().ToString() };
 
-        // Create App
         var app = await appDbContext.Apps.AddAsync(new AppModel {
             AppName = createRequest.AppName
         });
@@ -30,26 +29,25 @@ public class AppService(AppDbContext appDbContext)
         return app;
     }
 
-    public async Task<App[]> Get(IEnumerable<int> appIds)
+    public async Task<IReadOnlyList<App>> Get(IEnumerable<int> appIds)
     {
         var apps = await appDbContext.Apps
             .Where(x => appIds.Contains(x.AppId))
             .ToArrayAsync();
 
-        return [.. apps.Select(x => x.ToDto())];
+        return apps.Select(x => x.ToDto()).ToArray();
     }
 
-    public async Task<App[]> List()
+    public async Task<IReadOnlyList<App>> List()
     {
         var apps = await appDbContext.Apps
             .ToArrayAsync();
 
-        return [.. apps.Select(x => x.ToDto())];
+        return apps.Select(x => x.ToDto()).ToArray();
     }
 
     public async Task UpdateAuthorizationCode(int appId, string authorizationCode)
     {
-        // get max token id
         var app = await appDbContext.Apps.SingleAsync(x => x.AppId == appId);
         app.AuthorizationCode = authorizationCode;
         await appDbContext.SaveChangesAsync();

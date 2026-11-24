@@ -12,20 +12,23 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
 [TestClass]
-public class CustomerAccessTest
+public class CustomerAccessTest(TestContext testContext)
 {
+    private CancellationToken CancellationToken => testContext.CancellationToken;
+
     [TestMethod]
     public async Task Get_by_customer_token()
     {
-        var testInit = await TestInit.Create();
+        using var testInit = await TestInit.Create(cancellationToken: CancellationToken);
         var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
-        var customerId = 2000;
+        const int customerId = 2000;
 
         // a customer token belongs to no user, so nothing can revoke it, and it has to say so
         var claimsIdentity = new ClaimsIdentity();
         claimsIdentity.AddClaim(PermissionAuthorization.BuildPermissionClaim(
             $"apps:{testInit.AppId}:customers:{customerId}",
             Permissions.CustomerRead));
+
         claimsIdentity.AddClaim(new Claim(GrayMintClaimTypes.AuthCode, AuthorizationConstants.AnyAuthCode));
         var apiKeyDto = await grayMintAuthentication.CreateApiKey(claimsIdentity);
 
@@ -38,6 +41,6 @@ public class CustomerAccessTest
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         testInit.SetApiKey(apiKey);
-        await testInit.CustomerClient.GetByCustomerIdAsync(testInit.AppId, customerId);
+        await testInit.CustomerClient.GetByCustomerIdAsync(testInit.AppId, customerId, CancellationToken);
     }
 }

@@ -21,7 +21,7 @@ public class AppsController(
 
     [HttpGet]
     [AuthorizePermission(Permissions.AppRead)]
-    public Task<App[]> List()
+    public Task<IReadOnlyList<App>> List()
     {
         return appService.List();
     }

@@ -14,12 +14,12 @@ public class ResourceProvider(
     IRoleProvider roleProvider)
     : IResourceProvider
 {
-    public string RootResourceId { get; } = AuthorizationConstants.RootResourceId;
+    public string RootResourceId => AuthorizationConstants.RootResourceId;
 
     public async Task<Resource> Add(Resource resource)
     {
         resourceDbContext.ChangeTracker.Clear();
-        resource.ParentResourceId ??= RootResourceId; // set default parent
+        resource.ParentResourceId ??= RootResourceId;
         var effectedResourceIds = await ValidateResourceParent(resource);
 
         var entry = await resourceDbContext.Resources.AddAsync(resource.ToModel());
@@ -32,7 +32,7 @@ public class ResourceProvider(
     public async Task<Resource> Update(Resource resource)
     {
         resourceDbContext.ChangeTracker.Clear();
-        resource.ParentResourceId ??= RootResourceId; // set default parent
+        resource.ParentResourceId ??= RootResourceId;
         if (resource.ResourceId == RootResourceId)
             throw new InvalidOperationException("Root resource cannot be updated.");
 
@@ -40,7 +40,6 @@ public class ResourceProvider(
         var effectedResourceIdsSrc = await ValidateResourceParent(curResource);
         var effectedResourceIdsDes = await ValidateResourceParent(resource);
 
-        // update database
         var entry = resourceDbContext.Resources.Update(resource.ToModel());
         await resourceDbContext.SaveChangesAsync();
 
@@ -66,19 +65,15 @@ public class ResourceProvider(
         if (resourceId == AuthorizationConstants.RootResourceId)
             throw new InvalidOperationException("Root resource cannot be deleted.");
 
-        // get model
         var resource = await resourceDbContext.Resources
             .SingleAsync(x => x.ResourceId == resourceId);
 
-        // get effected resource ids
         var effectedResourceIds = await ValidateResourceParent(resource.ToDto());
 
-        // delete from database
         var deletedItems = new List<ResourceModel>();
         await DeleteRecursive(resource, deletedItems);
         await resourceDbContext.SaveChangesAsync();
 
-        // clean user roles
         await roleProvider.RemoveUserRoles(new UserRoleCriteria { ResourceId = resourceId });
         await ClearResourceCache(effectedResourceIds);
     }
@@ -98,7 +93,7 @@ public class ResourceProvider(
     }
 
     // return this resource and parent resource ids
-    private async Task<string[]> ValidateResourceParent(Resource resource)
+    private async Task<IReadOnlyList<string>> ValidateResourceParent(Resource resource)
     {
         var parentIds = new List<string>();
         if (resource is { ResourceId: AuthorizationConstants.RootResourceId, ParentResourceId: not null })
@@ -112,7 +107,7 @@ public class ResourceProvider(
             resource = await Get(resource.ParentResourceId);
         }
 
-        return [.. parentIds];
+        return parentIds;
     }
 
     private async Task ClearResourceCache(IEnumerable<string> resourceIds)

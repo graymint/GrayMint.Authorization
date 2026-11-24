@@ -2,6 +2,8 @@
 
 # Default severity for all analyzer diagnostics
 dotnet_analyzer_diagnostic.severity = none
+# a call that can take the caller's cancellation token passes it
+dotnet_diagnostic.CA2016.severity = warning
 csharp_indent_labels = one_less_than_current
 csharp_using_directive_placement = outside_namespace:silent
 csharp_prefer_simple_using_statement = true:suggestion

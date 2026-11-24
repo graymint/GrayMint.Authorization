@@ -44,7 +44,6 @@ public class AuthorizationProvider(IUserProvider userProvider) : IAuthorizationP
 
         var user = await userProvider.Get(userId);
 
-        // update access time
         if (user.AccessedTime is null || user.AccessedTime < DateTime.UtcNow - TimeSpan.FromMinutes(60)) {
             if (userProvider is UserProvider userProvider2)
                 await userProvider2.UpdateAccessedTime(user.UserId);

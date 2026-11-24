@@ -14,7 +14,6 @@ namespace GrayMint.Authorization.MicroserviceAuthorization;
 /// signing secret, signs its own tokens with it or gets one here. A token carries its user's authorization code, so a
 /// new code ends every earlier token of that user.
 /// </remarks>
-// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Authorize]
 [Route("/api/authorization")]

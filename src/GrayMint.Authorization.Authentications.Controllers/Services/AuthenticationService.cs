@@ -50,14 +50,11 @@ public class AuthenticationService(
     {
         var user = await userProvider.Get(userId);
 
-        // check AllowUserApiKey for user
         if (!authenticationOptions.Value.AllowUserApiKey)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
-        // reset the api key
         await userProvider.ResetAuthorizationCode(user.UserId);
 
-        // create new api key
         var claimIdentity = new ClaimsIdentity();
         claimIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, user.UserId));
         var apiKey = await grayMintAuthentication
@@ -126,11 +123,9 @@ public class AuthenticationService(
         var apiKey = await grayMintAuthentication
             .SignIn(signInRequest.IdToken, signInRequest.RefreshTokenType);
 
-        // make sure userId is not null 
         if (apiKey.UserId is null)
             throw new Exception("SignIn should not return null UserId.");
 
-        // update user profile by claims
         if (apiKey.AccessToken.ClaimsPrincipal is not null) {
             var user = await userProvider.Get(apiKey.UserId);
             await UpdateUserByClaims(user, apiKey.AccessToken.ClaimsPrincipal);

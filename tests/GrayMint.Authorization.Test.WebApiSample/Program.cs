@@ -19,6 +19,7 @@ public class Program
         // options
         var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ??
                          throw new Exception("Could not load AppOptions.");
+
         services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
         // common services
@@ -51,7 +52,6 @@ public class Program
 
         services.AddItemServices();
 
-        // Add services to the container.
         var webApp = builder.Build();
         webApp.UseGrayMintCommonServices(new UseServicesOptions());
         webApp.UseGrayMintOpenApi(new UseOpenApiOptions { RedirectRootToUi = true });

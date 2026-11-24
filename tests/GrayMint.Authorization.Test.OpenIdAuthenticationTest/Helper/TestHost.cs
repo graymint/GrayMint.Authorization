@@ -1,12 +1,10 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Claims;
 using GrayMint.Authorization.OpenIdAuthentications;
 using GrayMint.Authorization.UserManagement.Abstractions;
 using GrayMint.Authorization.UserManagement.UserProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
@@ -33,16 +31,16 @@ public sealed class TestHost : IAsyncDisposable
         Client = app.GetTestClient();
     }
 
-    public static Task<TestHost> Create(TestProvider provider)
+    public static Task<TestHost> Create(TestProvider provider, CancellationToken cancellationToken)
     {
-        return Create(new TestHostOptions { Providers = [provider] });
+        return Create(new TestHostOptions { Providers = [provider] }, cancellationToken);
     }
 
-    public static async Task<TestHost> Create(TestHostOptions options)
+    public static async Task<TestHost> Create(TestHostOptions options, CancellationToken cancellationToken)
     {
         // one connection that stays open: the database lives in memory for as long as it does
         var connection = new SqliteConnection("DataSource=:memory:");
-        await connection.OpenAsync();
+        await connection.OpenAsync(cancellationToken);
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -67,14 +65,16 @@ public sealed class TestHost : IAsyncDisposable
         app.UseAuthorization();
         app.MapGet("/me", (ClaimsPrincipal user) => Results.Text(user.FindFirstValue(ClaimTypes.NameIdentifier)))
             .RequireAuthorization();
+
         app.MapPost("/sign-in",
             (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService, isSignUp: false));
+
         app.MapPost("/sign-up",
             (HttpRequest request, OpenIdSignInService signInService) => SignIn(request, signInService, isSignUp: true));
 
         await app.Services.UseGrayMintUserProvider();
         await app.Services.UseGrayMintOpenIdAuthentication();
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         return new TestHost(app, connection);
     }
 
@@ -84,6 +84,38 @@ public sealed class TestHost : IAsyncDisposable
         await using var scope = Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IUserProvider>()
             .Create(new UserCreateRequest { Email = email, Name = name });
+    }
+
+    public async Task<User> UpdateUser(string userId, UserUpdateRequest request)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().Update(userId, request);
+    }
+
+    public async Task RemoveUser(string userId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<IUserProvider>().Remove(userId);
+    }
+
+    public async Task<User?> FindUserByEmail(string email)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().FindByEmail(email);
+    }
+
+    public async Task<User> GetUserByEmail(string email)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(email);
+    }
+
+    public async Task RemoveUserBinding(string providerName, string subject, string userId,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<UserBindingStore>()
+            .Remove(providerName, subject, userId, cancellationToken);
     }
 
     // what an application does with the ID token it got for its person
@@ -128,6 +160,7 @@ public sealed class TestHost : IAsyncDisposable
         var result = isSignUp
             ? await signInService.SignUp(idToken, request.HttpContext.RequestAborted)
             : await signInService.SignIn(idToken, request.HttpContext.RequestAborted);
+
         return Results.Json(new TestSignInResponse { Status = result.Status.ToString(), UserId = result.User?.UserId });
     }
 }

@@ -33,9 +33,6 @@ public static class JwtUtil
         if (email != null) ClaimUtil.SetClaim(claimIdentity, new Claim(JwtRegisteredClaimNames.Email, email));
         if (roles != null) claimIdentity.AddClaims(roles.Select(x => new Claim(ClaimTypes.Role, x)));
 
-        // add issued at time
-
-        // create token
         var secKey = new SymmetricSecurityKey(key);
         var signingCredentials = new SigningCredentials(secKey, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(issuer,

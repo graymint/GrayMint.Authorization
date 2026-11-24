@@ -32,7 +32,7 @@ public class TeamService(
 
     public async Task<bool> IsResourceOwnerRole(string resourceId, string roleId)
     {
-        //SystemResource can not be owned
+        // the system resource has no owner
         if (resourceId == GetRootResourceId())
             return false;
 
@@ -103,11 +103,9 @@ public class TeamService(
 
     public async Task<ApiKey> AddNewBot(string resourceId, string roleId, TeamAddBotParam addParam)
     {
-        // check bot policy
         if (!_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
 
-        // create
         var email = $"{Guid.NewGuid()}@bot.local";
         var user = await userProvider.Create(new UserCreateRequest {
             Email = email,
@@ -117,7 +115,6 @@ public class TeamService(
 
         await roleProvider.AddUserRole(roleId: roleId, userId: user.UserId, resourceId: resourceId);
 
-        // create the access token
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions {
@@ -135,14 +132,11 @@ public class TeamService(
     {
         var user = await userProvider.Get(userId);
 
-        // check AllowUserApiKey for user
         if (!user.IsBot)
             throw new UnauthorizedAccessException("User ApiKey is not enabled.");
 
-        // reset the api key
         await userProvider.ResetAuthorizationCode(user.UserId);
 
-        // Create a new api key
         var claimIdentity = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, user.UserId)]);
         var apiKey = await grayMintAuthentication
             .CreateApiKey(claimIdentity, new ApiKeyOptions {
@@ -162,7 +156,6 @@ public class TeamService(
         if (roles.All(x => x.RoleId != roleId))
             throw new InvalidOperationException("This role can not be added on this resource.");
 
-        // create user if not found
         email = NormalizeEmail(email);
         var user = await userProvider.FindByEmail(email);
         user ??= await userProvider.Create(new UserCreateRequest { Email = email });
@@ -174,7 +167,6 @@ public class TeamService(
     public async Task<TeamUserRole> AddUser(string resourceId, string roleId, string userId,
         ClaimsPrincipal? caller = null)
     {
-        // check bot policy
         var user = await userProvider.Get(userId);
         if (user.IsBot && !_teamControllersOptions.AllowBotAppOwner && await IsResourceOwnerRole(resourceId, roleId))
             throw new InvalidOperationException("Bot can not be an owner.");
@@ -182,9 +174,9 @@ public class TeamService(
         // the user's own id from here on, as the caller may have written it another way
         userId = user.UserId;
 
-        // check is already exists
         var userRoles = await roleProvider.GetUserRoles(new UserRoleCriteria
             { ResourceId = resourceId, UserId = userId });
+
         if (userRoles.Any(x => x.Role.RoleId == roleId))
             throw new AlreadyExistsException("Users");
 
@@ -197,10 +189,8 @@ public class TeamService(
             foreach (var userRole in replacedRoles)
                 await VerifyWritePermissionOnRole(caller, resourceId, userRole.Role.RoleId);
 
-        // add to role
         await roleProvider.AddUserRole(resourceId: resourceId, roleId: roleId, userId: userId);
 
-        // remove from the roles it replaces
         foreach (var userRole in replacedRoles)
             await RemoveUser(resourceId, userRole.Role.RoleId, userId);
 
@@ -245,7 +235,6 @@ public class TeamService(
         string? search = null, string? firstName = null, string? lastName = null, bool? isBot = null,
         int recordIndex = 0, int? recordCount = null)
     {
-        // get userRoles
         var userRoleList = await roleProvider.GetUserRoles(
             new UserRoleCriteria { ResourceId = resourceId, RoleId = roleId, UserId = userId });
 
@@ -254,6 +243,7 @@ public class TeamService(
         var rolesByUser = userRoleList.ToLookup(x => x.UserId);
         var userList = await userProvider.GetUsers(search: search, firstName: firstName, lastName: lastName,
             userIds: userRoleList.Select(x => x.UserId), isBot: isBot);
+
         var users = userList.Items
             .Select(x => new {
                 User = x,
@@ -263,7 +253,6 @@ public class TeamService(
             .Select(x => x.IsHidden ? HideProfile(x.User) : HideInternalFields(x.User))
             .ToDictionary(x => x.UserId);
 
-        // attach user to UserRoles
         var userRoles = userRoleList
             .Select(x => new TeamUserRole {
                 ResourceId = x.ResourceId,
@@ -275,15 +264,15 @@ public class TeamService(
             .OrderBy(x => x.User?.FirstName)
             .ToArray();
 
-        // filter user search
+        // a user filter drops the roles whose user it left out
         if (search != null || firstName != null || lastName != null || isBot != null)
-            userRoles = [.. userRoles.Where(x => x.User != null)];
+            userRoles = userRoles.Where(x => x.User != null).ToArray();
 
-        // create the result
         var ret = new ListResult<TeamUserRole> {
-            Items = [.. userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue)],
+            Items = userRoles.Skip(recordIndex).Take(recordCount ?? int.MaxValue).ToArray(),
             TotalCount = userRoles.Length
         };
+
         return ret;
     }
 
@@ -312,7 +301,7 @@ public class TeamService(
 
         return new TeamUser {
             User = IsProfileHidden(user, userRoles) ? HideProfile(user) : HideInternalFields(user),
-            Roles = [.. userRoles.Select(x => x.Role)]
+            Roles = userRoles.Select(x => x.Role).ToArray()
         };
     }
 
@@ -362,9 +351,11 @@ public class TeamService(
         foreach (var systemRole in systemRoles) {
             var permissions =
                 await roleProvider.GetRolePermissions(resourceId: rootResourceId, roleId: systemRole.RoleId);
+
             if (permissions.Contains(RolePermissions.RoleWrite)) {
                 var apiKey = await AddNewBot(rootResourceId, systemRole.RoleId,
                     new TeamAddBotParam { Name = $"TestAdmin_{Guid.NewGuid()}" });
+
                 return apiKey;
             }
         }
@@ -408,7 +399,7 @@ public class TeamService(
         if (!await CheckUserPermission(caller, resourceId, RolePermissions.RoleWrite))
             throw new UnauthorizedAccessException();
 
-        //Check AppTeamWriteOwner
+        // an owner's role takes the right to change the owners too
         if (await IsResourceOwnerRole(resourceId, roleId) &&
             !await CheckUserPermission(caller, resourceId, RolePermissions.RoleWriteOwner))
             throw new UnauthorizedAccessException();
@@ -419,27 +410,23 @@ public class TeamService(
     public async Task VerifyAppOwnerPolicy(ClaimsPrincipal caller, string resourceId, string userId,
         string targetRoleId, bool isAdding)
     {
-        // check is AllowOwnerSelfRemove allowed
         if (_teamControllersOptions.AllowOwnerSelfRemove)
             return;
 
-        // check is caller changing himself, however the id is written
+        // only the caller's own roles, however the id is written
         var callerUserId = await authorizationProvider.GetUserId(caller);
         if (!IsSameUserId(callerUserId, userId))
             return;
 
-        // check is caller the owner of the resource
         var callerUserRoles = await GetUserRoles(resourceId: resourceId, userId: callerUserId);
-        var isCallerOwner = false;
-        foreach (var callerUserRole in callerUserRoles.Items)
-            isCallerOwner |= await IsResourceOwnerRole(resourceId, callerUserRole.Role.RoleId);
-        if (!isCallerOwner)
+        if (!await HasOwnerRole(resourceId, callerUserRoles.Items))
             return;
 
         var exception =
             new InvalidOperationException(
                 "You are an owner and cannot give up your owner role yourself. Another owner can remove you or change your role. " +
                 "If you are the only one, make someone else an owner first.");
+
         var targetRoleIsOwner = await IsResourceOwnerRole(resourceId, targetRoleId);
 
         // check is owner going to remove himself; newRoleId can be any if AllowMultipleRoles is on because
@@ -450,10 +437,18 @@ public class TeamService(
             return;
         }
 
-        // MultiRole is not enable 
         if ((isAdding && !targetRoleIsOwner) || // Owners can't change his role to any other non owner role
-            (!isAdding && targetRoleIsOwner)) // Owners can't remove hos owner role
+            (!isAdding && targetRoleIsOwner)) // Owners can't remove his owner role
             throw exception;
+    }
+
+    private async Task<bool> HasOwnerRole(string resourceId, IEnumerable<TeamUserRole> userRoles)
+    {
+        foreach (var userRole in userRoles)
+            if (await IsResourceOwnerRole(resourceId, userRole.Role.RoleId))
+                return true;
+
+        return false;
     }
 
     public string GetRootResourceId()

@@ -6,11 +6,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace GrayMint.Authorization.UserManagement.UserProviders.Persistence;
 
-// ReSharper disable once PartialTypeWithSinglePart
-public partial class UserDbContext : DbContext
+public class UserDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "user";
-    internal virtual DbSet<UserModel> Users { get; set; } = null!;
+    internal virtual DbSet<UserModel> Users => Set<UserModel>();
 
     public UserDbContext()
     {
@@ -86,11 +85,5 @@ public partial class UserDbContext : DbContext
             entity.Property(e => e.PictureUrl)
                 .HasMaxLength(2000);
         });
-
-        // ReSharper disable once InvocationIsSkipped
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    // ReSharper disable once PartialMethodWithSinglePart
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

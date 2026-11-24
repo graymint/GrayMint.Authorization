@@ -24,7 +24,7 @@ public class SignInTest(TestContext testContext)
     public async Task FirstSignInTiesTheAccountToTheUserOfItsAddress()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.CreateUser("other@example.com");
 
@@ -46,7 +46,7 @@ public class SignInTest(TestContext testContext)
     public async Task AddressThatTheProviderDoesNotVouchForTiesNobody(bool? isEmailVerified)
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         await testHost.CreateUser(Email);
 
         var signIn = await testHost.SignIn(provider.CreateToken(new TestToken {
@@ -56,6 +56,7 @@ public class SignInTest(TestContext testContext)
             Email = Email,
             IsEmailVerified = isEmailVerified
         }), CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.EmailNotVerified), signIn.Status);
         Assert.IsNull(signIn.UserId);
 
@@ -67,7 +68,7 @@ public class SignInTest(TestContext testContext)
     public async Task SomeoneWhoIsNoUserIsRefusedUnlessPeopleMayRegister()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var refused = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.NotRegistered), refused.Status);
         using var response = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
@@ -76,7 +77,8 @@ public class SignInTest(TestContext testContext)
         // where they may, the first sign-in makes the user, with the address the provider vouched for
         await using var openHost = await TestHost.Create(new TestHostOptions {
             Providers = [provider], AllowSelfRegister = true
-        });
+        }, CancellationToken);
+
         var signIn = await openHost.SignIn(provider.CreateToken(new TestToken {
             Subject = Subject,
             Audience = TestProvider.ClientId,
@@ -85,6 +87,7 @@ public class SignInTest(TestContext testContext)
             IsEmailVerified = true,
             Name = "Someone"
         }), CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signIn.Status);
 
         await using var scope = openHost.Services.CreateAsyncScope();
@@ -103,11 +106,10 @@ public class SignInTest(TestContext testContext)
     public async Task SignUpMakesAUserOfSomeoneWhoIsNone()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var refused = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.NotRegistered), refused.Status);
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            Assert.IsNull(await scope.ServiceProvider.GetRequiredService<IUserProvider>().FindByEmail(Email));
+        Assert.IsNull(await testHost.FindUserByEmail(Email));
 
         var signUp = await testHost.SignUp(provider.CreateToken(new TestToken {
             Subject = Subject,
@@ -117,14 +119,13 @@ public class SignInTest(TestContext testContext)
             IsEmailVerified = true,
             Name = "Someone"
         }), CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signUp.Status);
 
-        await using (var scope = testHost.Services.CreateAsyncScope()) {
-            var user = await scope.ServiceProvider.GetRequiredService<IUserProvider>().GetByEmail(Email);
-            Assert.AreEqual(user.UserId, signUp.UserId);
-            Assert.AreEqual("Someone", user.Name);
-            Assert.IsTrue(user.IsEmailVerified);
-        }
+        var user = await testHost.GetUserByEmail(Email);
+        Assert.AreEqual(user.UserId, signUp.UserId);
+        Assert.AreEqual("Someone", user.Name);
+        Assert.IsTrue(user.IsEmailVerified);
 
         // the account is that user from then on: by its access tokens, by a sign-in, and by the step again
         using var response = await testHost.GetMe(provider.CreateAccessToken(Subject), CancellationToken);
@@ -146,12 +147,13 @@ public class SignInTest(TestContext testContext)
         using var provider = new TestProvider();
         await using var testHost = await TestHost.Create(new TestHostOptions {
             Providers = [provider], AllowSelfRegister = !isSignUp
-        });
+        }, CancellationToken);
 
         var idToken = provider.CreateIdToken(Subject, "SomeOne@Example.COM");
         var result = isSignUp
             ? await testHost.SignUp(idToken, CancellationToken)
             : await testHost.SignIn(idToken, CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), result.Status);
 
         await using var scope = testHost.Services.CreateAsyncScope();
@@ -167,7 +169,7 @@ public class SignInTest(TestContext testContext)
     public async Task UserMadeByTheirAddressTakesTheNameOfTheAccountThatIsTiedToThem()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         var namedUser = await testHost.CreateUser("named@example.com", "Named By The Service");
 
@@ -180,8 +182,10 @@ public class SignInTest(TestContext testContext)
 
         await using var scope = testHost.Services.CreateAsyncScope();
         var userProvider = scope.ServiceProvider.GetRequiredService<IUserProvider>();
-        Assert.AreEqual("Someone", (await userProvider.Get(user.UserId)).Name);
-        Assert.AreEqual("Named By The Service", (await userProvider.Get(namedUser.UserId)).Name);
+        var tiedUser = await userProvider.Get(user.UserId);
+        Assert.AreEqual("Someone", tiedUser.Name);
+        var tiedNamedUser = await userProvider.Get(namedUser.UserId);
+        Assert.AreEqual("Named By The Service", tiedNamedUser.Name);
     }
 
     // The step makes a user only of someone who is none. Whoever was made a user before, by their address,
@@ -190,7 +194,7 @@ public class SignInTest(TestContext testContext)
     public async Task SignUpOfSomeoneWhoIsAUserTiesThatUser()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
 
         var signUp = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
@@ -210,7 +214,7 @@ public class SignInTest(TestContext testContext)
     public async Task SignUpRefusesWhatASignInRefuses(string what, string expectedStatus)
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var token = what switch {
             "address not vouched for" => provider.CreateToken(new TestToken {
                 Subject = Subject,
@@ -239,20 +243,16 @@ public class SignInTest(TestContext testContext)
     public async Task SignUpTiesNoLockedUserAndNoUserOfAnotherAccount()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var lockedUser = await testHost.CreateUser(Email);
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
+        await testHost.UpdateUser(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
 
         var locked = await testHost.SignUp(provider.CreateIdToken(Subject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.UserDisabled), locked.Status);
         Assert.IsNull(locked.UserId);
 
         // it tied nothing: once the lock is off, the user is free for the account that comes then
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(false) });
+        await testHost.UpdateUser(lockedUser.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(false) });
 
         var other = await testHost.SignUp(provider.CreateIdToken(OtherSubject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), other.Status);
@@ -272,7 +272,8 @@ public class SignInTest(TestContext testContext)
         using var provider = new TestProvider();
         await using var testHost = await TestHost.Create(new TestHostOptions {
             Providers = [provider], AllowSelfRegister = true
-        });
+        }, CancellationToken);
+
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
@@ -293,7 +294,7 @@ public class SignInTest(TestContext testContext)
     public async Task TiedAccountIsFoundByItsIdWhateverItsAddressIsNow()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.CreateUser("other@example.com");
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
@@ -323,7 +324,7 @@ public class SignInTest(TestContext testContext)
     {
         using var provider = new TestProvider();
         using var stranger = new TestProvider("stranger");
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
 
         var idToken = what switch {
@@ -362,7 +363,7 @@ public class SignInTest(TestContext testContext)
     public async Task IdTokenThatOneOfTheServicesApplicationsAskedForIsTaken(bool isForSeveral)
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
 
         var signIn = await testHost.SignIn(provider.CreateToken(new TestToken {
@@ -374,6 +375,7 @@ public class SignInTest(TestContext testContext)
             IsEmailVerified = true,
             Claims = new Dictionary<string, object> { ["azp"] = TestProvider.ClientId }
         }), CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), signIn.Status);
         Assert.AreEqual(user.UserId, signIn.UserId);
     }
@@ -384,7 +386,7 @@ public class SignInTest(TestContext testContext)
     public async Task AccountIdIsTakenAsLongAsTheProtocolAllows()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         var longest = new string('a', 255);
         var tooLong = new string('a', 256);
@@ -407,11 +409,10 @@ public class SignInTest(TestContext testContext)
     public async Task AccountOfAUserThatIsGoneComesAsForTheFirstTime()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var goneUser = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>().Remove(goneUser.UserId);
+        await testHost.RemoveUser(goneUser.UserId);
 
         // nobody has the address now, so the account is nobody's
         var refused = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
@@ -423,6 +424,7 @@ public class SignInTest(TestContext testContext)
         var unverified = await testHost.SignIn(provider.CreateToken(new TestToken {
             Subject = Subject, Audience = TestProvider.ClientId, Type = "JWT", Email = Email, IsEmailVerified = false
         }), CancellationToken);
+
         Assert.AreEqual(nameof(OpenIdSignInStatus.EmailNotVerified), unverified.Status);
 
         var signIn = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
@@ -438,13 +440,11 @@ public class SignInTest(TestContext testContext)
     public async Task OnlyTheTieOfTheUserThatIsGoneIsTakenAway()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<UserBindingStore>()
-                .Remove(provider.Name, Subject, Guid.CreateVersion7().ToString(), CancellationToken);
+        await testHost.RemoveUserBinding(provider.Name, Subject, Guid.CreateVersion7().ToString(), CancellationToken);
 
         // read anew, and with no address that could tie the account again
         testHost.Services.GetRequiredService<UserAuthorizationCache>().ClearUserItems(user.UserId);
@@ -459,7 +459,7 @@ public class SignInTest(TestContext testContext)
     public async Task UserIsFoundByItsAddressInLowerCaseToo()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
 
         var signIn = await testHost.SignIn(provider.CreateIdToken(Subject, "SomeOne@example.com"), CancellationToken);
@@ -471,11 +471,9 @@ public class SignInTest(TestContext testContext)
     public async Task LockedUserCanNotSignIn()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
+        await testHost.UpdateUser(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
 
         var signIn = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.UserDisabled), signIn.Status);
@@ -483,9 +481,7 @@ public class SignInTest(TestContext testContext)
 
         // The refused sign-in tied nothing: once the lock is off, the user is still free for the account
         // that comes then, and is not the one's that tried while it was locked.
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(false) });
+        await testHost.UpdateUser(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(false) });
 
         var other = await testHost.SignIn(provider.CreateIdToken(OtherSubject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.Succeeded), other.Status);
@@ -497,12 +493,10 @@ public class SignInTest(TestContext testContext)
     public async Task LockedUserOfATiedAccountCanNotSignIn()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
-        await using (var scope = testHost.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<IUserProvider>()
-                .Update(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
+        await testHost.UpdateUser(user.UserId, new UserUpdateRequest { IsDisabled = new Patch<bool>(true) });
 
         var signIn = await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
         Assert.AreEqual(nameof(OpenIdSignInStatus.UserDisabled), signIn.Status);
@@ -515,7 +509,7 @@ public class SignInTest(TestContext testContext)
     public async Task IdTokenSignedWithANewKeyOfTheProviderIsTaken()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(OtherSubject, "nobody@example.com"), CancellationToken);
 
@@ -536,7 +530,7 @@ public class SignInTest(TestContext testContext)
     public async Task DatabaseTiesAUserToOneAccount()
     {
         using var provider = new TestProvider();
-        await using var testHost = await TestHost.Create(provider);
+        await using var testHost = await TestHost.Create(provider, CancellationToken);
         var user = await testHost.CreateUser(Email);
         await testHost.SignIn(provider.CreateIdToken(Subject, Email), CancellationToken);
 
@@ -571,6 +565,7 @@ public class SignInTest(TestContext testContext)
         var bindingType = dbContext.Model.GetEntityTypes().Single().ClrType;
         var binding = Activator.CreateInstance(bindingType) ??
                       throw new InvalidOperationException("The binding could not be made.");
+
         bindingType.GetProperty("Provider")?.SetValue(binding, providerName);
         bindingType.GetProperty("Subject")?.SetValue(binding, subject);
         bindingType.GetProperty("UserId")?.SetValue(binding, userId);

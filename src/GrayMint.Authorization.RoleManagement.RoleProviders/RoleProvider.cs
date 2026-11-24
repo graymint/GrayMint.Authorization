@@ -40,20 +40,17 @@ public class RoleProvider : IRoleProvider
 
     public async Task<UserRole> AddUserRole(string resourceId, string roleId, string userId)
     {
-        // validate role
+        // a system role is for the system resource alone, and a resource's role there would apply to every resource
         var role = _roles.Single(x => x.RoleId == roleId);
-        if (role.IsRoot && !IsRootResource(resourceId))
-            throw new InvalidOperationException(
-                $"The role of {role.RoleName} can only be added on the system resource.");
-
-        // a resource's role on the system resource would apply to every resource
-        if (!role.IsRoot && IsRootResource(resourceId))
-            throw new InvalidOperationException(
-                $"The role of {role.RoleName} can not be added on the system resource.");
+        if (role.IsRoot != IsRootResource(resourceId))
+            throw new InvalidOperationException(role.IsRoot
+                ? $"The role of {role.RoleName} can only be added on the system resource."
+                : $"The role of {role.RoleName} can not be added on the system resource.");
 
         // a member who has used the resource stays confirmed when their role changes
         var userGuid = Guid.Parse(userId);
-        var confirmedTime = (await GetUserRoleModels(userGuid, userId))
+        var userRoleModels = await GetUserRoleModels(userGuid, userId);
+        var confirmedTime = userRoleModels
             .Where(x => x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase))
             .Max(x => x.ConfirmedTime);
 
@@ -88,7 +85,6 @@ public class RoleProvider : IRoleProvider
         _roleDbContext.UserRoles.RemoveRange(userRoles);
         await _roleDbContext.SaveChangesAsync();
 
-        // Clear cache
         foreach (var userRole in userRoles)
             _userAuthorizationCache.ClearUserItems(userRole.UserId.ToString());
     }
@@ -97,7 +93,7 @@ public class RoleProvider : IRoleProvider
     {
         var isRoot = IsRootResource(resourceId);
         var roles = _roles.Where(x => x.IsRoot == isRoot)
-            .Select(x => (Role)x)
+            .Select(Role (x) => x)
             .ToArray();
 
         return Task.FromResult(roles);
@@ -107,14 +103,14 @@ public class RoleProvider : IRoleProvider
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.Single(x => x.RoleId == roleId && x.IsRoot == isRoot);
-        return Task.FromResult((Role)role);
+        return Task.FromResult<Role>(role);
     }
 
     public Task<Role?> FindRoleByName(string resourceId, string roleName)
     {
         var isRoot = IsRootResource(resourceId);
         var role = _roles.SingleOrDefault(x => x.RoleName == roleName && x.IsRoot == isRoot);
-        return Task.FromResult((Role?)role);
+        return Task.FromResult<Role?>(role);
     }
 
     public async Task<UserRole[]> GetUserRoles(UserRoleCriteria criteria)
@@ -148,7 +144,7 @@ public class RoleProvider : IRoleProvider
 
         var ret = new ListResult<UserRole> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
-            Items = [.. results.Select(x => x.ToDto(_roles))]
+            Items = results.Select(x => x.ToDto(_roles)).ToArray()
         };
 
         return ret;
@@ -161,7 +157,8 @@ public class RoleProvider : IRoleProvider
         if (!Guid.TryParse(userId, out var userGuid))
             return new ListResult<UserRole> { TotalCount = 0, Items = [] };
 
-        var userRoles = (await GetUserRoleModels(userGuid, userId))
+        var userRoleModels = await GetUserRoleModels(userGuid, userId);
+        var userRoles = userRoleModels
             .Where(x =>
                 (roleId == null || (Guid.TryParse(roleId, out var roleGuid) && x.RoleId == roleGuid)) &&
                 (resourceId == null || x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)))
@@ -170,7 +167,7 @@ public class RoleProvider : IRoleProvider
 
         var ret = new ListResult<UserRole> {
             TotalCount = userRoles.Length,
-            Items = [.. userRoles.Skip(recordIndex).Take(recordCount).Select(x => x.ToDto(_roles))]
+            Items = userRoles.Skip(recordIndex).Take(recordCount).Select(x => x.ToDto(_roles)).ToArray()
         };
 
         return ret;
@@ -178,10 +175,10 @@ public class RoleProvider : IRoleProvider
 
     // all of a user's roles, cached as they are read; none is kept only for a user the cache already holds, such
     // as the request's own, so a user without roles costs no read per request while ids of no one leave nothing
-    private Task<UserRoleModel[]> GetUserRoleModels(Guid userGuid, string userId)
+    private Task<IReadOnlyList<UserRoleModel>> GetUserRoleModels(Guid userGuid, string userId)
     {
-        return _userAuthorizationCache.GetOrCreateRequiredUserItemAsync(userId, "user-roles",
-            async entry => {
+        return _userAuthorizationCache.GetOrCreateRequiredUserItemAsync<IReadOnlyList<UserRoleModel>>(userId,
+            "user-roles", async entry => {
                 await using var trans = await _roleDbContext.WithNoLockTransaction();
                 var res = await _roleDbContext.UserRoles
                     .Where(x => x.UserId == userGuid)
@@ -201,9 +198,11 @@ public class RoleProvider : IRoleProvider
         if (!Guid.TryParse(userId, out var userGuid))
             return;
 
-        var userRoleModels = (await GetUserRoleModels(userGuid, userId))
+        var cachedUserRoleModels = await GetUserRoleModels(userGuid, userId);
+        var userRoleModels = cachedUserRoleModels
             .Where(x => x.ConfirmedTime == null && x.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase))
             .ToArray();
+
         if (userRoleModels.Length == 0)
             return;
 
@@ -237,26 +236,22 @@ public class RoleProvider : IRoleProvider
 
     private async Task<string[]> GetUserPermissionsInternal(string resourceId, string userId)
     {
-        // get roles for the resource and system resource
         var userRoles = await GetUserRoles(new UserRoleCriteria { ResourceId = resourceId, UserId = userId });
 
         // these are the user's own permissions, asked by their request, which confirms the membership
         if (userRoles.Any(x => x.ConfirmedTime == null))
             await ConfirmUserRoles(resourceId, userId);
 
-        // find roles
         var roles = _roles.Where(x => userRoles.Any(y => y.Role.RoleId == x.RoleId))
             .DistinctBy(x => x.RoleId);
 
-        // find permissions
         var permissions = roles.SelectMany(x => x.Permissions).ToList();
 
-        // add parent permissions
         var parentResourceId = await _roleResourceProvider.GetParentResourceId(resourceId) ?? RootResourceId;
         if (!IsRootResource(resourceId))
             permissions.AddRange(await GetUserPermissions(parentResourceId, userId));
 
-        return [.. permissions.Distinct()];
+        return permissions.Distinct().ToArray();
     }
 
     public Task<string[]> GetRolePermissions(string resourceId, string roleId)

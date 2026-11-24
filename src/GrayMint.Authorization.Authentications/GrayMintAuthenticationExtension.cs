@@ -25,9 +25,10 @@ public static class GrayMintAuthenticationExtension
             .AddJwtBearer(GrayMintAuthenticationDefaults.AuthenticationScheme, options => {
                 options.TokenValidationParameters =
                     GrayMintAuthentication.GetTokenValidationParameters(authenticationOptions);
+
                 options.Events = new JwtBearerEvents {
                     OnMessageReceived = context => {
-                        // read access_token from query string if Authorization is not exists and authorization exists
+                        // without an Authorization header, the token may come as the bearer_token query parameter
                         if (!context.Request.Headers.TryGetValue("Authorization", out _) &&
                             context.Request.Query.TryGetValue("bearer_token", out var token))
                             context.Token = token;
@@ -42,6 +43,7 @@ public static class GrayMintAuthenticationExtension
                         try {
                             var principal = context.Principal ??
                                             throw new AuthenticationException("Principal has not been validated.");
+
                             await tokenValidator.PostValidate(principal, TokenUse.Access);
                         }
                         catch (Exception ex) {
@@ -58,7 +60,7 @@ public static class GrayMintAuthenticationExtension
         return builder;
     }
 
-    // todo: for compatibility
+    // a token without a jti, as older ones are, gets one from its hash: PostValidate requires one
     private static void AddTokenIdIfNotExists(TokenValidatedContext context)
     {
         if (context.Principal == null || context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti) != null)

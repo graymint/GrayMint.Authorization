@@ -93,6 +93,7 @@ public static class OpenIdAuthenticationExtension
             OnTokenValidated = async context => {
                 var principal = context.Principal ??
                                 throw new InvalidOperationException("The checked token has no principal.");
+
                 var resolver = context.HttpContext.RequestServices.GetRequiredService<OpenIdUserResolver>();
                 if (!await resolver.TryResolve(provider.Name, principal, context.HttpContext.RequestAborted))
                     context.Fail("The account is tied to no user of this service.");

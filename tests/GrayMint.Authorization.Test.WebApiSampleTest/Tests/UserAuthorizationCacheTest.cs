@@ -24,6 +24,7 @@ public class UserAuthorizationCacheTest
         userAuthorizationCache.ClearUserItems(userId);
         var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "late",
             entry => CreateItem(entry, "fresh"));
+
         Assert.AreEqual("fresh", item);
     }
 
@@ -46,6 +47,7 @@ public class UserAuthorizationCacheTest
         userAuthorizationCache.ClearUserItems(userId);
         var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "item",
             entry => CreateItem(entry, "fresh"));
+
         Assert.AreEqual("fresh", item);
     }
 
@@ -63,6 +65,7 @@ public class UserAuthorizationCacheTest
 
         var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "item",
             entry => CreateItem(entry, "fresh"));
+
         Assert.AreEqual("fresh", item);
     }
 
@@ -94,12 +97,14 @@ public class UserAuthorizationCacheTest
                     UserAuthorizationCache.RefuseEntryForUncachedUser(entry);
                     return CreateItem(entry, "stale");
                 });
+
                 await Task.Yield();
                 throw new TimeoutException();
             }));
 
         var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "other",
             entry => CreateItem(entry, "fresh"));
+
         Assert.AreEqual("fresh", item);
     }
 
@@ -116,6 +121,7 @@ public class UserAuthorizationCacheTest
             entry.SetAbsoluteExpiration(TimeSpan.FromHours(2));
             return Task.FromResult("stale");
         });
+
         await userAuthorizationCache.GetOrCreateUserItemAsync(userId, "absolute", entry => {
             entry.SetAbsoluteExpiration(clock.UtcNow.AddHours(2));
             return Task.FromResult("stale");
@@ -125,6 +131,7 @@ public class UserAuthorizationCacheTest
         foreach (var itemKey in new[] { "relative", "absolute" }) {
             var item = await userAuthorizationCache.GetOrCreateUserItemAsync(userId, itemKey,
                 entry => CreateItem(entry, "fresh"));
+
             Assert.AreEqual("fresh", item);
         }
     }
@@ -136,15 +143,19 @@ public class UserAuthorizationCacheTest
         using var memoryCache = new MemoryCache(new MemoryCacheOptions { Clock = clock });
         var userAuthorizationCache = new UserAuthorizationCache(memoryCache);
 
-        // as the token validator does: the entry's own expiration first, then it becomes the user's item
-        using (var entry = memoryCache.CreateEntry("item")) {
-            entry.SetAbsoluteExpiration(TimeSpan.FromHours(2));
-            userAuthorizationCache.AddUserItem(Guid.NewGuid().ToString(), entry);
-            entry.Value = "stale";
-        }
-
+        AddItemAsTheTokenValidatorDoes(memoryCache, userAuthorizationCache, "item");
         clock.UtcNow += AuthorizationConstants.CacheTimeout + TimeSpan.FromMinutes(1);
         Assert.IsFalse(memoryCache.TryGetValue("item", out _));
+    }
+
+    // the entry's own expiration first, then it becomes the user's item; it is in the cache once disposed
+    private static void AddItemAsTheTokenValidatorDoes(IMemoryCache memoryCache,
+        UserAuthorizationCache userAuthorizationCache, string key)
+    {
+        using var entry = memoryCache.CreateEntry(key);
+        entry.SetAbsoluteExpiration(TimeSpan.FromHours(2));
+        userAuthorizationCache.AddUserItem(Guid.NewGuid().ToString(), entry);
+        entry.Value = "stale";
     }
 
     private static Task<string> CreateItem(ICacheEntry entry, string value)

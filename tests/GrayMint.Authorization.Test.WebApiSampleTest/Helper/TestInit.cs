@@ -32,13 +32,19 @@ public class TestInit : IDisposable
     // { "UseSqlite": false } to run against the real database from appsettings.json.
     private static readonly bool UseSqlite = TestSettings.UseSqlite;
     private readonly SqliteConnection? _sqliteConnection;
+    private readonly CancellationToken _cancellationToken;
+    private App? _app;
+    private ApiKey? _systemAdminApiKey;
     public WebApplicationFactory<Program> WebApp { get; }
     public HttpClient HttpClient { get; set; }
     public IServiceScope Scope { get; }
-    public App App { get; private set; } = null!;
+
+    public App App =>
+        _app ?? throw new InvalidOperationException("This test made no app, as it was created without a system admin.");
+
     public int AppId => App.AppId;
     public string AppResourceId => App.AppId.ToString();
-    public string RootResourceId => "*";
+    public static string RootResourceId => AuthorizationConstants.RootResourceId;
     public IResourceProvider ResourceProvider => Scope.ServiceProvider.GetRequiredService<IResourceProvider>();
     public IUserProvider UserProvider => Scope.ServiceProvider.GetRequiredService<IUserProvider>();
 
@@ -50,12 +56,16 @@ public class TestInit : IDisposable
     public TeamClient TeamClient => new(HttpClient);
     public CustomersClient CustomerClient => new(HttpClient);
     public AuthenticationClient AuthenticationClient => new(HttpClient);
-    public ApiKey SystemAdminApiKey { get; private set; } = null!;
 
+    public ApiKey SystemAdminApiKey =>
+        _systemAdminApiKey ??
+        throw new InvalidOperationException("This test made no system admin, as it was created without one.");
 
     private TestInit(Dictionary<string, string?> appSettings, string environment, bool useResourceProvider,
-        HandedOutUsers? handedOutUsers)
+        HandedOutUsers? handedOutUsers, CancellationToken cancellationToken)
     {
+        _cancellationToken = cancellationToken;
+
         // IgnoreDb tells the sample's Program to skip its SqlServer registrations; every context
         // is then re-registered below on the shared SQLite connection.
         if (UseSqlite) {
@@ -100,11 +110,12 @@ public class TestInit : IDisposable
 
     private async Task Init()
     {
-        SystemAdminApiKey =
-            await TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(AuthenticationOptions.Secret));
-        HttpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
-        App = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() });
+        _systemAdminApiKey = await TeamClient.CreateSystemApiKeyAsync(
+            Convert.ToBase64String(AuthenticationOptions.Secret), _cancellationToken);
+
+        SetApiKey(_systemAdminApiKey);
+        _app = await AppsClient.CreateAppAsync(new AppCreateRequest { AppName = Guid.NewGuid().ToString() },
+            _cancellationToken);
     }
 
     public async Task<ApiKey> AddNewBot(GmRole gmRole, bool setAsCurrent = true, object? resourceId = null)
@@ -113,9 +124,9 @@ public class TestInit : IDisposable
         HttpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(SystemAdminApiKey.AccessToken.Scheme, SystemAdminApiKey.AccessToken.Value);
 
-        resourceId ??= gmRole.IsRoot ? RootResourceId : AppResourceId;
-        var apiKey = await TeamClient.AddNewBotAsync(resourceId.ToString()!, gmRole.RoleId,
-            new TeamAddBotParam { Name = Guid.NewGuid().ToString() });
+        var botResourceId = resourceId?.ToString() ?? (gmRole.IsRoot ? RootResourceId : AppResourceId);
+        var apiKey = await TeamClient.AddNewBotAsync(botResourceId, gmRole.RoleId,
+            new TeamAddBotParam { Name = Guid.NewGuid().ToString() }, _cancellationToken);
 
         HttpClient.DefaultRequestHeaders.Authorization = setAsCurrent
             ? new AuthenticationHeaderValue(apiKey.AccessToken.Scheme, apiKey.AccessToken.Value)
@@ -127,12 +138,14 @@ public class TestInit : IDisposable
     public async Task<TeamUserRole> AddNewUser(GmRole gmRole)
     {
         var resourceId = gmRole.IsRoot ? RootResourceId : AppResourceId;
-        var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, gmRole.RoleId, NewEmail());
+        var teamUserRole = await TeamClient.AddUserByEmailAsync(resourceId, gmRole.RoleId, NewEmail(),
+            cancellationToken: _cancellationToken);
+
         return teamUserRole;
     }
 
     public async Task<string> CreateUnregisteredUserIdToken(
-        string? email = null, Claim[]? claims = null, bool isEmailVerified = true)
+        string? email = null, IReadOnlyList<Claim>? claims = null, bool isEmailVerified = true)
     {
         email ??= NewEmail();
 
@@ -146,12 +159,12 @@ public class TestInit : IDisposable
         return token.Value;
     }
 
-    public async Task<ApiKey> SignUpNewUser(string? email = null, Claim[]? claims = null,
+    public async Task<ApiKey> SignUpNewUser(string? email = null, IReadOnlyList<Claim>? claims = null,
         bool setAsCurrent = true, RefreshTokenType refreshTokenType = RefreshTokenType.None)
     {
         var idToken = await CreateUnregisteredUserIdToken(email, claims);
         var apiKey = await AuthenticationClient.SignUpAsync(
-            new SignUpRequest { IdToken = idToken, RefreshTokenType = refreshTokenType });
+            new SignUpRequest { IdToken = idToken, RefreshTokenType = refreshTokenType }, _cancellationToken);
 
         if (setAsCurrent) SetApiKey(apiKey);
         return apiKey;
@@ -175,12 +188,13 @@ public class TestInit : IDisposable
     // handedOutUsers: the user provider keeps there each user it hands out
     public static async Task<TestInit> Create(Dictionary<string, string?>? appSettings = null,
         string environment = "Development", bool allowUserMultiRole = false,
-        bool useResourceProvider = false, bool createSystemAdmin = true, HandedOutUsers? handedOutUsers = null)
+        bool useResourceProvider = false, bool createSystemAdmin = true, HandedOutUsers? handedOutUsers = null,
+        CancellationToken cancellationToken = default)
     {
         appSettings ??= new Dictionary<string, string?>();
         appSettings["TeamController:AllowUserMultiRole"] = allowUserMultiRole.ToString();
         appSettings["App:UseResourceProvider"] = useResourceProvider.ToString();
-        var testInit = new TestInit(appSettings, environment, useResourceProvider, handedOutUsers);
+        var testInit = new TestInit(appSettings, environment, useResourceProvider, handedOutUsers, cancellationToken);
         if (!createSystemAdmin)
             return testInit;
 

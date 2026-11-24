@@ -25,6 +25,7 @@ public class OpenIdAuthenticationOptions
             var isWebAddress = Uri.TryCreate(provider.Issuer, UriKind.Absolute, out var issuer) &&
                                (issuer.Scheme == Uri.UriSchemeHttps ||
                                 (provider.AllowInsecureHttp && issuer.Scheme == Uri.UriSchemeHttp));
+
             if (!isWebAddress)
                 throw new InvalidOperationException(
                     $"The Issuer of the OpenID provider '{provider.Name}' must be an https address. It is '{provider.Issuer}'.");

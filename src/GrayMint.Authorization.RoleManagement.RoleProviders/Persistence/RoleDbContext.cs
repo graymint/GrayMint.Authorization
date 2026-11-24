@@ -6,12 +6,11 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace GrayMint.Authorization.RoleManagement.RoleProviders.Persistence;
 
-// ReSharper disable once PartialTypeWithSinglePart
-public partial class RoleDbContext : DbContext
+public class RoleDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "role";
 
-    internal virtual DbSet<UserRoleModel> UserRoles { get; set; } = null!;
+    internal virtual DbSet<UserRoleModel> UserRoles => Set<UserRoleModel>();
 
     public RoleDbContext()
     {
@@ -65,11 +64,5 @@ public partial class RoleDbContext : DbContext
             entity.Property(x => x.ResourceId)
                 .HasMaxLength(100);
         });
-
-        // ReSharper disable once InvocationIsSkipped
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    // ReSharper disable once PartialMethodWithSinglePart
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

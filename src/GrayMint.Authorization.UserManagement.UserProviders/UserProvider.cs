@@ -38,6 +38,7 @@ public class UserProvider(
             IsBot = request.IsBot,
             ExData = request.ExData
         });
+
         await userDbContext.SaveChangesAsync();
 
         memoryCache.Remove(GetCacheKeyForEmail(request.Email));
@@ -103,15 +104,14 @@ public class UserProvider(
 
         // the cached user takes the new time too, or each request until that copy expires would write it again
         var user = await FindUserModel(userId);
-        if (user != null)
-            user.AccessedTime = accessedTime;
+        user?.AccessedTime = accessedTime;
     }
 
     public async Task Remove(string userId)
     {
         userDbContext.ChangeTracker.Clear();
 
-        var user = userDbContext.Users.Single(x => x.UserId == Guid.Parse(userId));
+        var user = await userDbContext.Users.SingleAsync(x => x.UserId == Guid.Parse(userId));
         userDbContext.Users.Remove(user);
         await userDbContext.SaveChangesAsync();
         userAuthorizationCache.ClearUserItems(userId);
@@ -173,7 +173,7 @@ public class UserProvider(
 
         var ret = new ListResult<User> {
             TotalCount = results.Length < recordCount ? recordIndex + results.Length : await query.CountAsync(),
-            Items = [.. results.Select(x => x.ToDto())]
+            Items = results.Select(x => x.ToDto()).ToArray()
         };
 
         return ret;

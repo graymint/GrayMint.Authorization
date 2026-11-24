@@ -19,6 +19,7 @@ internal static class UserRoleConverter
                        Description = string.Empty
                    }
         };
+
         return userRole;
     }
 }

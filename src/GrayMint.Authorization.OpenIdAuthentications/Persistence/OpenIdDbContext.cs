@@ -4,15 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GrayMint.Authorization.OpenIdAuthentications.Persistence;
 
-// ReSharper disable once PartialTypeWithSinglePart
-public partial class OpenIdDbContext : DbContext
+public class OpenIdDbContext : DbContext
 {
     public const string Schema = AuthorizationConstants.DatabaseSchemePrefix + "openid";
 
     // the longest id of an account that OpenID Connect allows
     public const int MaxSubjectLength = 255;
 
-    internal virtual DbSet<UserBindingModel> UserBindings { get; set; } = null!;
+    internal virtual DbSet<UserBindingModel> UserBindings => Set<UserBindingModel>();
 
     public OpenIdDbContext()
     {
@@ -59,11 +58,5 @@ public partial class OpenIdDbContext : DbContext
             entity.HasIndex(x => x.UserId)
                 .IsUnique();
         });
-
-        // ReSharper disable once InvocationIsSkipped
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    // ReSharper disable once PartialMethodWithSinglePart
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

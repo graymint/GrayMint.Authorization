@@ -11,6 +11,7 @@ public sealed class TestProviderHandler(IReadOnlyList<TestProvider> providers) :
         var address = request.RequestUri ?? throw new InvalidOperationException("The request has no address.");
         var response = providers.Select(x => x.Answer(address)).FirstOrDefault(x => x != null) ??
                        new HttpResponseMessage(HttpStatusCode.NotFound);
+
         return Task.FromResult(response);
     }
 }

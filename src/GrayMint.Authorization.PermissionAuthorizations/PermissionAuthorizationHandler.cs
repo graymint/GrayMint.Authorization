@@ -29,13 +29,12 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
 
     public static string GetResourceId(object? resource, string? resourceRoute)
     {
-        if (resource is string permissionResource)
-            return permissionResource;
-
-        if (resource is HttpContext httpContext)
-            return BuildResourceByRouteData(httpContext, resourceRoute ?? AuthorizationConstants.RootResourceId);
-
-        return AuthorizationConstants.RootResourceId;
+        return resource switch {
+            string permissionResource => permissionResource,
+            HttpContext httpContext =>
+                BuildResourceByRouteData(httpContext, resourceRoute ?? AuthorizationConstants.RootResourceId),
+            _ => AuthorizationConstants.RootResourceId
+        };
     }
 
     protected override Task HandleRequirementAsync(
@@ -43,19 +42,16 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionAut
         PermissionAuthorizationRequirement requirement)
     {
         try {
-            // get resource id 
             var resourceId = GetResourceId(context.Resource, requirement.ResourceRoute);
             var requiredClaim = PermissionAuthorization.BuildPermissionClaim(resourceId, requirement.Permission);
             var requiredRootClaim =
                 PermissionAuthorization.BuildPermissionClaim(AuthorizationConstants.RootResourceId,
                     requirement.Permission);
 
-            // check user has requiredClaim
             var succeeded =
                 context.User.Claims.Any(x => x.Type == requiredClaim.Type && x.Value == requiredClaim.Value) ||
                 context.User.Claims.Any(x => x.Type == requiredRootClaim.Type && x.Value == requiredRootClaim.Value);
 
-            // result
             if (succeeded)
                 context.Succeed(requirement);
             else

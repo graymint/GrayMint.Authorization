@@ -19,7 +19,6 @@ namespace GrayMint.Authorization.Authentications.Controllers.Controllers;
 /// `Authorization: Bearer &lt;token&gt;` with every other request, and, if asked for, a refresh token that gets a new
 /// one when it expires.
 /// </remarks>
-// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [ApiController]
 [Authorize]
 [Route("/api/authentication")]
@@ -138,14 +137,13 @@ public class AuthenticationController(
     [AllowAnonymous]
     public async Task<IActionResult> GoogleSignInHandler()
     {
-        // read all request to string
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var queryString = await reader.ReadToEndAsync();
 
-        // read queryString to dictionary
         var queryDictionary = HttpUtility.ParseQueryString(queryString);
         var externalIdToken =
             queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
+
         var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"]);
         return Redirect(url.ToString());
     }

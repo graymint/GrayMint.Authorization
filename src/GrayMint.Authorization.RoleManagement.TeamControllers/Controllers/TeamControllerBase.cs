@@ -16,7 +16,6 @@ namespace GrayMint.Authorization.RoleManagement.TeamControllers.Controllers;
 /// A role gives its holder the role's permissions on the resource. Changing the team takes the permission to change
 /// it, and an owner's role only an owner can give or take.
 /// </remarks>
-// ReSharper disable once RouteTemplates.RouteParameterConstraintNotResolved
 [Authorize]
 [Route("/api/team")]
 public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService teamService)
@@ -136,8 +135,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
 
         var ret = new ListResult<TUserRole> {
             TotalCount = userRoles.TotalCount,
-            Items = [.. userRoles.Items.Select(ToDto)]
+            Items = userRoles.Items.Select(ToDto).ToArray()
         };
+
         return ret;
     }
 
@@ -154,8 +154,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         var userByEmail = await teamService.GetUser(resourceId, userId);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = [.. userByEmail.Roles.Select(ToDto)]
+            Roles = userByEmail.Roles.Select(ToDto).ToArray()
         };
+
         return ret;
     }
 
@@ -172,8 +173,9 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         var userByEmail = await teamService.GetUserByEmail(resourceId, email);
         var ret = new TeamUser<TUser, TRole> {
             User = ToDto(userByEmail.User),
-            Roles = [.. userByEmail.Roles.Select(ToDto)]
+            Roles = userByEmail.Roles.Select(ToDto).ToArray()
         };
+
         return ret;
     }
 
@@ -241,7 +243,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
     public async Task<TUserRole> AddUser(string resourceId, string roleId, string userId)
     {
         await VerifyWritePermissionOnRole(resourceId, roleId);
-        //await VerifyWritePermissionOnUser(resourceId, userId); any user can be added to a resource except bots
+        // any user may be added to a resource, so the user needs no write check; a bot does, below
         await VerifyAppOwnerPolicy(resourceId, userId, roleId, true);
 
         // check write permission on bot; the answers tell no one, a bot out of reach and a person apart, left so:
@@ -289,8 +291,7 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         return res;
     }
 
-    // ReSharper disable once UnusedMethodReturnValue.Local
-    private async Task<IEnumerable<TeamUserRole>> VerifyWritePermissionOnBot(string userId)
+    private async Task VerifyWritePermissionOnBot(string userId)
     {
         // one bare 403 for all but a bot in the caller's full reach, so the answer tells nothing of a user out of
         // reach, nor whether a teammate who is no bot belongs elsewhere too
@@ -302,8 +303,6 @@ public abstract class TeamControllerBase<TUser, TUserRole, TRole>(TeamService te
         var resourceIds = userRoles.Items.Select(x => x.ResourceId).Distinct();
         foreach (var resId in resourceIds)
             await teamService.VerifyWritePermissionOnUser(User, resId, userId);
-
-        return userRoles.Items;
     }
 
     private static string ToResourceId(string resourceId)

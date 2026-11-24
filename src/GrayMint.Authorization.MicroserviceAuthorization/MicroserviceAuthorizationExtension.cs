@@ -33,17 +33,13 @@ public static class MicroserviceAuthorizationExtension
         {
             var services = builder.Services;
 
-            // add authentication
             builder.Services
                 .AddAuthentication()
                 .AddGrayMintAuthentication(authenticationOptions, builder.Environment.IsProduction());
 
-            // support permission authorization
             builder.Services.AddGrayMintPermissionAuthorization();
 
-            // add Authorization
             builder.Services.AddAuthorization(options => {
-                // create default policy
                 var policyBuilder = new AuthorizationPolicyBuilder();
                 policyBuilder.RequireAuthenticatedUser();
                 policyBuilder.AddAuthenticationSchemes(GrayMintAuthenticationDefaults.AuthenticationScheme);
@@ -53,7 +49,6 @@ public static class MicroserviceAuthorizationExtension
                 options.DefaultPolicy = defaultPolicy;
             });
 
-            // users
             services
                 .AddScoped<IAuthorizationProvider, TAuthorizationProvider>()
                 .AddScoped<MicroserviceAuthorizationService>();

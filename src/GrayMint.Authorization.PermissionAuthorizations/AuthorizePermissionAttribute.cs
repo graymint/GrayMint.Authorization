@@ -14,7 +14,6 @@ public class AuthorizePermissionAttribute(string permission)
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
-        // authorize
         var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
         var requirement = new PermissionAuthorizationRequirement {
             Permission = permission,
@@ -23,6 +22,7 @@ public class AuthorizePermissionAttribute(string permission)
 
         var result =
             await authorizationService.AuthorizeAsync(context.HttpContext.User, context.HttpContext, requirement);
+
         if (!result.Succeeded)
             context.Result = new StatusCodeResult(StatusCodes.Status403Forbidden);
     }

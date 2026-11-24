@@ -72,11 +72,11 @@ public class GrayMintAuthenticationOptions
         if (string.IsNullOrEmpty(Issuer))
             throw new Exception($"{nameof(Issuer)} has not been set in {nameof(GrayMintAuthenticationOptions)}.");
 
-        if (Secret == null! || Secret.Length == 0)
+        // options bound from configuration may still lack a required member
+        if (Secret is not { Length: > 0 })
             throw new Exception($"{nameof(Secret)} has not been set in {nameof(GrayMintAuthenticationOptions)}.");
 
         if (isProduction && Secret.All(x => x == 0))
             throw new Exception($"{nameof(Secret)} value is not valid for Production..");
-
     }
 }

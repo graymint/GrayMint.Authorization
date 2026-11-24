@@ -14,7 +14,10 @@ public class GmRole : Role
             .GetProperties(BindingFlags.Public | BindingFlags.Static)
             .Where(x => x.PropertyType == typeof(GmRole));
 
-        var roles = properties.Select(propertyInfo => (GmRole)propertyInfo.GetValue(null)!);
-        return [.. roles];
+        return properties
+            .Select(propertyInfo => propertyInfo.GetValue(null) as GmRole ??
+                                    throw new InvalidOperationException(
+                                        $"The role {type.Name}.{propertyInfo.Name} has no value."))
+            .ToArray();
     }
 }
