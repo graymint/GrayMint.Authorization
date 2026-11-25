@@ -8,8 +8,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common.AspNetCore" Version="3.0.1" />
-		<PackageReference Include="GrayMint.Common.OpenApi" Version="3.0.1" />
+		<PackageReference Include="GrayMint.Common.AspNetCore" Version="3.0.4" />
+		<PackageReference Include="GrayMint.Common.OpenApi" Version="3.0.4" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
 	</ItemGroup>
