@@ -1,12 +1,19 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Claims;
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
 using Amazon.Runtime;
+using GrayMint.Authorization.Abstractions;
+using GrayMint.Authorization.Authentications;
+using GrayMint.Authorization.Authentications.Utils;
 using GrayMint.Authorization.Test.WebApiSample.Security;
 using GrayMint.Authorization.Test.WebApiSampleTest.Helper;
 using GrayMint.Common.Test.Api;
 using GrayMint.Common.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using TokenUse = GrayMint.Authorization.Authentications.Dtos.TokenUse;
 
 namespace GrayMint.Authorization.Test.WebApiSampleTest.Tests;
 
@@ -60,15 +67,22 @@ public class AwsCognitoTest : TestBase
     public async Task Failed_on_expired_token()
     {
         using var testInit = await CreateTestInit();
+        var email = $"{Guid.NewGuid()}@example.com";
+        await testInit.SignUpNewUser(email, setAsCurrent: false);
 
-        // a token, not words to spell-check
-        // ReSharper disable StringLiteralTypo
-        const string expiredIdToken =
-            "eyJhbGciOiJSUzI1NiIsImtpZCI6ImY4MzNlOGE3ZmUzZmU0Yjg3ODk0ODIxOWExNjg0YWZhMzczY2E4NmYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI5OTMwMjQ4NTUyMzMtbjVzdmhuMWlzMWR0cm1za21qanRzZzM3dXBqY3BwNjAuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI5OTMwMjQ4NTUyMzMtbjVzdmhuMWlzMWR0cm1za21qanRzZzM3dXBqY3BwNjAuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDkwMDk2MDgxNTg5OTI1Nzg1MjMiLCJlbWFpbCI6Im1hZG5pazdAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5vbmNlIjoiMTExMTExMTExMTExMTExMTEiLCJuYmYiOjE2OTk4NTIyMTMsIm5hbWUiOiJNb2hhbW1hZCBOaWtyYXZhbiIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NJM3lWdzljRmRsTUp4Tk1aRnVBR0tEM1d1Q04zWHdOWTkzVjQxVU53WGFzeEdHPXM5Ni1jIiwiZ2l2ZW5fbmFtZSI6Ik1vaGFtbWFkIiwiZmFtaWx5X25hbWUiOiJOaWtyYXZhbiIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNjk5ODUyNTEzLCJleHAiOjE2OTk4NTYxMTMsImp0aSI6ImE3NzA1OTllMDM4MzgyODI0YjMyMmI5MGI5OWM0ZmM3NjdjMGNkOWMifQ.i8RZX6zkrnqK7bc8OPGyiCbt5EYs44spvysieJqiUSJ4LK_uf3H0Rk4_ZWwXitByKEVMwjrtsnr9QikjxbKuA7rV93NzwQhLXIx7C5fl97-GcDaufPHJNLvXzFjFKy4FycLBFiYvjy6ctq40OWodQDmO0jqHY-m-n7vgV07z0j59wNPZ36gush7O7kjhqqHhKNXRyX_k6tzLJLFBt4R7JEABYLllL1xmZbpWhY2msMQ8BJaSXvpIbjU8NnHc2ISfatt0ArZxyvQ6RuGVSfSHws6CwyJYzqT5wbIINTeC7ktdM1rY-_HbxZTC09qO0CPazgwvpfsvxvWlWZKs5dqTaw";
+        // the same user's id tokens, signed by this service: a fresh one signs in, one that ran out an hour ago,
+        // past the validation's clock skew, does not
+        var claimsIdentity = new ClaimsIdentity([
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(GrayMintClaimTypes.EmailVerified, "true")
+        ]);
+        var grayMintAuthentication = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintAuthentication>();
+        var idToken = await grayMintAuthentication.CreateIdToken(claimsIdentity, cancellationToken: TestCt);
+        await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken.Value });
 
-        // ReSharper restore StringLiteralTypo
-
+        var expiredIdToken = await grayMintAuthentication.CreateToken(claimsIdentity, null, TokenUse.Id,
+            JwtUtil.UtcNow.AddHours(-1), TestCt);
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
-            testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = expiredIdToken }));
+            testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = expiredIdToken.Value }));
     }
 }
