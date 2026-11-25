@@ -145,7 +145,7 @@ public class AuthenticationController(
 
         var queryDictionary = HttpUtility.ParseQueryString(queryString);
         var externalIdToken =
-            queryDictionary["credential"] ?? throw new AuthenticationException("Email is not verified.");
+            queryDictionary["credential"] ?? throw new AuthenticationException("Google sent no credential.");
 
         var url = await grayMintAuthentication.GetSignInRedirectUrl(externalIdToken, queryDictionary["g_csrf_token"],
             cancellationToken);

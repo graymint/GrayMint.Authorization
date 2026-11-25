@@ -1,7 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
-using GrayMint.Authorization.Abstractions;
 
 namespace GrayMint.Authorization.Authentications.Utils;
 
@@ -47,7 +46,7 @@ public static class ClaimUtil
 
     public static string GetRequiredClaimString(ClaimsIdentity claimsIdentity, string type)
     {
-        return claimsIdentity.FindFirst(GrayMintClaimTypes.RefreshTokenType)?.Value
+        return claimsIdentity.FindFirst(type)?.Value
                ?? throw new AuthenticationException($"Could not find {type} claim.");
     }
 

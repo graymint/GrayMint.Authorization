@@ -216,8 +216,9 @@ public class GrayMintTokenValidator(
                 ? claimsIdentity
                 : throw new AuthenticationException("This is not an id token.");
         }
-        catch (Exception ex) {
-            throw new AuthenticationException(ex.Message);
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested) {
+            // a cancel stays a cancel, not a failed sign-in
+            throw new AuthenticationException(ex.Message, ex);
         }
     }
 
@@ -230,8 +231,9 @@ public class GrayMintTokenValidator(
                 ? claimsIdentity
                 : throw new AuthenticationException("This is not an id token.");
         }
-        catch (Exception ex) {
-            throw new AuthenticationException(ex.Message);
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested) {
+            // a cancel stays a cancel, not a failed sign-in
+            throw new AuthenticationException(ex.Message, ex);
         }
     }
 

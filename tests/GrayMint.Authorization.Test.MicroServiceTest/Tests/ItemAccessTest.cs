@@ -70,4 +70,19 @@ public class ItemAccessTest : TestBase
         await TestUtil.AssertApiException(HttpStatusCode.Unauthorized,
             testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId));
     }
+
+    [TestMethod]
+    public async Task An_items_update_is_kept()
+    {
+        using var testInit = await CreateTestInit();
+        var apiKey = await testInit.AuthorizationClient.ResetUserApiKeyAsync(testInit.AppId.ToString());
+        testInit.SetApiKey(apiKey);
+        var item = await testInit.ItemsClient.CreateAsync(testInit.AppId);
+
+        var itemName = Guid.NewGuid().ToString();
+        await testInit.ItemsClient.UpdateAsync(testInit.AppId, item.ItemId, new ItemUpdateRequest { ItemName = itemName });
+
+        var stored = await testInit.ItemsClient.GetAsync(testInit.AppId, item.ItemId);
+        Assert.AreEqual(itemName, stored.ItemName);
+    }
 }

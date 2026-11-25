@@ -35,6 +35,7 @@ public class ItemService(AppDbContext appDbContext)
             .SingleAsync(x => x.AppId == appId && x.ItemId == itemId);
 
         if (updateRequest.ItemName != null) item.ItemName = updateRequest.ItemName;
+        await appDbContext.SaveChangesAsync();
         return item.ToDto();
     }
 

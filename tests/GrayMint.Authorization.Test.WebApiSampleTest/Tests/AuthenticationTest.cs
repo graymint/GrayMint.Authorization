@@ -632,4 +632,59 @@ public class AuthenticationTest : TestBase
         await TestUtil.AssertApiException(HttpStatusCode.Forbidden,
             testInit.TeamClient.CreateSystemApiKeyAsync(Convert.ToBase64String(testInit.AuthenticationOptions.Secret)));
     }
+
+    [TestMethod]
+    public void A_required_claim_is_read_by_its_type()
+    {
+        var claimsIdentity = new ClaimsIdentity([
+            new Claim("app_name", "tasks"),
+            new Claim(GrayMintClaimTypes.RefreshTokenType, "web")
+        ]);
+
+        Assert.AreEqual("tasks", ClaimUtil.GetRequiredClaimString(claimsIdentity, "app_name"));
+    }
+
+    [TestMethod]
+    public async Task Sign_in_takes_the_phone_its_claims_carry()
+    {
+        using var testInit = await CreateTestInit();
+
+        // a user whose name is the number the sign-in brings, as the phone was compared with the name
+        const string phone = "+15550100";
+        var email = $"{Guid.NewGuid()}@example.com";
+        await testInit.SignUpNewUser(email, claims: [new Claim(ClaimTypes.Name, phone)]);
+        var idToken = await testInit.CreateUnregisteredUserIdToken(email,
+            claims: [new Claim(ClaimTypes.Name, phone), new Claim(ClaimTypes.MobilePhone, phone)]);
+        testInit.SetApiKey(await testInit.AuthenticationClient.SignInAsync(new SignInRequest { IdToken = idToken }));
+
+        var user = await testInit.AuthenticationClient.GetCurrentUserAsync();
+        Assert.AreEqual(phone, user.Phone);
+    }
+
+    [TestMethod]
+    public async Task A_token_check_keeps_the_cause_of_its_failure()
+    {
+        using var testInit = await CreateTestInit();
+        var tokenValidator = testInit.Scope.ServiceProvider.GetRequiredService<GrayMintTokenValidator>();
+
+        var idTokenError = await Assert.ThrowsAsync<AuthenticationException>(() =>
+            tokenValidator.ValidateIdToken("not a token", TestCt));
+        Assert.IsNotNull(idTokenError.InnerException);
+
+        var openIdTokenError = await Assert.ThrowsAsync<AuthenticationException>(() =>
+            tokenValidator.ValidateOpenIdToken("not a token", TestCt));
+        Assert.IsNotNull(openIdTokenError.InnerException);
+    }
+
+    [TestMethod]
+    public async Task Google_sign_in_without_a_credential_says_so()
+    {
+        using var testInit = await CreateTestInit();
+
+        using var response = await testInit.HttpClient.PostAsync("/api/authentication/external/google/signin-handler",
+            new StringContent("g_csrf_token=x"));
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains("Google sent no credential.", body);
+    }
 }

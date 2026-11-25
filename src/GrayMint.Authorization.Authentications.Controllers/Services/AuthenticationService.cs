@@ -99,7 +99,7 @@ public class AuthenticationService(
         }
 
         var phone = claimsPrincipal.FindFirstValue(ClaimTypes.MobilePhone);
-        if (phone != null && user.Name != phone) {
+        if (phone != null && user.Phone != phone) {
             updateRequest.Phone = phone;
             isUpdated = true;
         }
