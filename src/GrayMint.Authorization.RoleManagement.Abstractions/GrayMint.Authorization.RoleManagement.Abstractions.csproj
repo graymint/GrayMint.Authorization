@@ -5,7 +5,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GrayMint.Common" Version="3.0.6" />
+		<PackageReference Include="GrayMint.Common" Version="3.0.7" />
 	</ItemGroup>
 
 
